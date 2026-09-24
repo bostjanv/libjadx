@@ -42,6 +42,14 @@ Shutdown changes lifecycle without waiting for a Jadx rebuild to finish. The
 ordinary shutdown wait remains bounded to five seconds, while a blocked rebuild
 finishes cleanup when it returns. Fatal JVM errors in either rebuild path are
 supervised through a nonzero process exit.
+An admitted explicit save keeps exclusive project-operation ownership while
+native I/O runs, but does not hold the lifecycle lock. Shutdown can therefore
+stop new admissions and apply the same bounded wait; a save that finishes after
+that wait still completes its native write and releases its in-flight slot.
+Project reads recheck lifecycle after waiting on the native repository, so a
+read queued behind a save cannot delay the shutdown transition. The internal
+code-data edit seam likewise performs Jadx reload outside the lifecycle lock
+and defers primary-engine cleanup until that reload finishes.
 
 Save uses ordinary native JSON writing semantics. If a process stops during a
 write, the file may be truncated; users should keep their own backup for

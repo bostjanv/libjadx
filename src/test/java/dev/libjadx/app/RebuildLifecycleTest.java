@@ -17,14 +17,18 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.libjadx.core.ProjectSnapshot;
 import dev.libjadx.http.HttpApiServer;
 import dev.libjadx.project.NativeProjectDocument;
+import dev.libjadx.project.NativeProjectRepository;
 import jadx.api.JadxDecompiler;
+import jadx.api.data.impl.JadxCodeData;
 import jadx.api.data.impl.JadxCodeRename;
 import jadx.api.data.impl.JadxNodeRef;
 import org.junit.jupiter.api.Test;
@@ -34,6 +38,99 @@ class RebuildLifecycleTest {
 	@TempDir Path dir;
 	private static final HttpClient HTTP = HttpClient.newHttpClient();
 	private static final ObjectMapper JSON = new ObjectMapper();
+
+	@Test
+	void shutdownIsBoundedWhileAnAdmittedNativeSaveIsBlocked() throws Exception {
+		NativeProjectDocument project = fixture();
+		CountDownLatch entered = new CountDownLatch(1);
+		CountDownLatch release = new CountDownLatch(1);
+		AtomicInteger closes = new AtomicInteger();
+		ProjectRuntime runtime = runtime(project, closes, () -> { }, (repository, target, session, revision) -> {
+			synchronized (repository) {
+				entered.countDown();
+				awaitIgnoringInterrupt(release);
+				return repository.save(target, session, revision);
+			}
+		});
+		AtomicInteger listenerCloses = new AtomicInteger();
+		StartupSupervisor supervisor = new StartupSupervisor(listenerCloses::incrementAndGet, runtime, () -> { }, code -> { });
+		try {
+			runtime.initializeAsync(project).get(20, TimeUnit.SECONDS);
+			var edited = NativeProjectDocument.copyCodeData(project.getCodeData());
+			edited.setRenames(List.of(new JadxCodeRename(JadxNodeRef.forCls("probe.Sample"), "SavedAfterShutdown")));
+			runtime.replaceCodeData(edited, 0);
+			String session = runtime.projectSnapshot().revisions().sessionId();
+			CompletableFuture<ProjectSnapshot> save = CompletableFuture.supplyAsync(() -> {
+				try { return runtime.saveProject(null, session, 1L); }
+				catch (Exception failure) { throw new CompletionException(failure); }
+			});
+			assertTrue(entered.await(10, TimeUnit.SECONDS));
+			AtomicReference<Thread> readerThread = new AtomicReference<>();
+			CompletableFuture<ProjectSnapshot> concurrentRead = CompletableFuture.supplyAsync(() -> {
+				readerThread.set(Thread.currentThread());
+				return runtime.projectSnapshot();
+			});
+			awaitBlocked(readerThread);
+			CompletableFuture.runAsync(supervisor::close).get(7, TimeUnit.SECONDS);
+			assertEquals(1, listenerCloses.get());
+			assertEquals("SHUTTING_DOWN", runtime.status().state());
+			assertFalse(save.isDone());
+			assertFalse(runtime.awaitStopped(50, TimeUnit.MILLISECONDS));
+			release.countDown();
+			assertFalse(save.get(10, TimeUnit.SECONDS).dirty());
+			ExecutionException readFailure = assertThrows(ExecutionException.class,
+					() -> concurrentRead.get(10, TimeUnit.SECONDS));
+			assertTrue(readFailure.getCause() instanceof ProjectRuntime.ProjectNotReadyException);
+			assertTrue(runtime.awaitStopped(2, TimeUnit.SECONDS));
+			assertEquals(1, closes.get());
+			assertTrue(Files.readString(project.getProjectPath()).contains("SavedAfterShutdown"));
+		} finally {
+			release.countDown();
+			supervisor.close();
+		}
+	}
+
+	@Test
+	void shutdownDefersPrimaryEngineCleanupUntilCodeDataReloadFinishes() throws Exception {
+		NativeProjectDocument project = fixture();
+		CountDownLatch entered = new CountDownLatch(1);
+		CountDownLatch release = new CountDownLatch(1);
+		AtomicInteger closes = new AtomicInteger();
+		ProjectRuntime runtime = new ProjectRuntime(project.getProjectPath(), project.getInputFiles(), args ->
+				new ProjectRuntime.ProjectEngine() {
+					private final JadxDecompiler jadx = new JadxDecompiler(args);
+					@Override public void load() { jadx.load(); }
+					@Override public JadxDecompiler decompiler() { return jadx; }
+					@Override public void reloadCodeData(JadxCodeData codeData) {
+						entered.countDown();
+						awaitIgnoringInterrupt(release);
+						ProjectRuntime.ProjectEngine.super.reloadCodeData(codeData);
+					}
+					@Override public void close() {
+						closes.incrementAndGet();
+						jadx.close();
+					}
+				});
+		StartupSupervisor supervisor = new StartupSupervisor(() -> { }, runtime, () -> { }, code -> { });
+		try {
+			runtime.initializeAsync(project).get(20, TimeUnit.SECONDS);
+			var edited = NativeProjectDocument.copyCodeData(project.getCodeData());
+			edited.setRenames(List.of(new JadxCodeRename(JadxNodeRef.forCls("probe.Sample"), "DiscardOnClose")));
+			CompletableFuture<Void> edit = CompletableFuture.runAsync(() -> runtime.replaceCodeData(edited, 0));
+			assertTrue(entered.await(10, TimeUnit.SECONDS));
+			CompletableFuture.runAsync(supervisor::close).get(7, TimeUnit.SECONDS);
+			assertEquals("SHUTTING_DOWN", runtime.status().state());
+			assertEquals(0, closes.get());
+			release.countDown();
+			edit.get(10, TimeUnit.SECONDS);
+			assertTrue(runtime.awaitStopped(2, TimeUnit.SECONDS));
+			assertEquals(1, closes.get());
+			assertFalse(Files.readString(project.getProjectPath()).contains("DiscardOnClose"));
+		} finally {
+			release.countDown();
+			supervisor.close();
+		}
+	}
 
 	@Test
 	void shutdownReturnsWhileMappingRebuildIsBlockedAndStopsAfterCleanup() throws Exception {
@@ -230,6 +327,11 @@ class RebuildLifecycleTest {
 
 	private static ProjectRuntime runtime(NativeProjectDocument project, AtomicInteger closes,
 			LoadAction beforeReplacementLoad) {
+		return runtime(project, closes, beforeReplacementLoad, NativeProjectRepository::save);
+	}
+
+	private static ProjectRuntime runtime(NativeProjectDocument project, AtomicInteger closes,
+			LoadAction beforeReplacementLoad, ProjectRuntime.SaveAction saveAction) {
 		AtomicInteger creations = new AtomicInteger();
 		return new ProjectRuntime(project.getProjectPath(), project.getInputFiles(), args -> {
 			int sequence = creations.incrementAndGet();
@@ -245,7 +347,30 @@ class RebuildLifecycleTest {
 					jadx.close();
 				}
 			};
-		});
+		}, saveAction);
+	}
+
+	private static void awaitIgnoringInterrupt(CountDownLatch latch) {
+		boolean interrupted = false;
+		while (true) {
+			try {
+				latch.await();
+				break;
+			} catch (InterruptedException failure) {
+				interrupted = true;
+			}
+		}
+		if (interrupted) Thread.currentThread().interrupt();
+	}
+
+	private static void awaitBlocked(AtomicReference<Thread> thread) throws InterruptedException {
+		long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+		while (System.nanoTime() < deadline) {
+			Thread current = thread.get();
+			if (current != null && current.getState() == Thread.State.BLOCKED) return;
+			Thread.sleep(5);
+		}
+		throw new AssertionError("Concurrent read did not wait for native save");
 	}
 
 	@FunctionalInterface
