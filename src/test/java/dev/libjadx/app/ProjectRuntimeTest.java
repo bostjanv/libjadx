@@ -6,6 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -52,11 +55,21 @@ class ProjectRuntimeTest {
 		});
 		ProjectRuntime runtime = runtime(engine);
 
-		runtime.initializeAsync(null).get(5, TimeUnit.SECONDS);
+		ByteArrayOutputStream localDiagnostics = new ByteArrayOutputStream();
+		PrintStream originalError = System.err;
+		try (PrintStream capturedError = new PrintStream(localDiagnostics, true, StandardCharsets.UTF_8)) {
+			System.setErr(capturedError);
+			runtime.initializeAsync(null).get(5, TimeUnit.SECONDS);
+		} finally {
+			System.setErr(originalError);
+		}
 
 		assertEquals("FAILED", runtime.status().state());
 		assertEquals("PROJECT_LOAD_FAILED", runtime.status().error().code());
 		assertFalse(runtime.status().error().message().contains("/private/path"));
+		assertTrue(localDiagnostics.toString(StandardCharsets.UTF_8)
+				.contains("IllegalStateException: failure with /private/path/input.apk"));
+		assertTrue(localDiagnostics.toString(StandardCharsets.UTF_8).contains("ProjectRuntimeTest"));
 		assertEquals(1, engine.closeCount.get());
 		assertEquals(1, engine.loadCount.get());
 		assertThrows(IllegalStateException.class, runtime::decompiler);
@@ -151,14 +164,21 @@ class ProjectRuntimeTest {
 			return engine;
 		});
 		CompletableFuture<Void> initialization = runtime.initializeAsync(null);
-		assertTrue(enteredFactory.await(5, TimeUnit.SECONDS));
-		runtime.close();
-		assertEquals("SHUTTING_DOWN", runtime.status().state());
-		releaseFactory.countDown();
-		initialization.get(5, TimeUnit.SECONDS);
-		assertEquals("STOPPED", runtime.status().state());
-		assertEquals(0, engine.loadCount.get(), "A loader created after shutdown must not begin Jadx initialization");
-		assertEquals(1, closeCount.get());
+		try {
+			assertTrue(enteredFactory.await(5, TimeUnit.SECONDS));
+			runtime.close();
+			assertEquals("SHUTTING_DOWN", runtime.status().state());
+			assertFalse(runtime.awaitStopped(30, TimeUnit.MILLISECONDS));
+			releaseFactory.countDown();
+			initialization.get(5, TimeUnit.SECONDS);
+			assertTrue(runtime.awaitStopped(1, TimeUnit.SECONDS));
+			assertEquals("STOPPED", runtime.status().state());
+			assertEquals(0, engine.loadCount.get(), "A loader created after shutdown must not begin Jadx initialization");
+			assertEquals(1, closeCount.get());
+		} finally {
+			releaseFactory.countDown();
+			runtime.close();
+		}
 	}
 
 	@Test

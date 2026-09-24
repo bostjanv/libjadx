@@ -29,6 +29,86 @@ class StartupSupervisorTest {
 	private static final ObjectMapper JSON = new ObjectMapper();
 
 	@Test
+	void ordinaryShutdownStopsWaitingAfterDefinedCleanupTimeout() throws Exception {
+		CountDownLatch enteredLoad = new CountDownLatch(1);
+		CountDownLatch releaseLoad = new CountDownLatch(1);
+		AtomicInteger engineCloses = new AtomicInteger();
+		ProjectRuntime runtime = runtime(() -> {
+			enteredLoad.countDown();
+			awaitIgnoringInterrupt(releaseLoad);
+		}, engineCloses);
+		StartupSupervisor supervisor = new StartupSupervisor(() -> { }, runtime, () -> { }, code -> { });
+		CompletableFuture<Void> initialization = runtime.initializeAsync(null);
+		Thread ordinaryShutdown = new Thread(supervisor::close);
+		try {
+			assertTrue(enteredLoad.await(5, TimeUnit.SECONDS));
+			ordinaryShutdown.start();
+			awaitState(runtime, "SHUTTING_DOWN");
+			ordinaryShutdown.join(7_000);
+			assertFalse(ordinaryShutdown.isAlive(), "Shutdown wait must be bounded");
+			assertEquals("SHUTTING_DOWN", runtime.status().state());
+			releaseLoad.countDown();
+			initialization.get(5, TimeUnit.SECONDS);
+			assertEquals(1, engineCloses.get());
+			assertEquals("STOPPED", runtime.status().state());
+		} finally {
+			releaseLoad.countDown();
+			ordinaryShutdown.join(7_000);
+			supervisor.close();
+		}
+	}
+
+	@Test
+	void ordinaryShutdownWaitsForRunningLoaderAndEngineCleanup() throws Exception {
+		CountDownLatch enteredLoad = new CountDownLatch(1);
+		CountDownLatch releaseLoad = new CountDownLatch(1);
+		CountDownLatch enteredEngineClose = new CountDownLatch(1);
+		CountDownLatch releaseEngineClose = new CountDownLatch(1);
+		AtomicInteger engineCloses = new AtomicInteger();
+		ProjectRuntime runtime = new ProjectRuntime(Path.of("fixture.jadx"), List.of(), args -> new ProjectRuntime.ProjectEngine() {
+			private final JadxDecompiler decompiler = new JadxDecompiler(args);
+
+			@Override public void load() {
+				enteredLoad.countDown();
+				awaitIgnoringInterrupt(releaseLoad);
+			}
+
+			@Override public JadxDecompiler decompiler() { return decompiler; }
+
+			@Override public void close() {
+				enteredEngineClose.countDown();
+				awaitIgnoringInterrupt(releaseEngineClose);
+				engineCloses.incrementAndGet();
+				decompiler.close();
+			}
+		});
+		StartupSupervisor supervisor = new StartupSupervisor(() -> { }, runtime, () -> { }, code -> { });
+		CompletableFuture<Void> initialization = runtime.initializeAsync(null);
+		Thread ordinaryShutdown = new Thread(supervisor::close);
+		try {
+			assertTrue(enteredLoad.await(5, TimeUnit.SECONDS));
+			ordinaryShutdown.start();
+			awaitState(runtime, "SHUTTING_DOWN");
+			assertTrue(ordinaryShutdown.isAlive(), "Shutdown must wait while the loader owns Jadx");
+			releaseLoad.countDown();
+			assertTrue(enteredEngineClose.await(5, TimeUnit.SECONDS));
+			assertTrue(ordinaryShutdown.isAlive(), "Shutdown must wait for engine.close()");
+			assertEquals("SHUTTING_DOWN", runtime.status().state());
+			releaseEngineClose.countDown();
+			ordinaryShutdown.join(5_000);
+			assertFalse(ordinaryShutdown.isAlive());
+			initialization.get(5, TimeUnit.SECONDS);
+			assertEquals(1, engineCloses.get());
+			assertEquals("STOPPED", runtime.status().state());
+		} finally {
+			releaseLoad.countDown();
+			releaseEngineClose.countDown();
+			ordinaryShutdown.join(5_000);
+			supervisor.close();
+		}
+	}
+
+	@Test
 	void fatalLoaderErrorStopsListenerAndRequestsNonzeroExit() throws Exception {
 		AtomicInteger engineCloses = new AtomicInteger();
 		ProjectRuntime runtime = runtime(() -> { throw new LinkageError("controlled fatal error"); }, engineCloses);
@@ -167,6 +247,16 @@ class StartupSupervisorTest {
 			}
 		}
 		if (interrupted) Thread.currentThread().interrupt();
+	}
+
+	private static void awaitState(ProjectRuntime runtime, String state) {
+		long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+		while (!state.equals(runtime.status().state())) {
+			if (System.nanoTime() >= deadline) {
+				throw new AssertionError("Runtime did not enter " + state);
+			}
+			Thread.yield();
+		}
 	}
 
 	@FunctionalInterface

@@ -5,11 +5,13 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.IntConsumer;
 
 /** Application-boundary supervision and idempotent shutdown for startup. */
 final class StartupSupervisor implements AutoCloseable {
+	private static final long ORDINARY_SHUTDOWN_WAIT_SECONDS = 5;
 	private final AutoCloseable listener;
 	private final ProjectRuntime runtime;
 	private final Runnable startFatalWatchdog;
@@ -37,7 +39,7 @@ final class StartupSupervisor implements AutoCloseable {
 				try {
 					startFatalWatchdog.run();
 					System.err.println("libjadx: fatal project initialization error: " + cause.getClass().getSimpleName());
-					close();
+					closeFromFatalLoader();
 				} catch (Throwable shutdownFailure) {
 					System.err.println("libjadx: fatal shutdown failed");
 				} finally {
@@ -71,8 +73,16 @@ final class StartupSupervisor implements AutoCloseable {
 
 	@Override
 	public void close() {
+		close(true);
+	}
+
+	private void closeFromFatalLoader() {
+		close(false);
+	}
+
+	private void close(boolean waitForLoader) {
 		if (!closed.compareAndSet(false, true)) {
-			awaitCloseFinished();
+			if (waitForLoader) awaitCloseFinished();
 			return;
 		}
 		try {
@@ -83,8 +93,29 @@ final class StartupSupervisor implements AutoCloseable {
 			} finally {
 				runtime.close();
 			}
+			if (waitForLoader && !awaitRuntimeCleanup()) {
+				System.err.println("libjadx: project cleanup did not finish within 5 seconds");
+			}
 		} finally {
 			closeFinished.countDown();
+		}
+	}
+
+	private boolean awaitRuntimeCleanup() {
+		long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(ORDINARY_SHUTDOWN_WAIT_SECONDS);
+		boolean interrupted = false;
+		try {
+			while (true) {
+				long remaining = deadline - System.nanoTime();
+				if (remaining <= 0) return false;
+				try {
+					return runtime.awaitStopped(remaining, TimeUnit.NANOSECONDS);
+				} catch (InterruptedException ignored) {
+					interrupted = true;
+				}
+			}
+		} finally {
+			if (interrupted) Thread.currentThread().interrupt();
 		}
 	}
 

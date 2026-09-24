@@ -8,6 +8,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 
 import dev.libjadx.project.NativeProjectDocument;
 import jadx.api.JadxArgs;
@@ -138,6 +139,8 @@ public final class ProjectRuntime implements AutoCloseable {
 			}
 		} catch (Exception failure) {
 			expectedFailure = failure;
+			System.err.println("libjadx: project initialization failed");
+			failure.printStackTrace(System.err);
 			if (failure instanceof InterruptedException) {
 				Thread.currentThread().interrupt();
 			}
@@ -218,6 +221,20 @@ public final class ProjectRuntime implements AutoCloseable {
 				&& cleanupInProgress == 0 && activeEngine == null) {
 			lifecycle = Lifecycle.STOPPED;
 			status = status("STOPPED", "STOPPED", status.progress(), null);
+			lifecycleLock.notifyAll();
+		}
+	}
+
+	/** Waits for engine cleanup after shutdown has been requested. Never call from the loader thread. */
+	boolean awaitStopped(long timeout, TimeUnit unit) throws InterruptedException {
+		long deadline = System.nanoTime() + unit.toNanos(timeout);
+		synchronized (lifecycleLock) {
+			while (lifecycle != Lifecycle.STOPPED) {
+				long remaining = deadline - System.nanoTime();
+				if (remaining <= 0) return false;
+				TimeUnit.NANOSECONDS.timedWait(lifecycleLock, remaining);
+			}
+			return true;
 		}
 	}
 
