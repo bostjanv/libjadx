@@ -1,0 +1,9 @@
+{
+  "error": {
+    "code": "EXTERNAL_MODIFICATION_CONFLICT",
+    "message": "Native project or mappings changed on disk; pending edits remain in memory",
+    "retryable": false,
+    "requestId": "2bb1585f-cfeb-4c29-9e50-761dd32d0ab9",
+    "details": null
+  }
+}

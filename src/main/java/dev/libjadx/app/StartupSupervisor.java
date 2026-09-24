@@ -27,6 +27,7 @@ final class StartupSupervisor implements AutoCloseable {
 		this.runtime = runtime;
 		this.startFatalWatchdog = startFatalWatchdog;
 		this.terminalExit = terminalExit;
+		watch(runtime.fatalRuntimeFailure());
 	}
 
 	void watch(CompletableFuture<Void> initialization) {
@@ -37,17 +38,10 @@ final class StartupSupervisor implements AutoCloseable {
 			if (cause instanceof Error) {
 				fatalObserved = true;
 				try {
-					startFatalWatchdog.run();
-					System.err.println("libjadx: fatal project initialization error: " + cause.getClass().getSimpleName());
-					closeFromFatalLoader();
-				} catch (Throwable shutdownFailure) {
-					System.err.println("libjadx: fatal shutdown failed");
-				} finally {
-					try {
-						terminalExit.accept(1);
-					} finally {
-						fatalExitFinished.countDown();
-					}
+					Thread.ofPlatform().name("libjadx-fatal-shutdown").start(() -> handleFatal(cause));
+				} catch (Error threadFailure) {
+					cause.addSuppressed(threadFailure);
+					handleFatal(cause);
 				}
 			} else {
 				System.err.println("libjadx: project initialization ended: " + cause.getClass().getSimpleName());
@@ -55,11 +49,27 @@ final class StartupSupervisor implements AutoCloseable {
 		});
 	}
 
+	private void handleFatal(Throwable cause) {
+		try {
+			startFatalWatchdog.run();
+			System.err.println("libjadx: fatal project runtime error: " + cause.getClass().getSimpleName());
+			closeFromFatal();
+		} catch (Throwable shutdownFailure) {
+			System.err.println("libjadx: fatal shutdown failed");
+		} finally {
+			try {
+				terminalExit.accept(1);
+			} finally {
+				fatalExitFinished.countDown();
+			}
+		}
+	}
+
 	/** Keeps main alive until the fatal exit action has run after listener shutdown. */
 	void awaitFatalExitIfObserved() throws InterruptedException {
 		if (fatalObserved) {
 			fatalExitFinished.await();
-			throw new IllegalStateException("Fatal project initialization error");
+			throw new IllegalStateException("Fatal project runtime error");
 		}
 	}
 
@@ -76,13 +86,13 @@ final class StartupSupervisor implements AutoCloseable {
 		close(true);
 	}
 
-	private void closeFromFatalLoader() {
+	private void closeFromFatal() {
 		close(false);
 	}
 
 	private void close(boolean waitForLoader) {
 		if (!closed.compareAndSet(false, true)) {
-			if (waitForLoader) awaitCloseFinished();
+			awaitCloseFinished();
 			return;
 		}
 		try {

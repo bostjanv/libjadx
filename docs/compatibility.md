@@ -1,6 +1,6 @@
 # Compatibility and pinned dependencies
 
-Status: Phase 1 foundation, updated 2026-09-24.
+Status: Phase 2 native lifecycle, updated 2026-09-24.
 
 ## Jadx pin
 
@@ -41,13 +41,14 @@ Resolved transitive versions are recorded in [gradle.lockfile](../gradle.lockfil
 
 ## Current feasibility status
 
-The public-core smoke probe, in-memory class rename/comment, native project JSON round-trip, unknown-field retention, and matching-GUI save/reopen have executable probes. Remaining P0.3 topics are listed with bounded follow-up probes in [feasibility-matrix.md](feasibility-matrix.md). The Phase 1 HTTP foundation now exposes liveness, startup status and capability evidence; analysis routes remain unimplemented.
+The public-core smoke probe, in-memory class rename/comment, native project JSON round-trip, unknown-field retention, and matching-GUI save/reopen have executable probes. Remaining P0.3 topics are listed with bounded follow-up probes in [feasibility-matrix.md](feasibility-matrix.md). Phase 2 adds native save/reload/conflict detection, process-scoped revisions, mapping-path rebuilds and isolated temporary decompilation mode. Symbol, search and edit HTTP routes remain unimplemented.
 
 ## Reproducing Phase 0 probes
 
 ```bash
 ./gradlew test
 JADX_GUI=/path/to/jadx-gui ./gradlew guiRoundTripTest
+JADX_GUI=/path/to/jadx-gui ./gradlew rawGuiRoundTripTest
 ```
 
 The GUI task requires the matching 1.5.6 GUI executable, `xvfb-run` and `xdotool`. The base fixture under `tests/fixtures/native-project/` was created by Jadx 1.5.6 `jadx-gui`; its second relative input, Tiny v2 mapping reference and future JSON member were added for the headless adapter probe and loaded by the matching GUI.

@@ -17,7 +17,7 @@ public final class LibJadxMain {
 		}
 		if (config == null) return;
 
-		ProjectRuntime runtime = new ProjectRuntime(config.projectPath(), config.inputPaths());
+		ProjectRuntime runtime = new ProjectRuntime(config.projectPath(), config.inputPaths(), config.allowedRoots());
 		HttpApiServer server = new HttpApiServer(config.bindAddress(), config.port(), runtime);
 		StartupSupervisor supervisor = new StartupSupervisor(server, runtime, LibJadxMain::startFatalWatchdog,
 				System::exit);

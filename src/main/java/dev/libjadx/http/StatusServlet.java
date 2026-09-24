@@ -4,6 +4,12 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.nio.file.Path;
+import java.nio.charset.StandardCharsets;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import dev.libjadx.core.ProjectSnapshot;
+import dev.libjadx.project.NativeProjectRepository;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -45,18 +51,155 @@ public final class StatusServlet extends HttpServlet {
 					new Capability("code.smali", "SUPPORTED", "SMALL_JAR_PROBED", "READ_ONLY"),
 					new Capability("references.method_uses", "PARTIAL", "LOCAL_CALLERS_PROBED", "READ_ONLY"),
 					new Capability("project.native_load", "SUPPORTED", "JADX_1_5_6_FIXTURE", "READ_ONLY"),
-					new Capability("project.native_save", "PARTIAL", "CLASS_RENAME_AND_COMMENT_GUI_ROUND_TRIP", "EXPLICIT_SAVE_ONLY"),
+					new Capability("project.native_save", "PARTIAL", "CLASS_RENAME_COMMENT_MAPPING_AND_GUI_ROUND_TRIP", "EXPLICIT_SAVE_ONLY"),
+					new Capability("project.revisions", "PARTIAL", "CONTENT_HASH_AND_SESSION_TOKENS", "PROCESS_LOCAL_COUNTERS"),
+					new Capability("analysis.temporary_override", "PARTIAL", "ISOLATED_DECOMPILATION_MODE_WITH_UNSAVED_EDITS", "READ_ONLY"),
 					new Capability("analysis.cfg", "UNKNOWN", "NOT_PROBED", "UNAVAILABLE"),
 					new Capability("analysis.concurrent_reads", "UNKNOWN", "NOT_PROBED", "UNAVAILABLE"),
 					new Capability("analysis.cancellation", "UNKNOWN", "NOT_PROBED", "UNAVAILABLE"))));
 			return;
 		}
+		if ("/api/v1/project".equals(path)) {
+			write(response, HttpServletResponse.SC_OK, projectResponse(runtime.projectSnapshot()));
+			return;
+		}
+		if ("/api/v1/project/settings".equals(path)) {
+			write(response, 200, settingsResponse(runtime.settingsSnapshot()));
+			return;
+		}
 		writeUnavailableOrUnimplemented(request, response);
+	}
+
+	private void handlePatch(HttpServletRequest request, HttpServletResponse response) throws IOException {
+		if (!"/api/v1/project/settings".equals(request.getRequestURI())) {
+			writeUnavailableOrUnimplemented(request, response);
+			return;
+		}
+		try {
+			runtime.projectSnapshot();
+			if (!isJsonContentType(request.getContentType())) {
+				writeError(response, 415, "INVALID_REQUEST", "Content-Type must be application/json");
+				return;
+			}
+			JsonNode body = readBody(request);
+			if (!body.has("mappingsPath") || !body.has("expectedLogicalRevision")
+					|| !body.hasNonNull("expectedSessionId") || !body.get("expectedSessionId").isTextual()
+					|| !body.get("expectedLogicalRevision").canConvertToLong()) {
+				throw new IllegalArgumentException("mappingsPath, expectedSessionId and expectedLogicalRevision are required");
+			}
+			if (body.has("decompilationMode")) {
+				writeError(response, 422, "UNSUPPORTED_CAPABILITY", "Decompiler mode is temporary-only and cannot be saved in the native project");
+				return;
+			}
+			JsonNode mapping = body.get("mappingsPath");
+			if (!mapping.isNull() && !mapping.isTextual()) throw new IllegalArgumentException("mappingsPath must be a path string or null");
+			Path path = mapping.isNull() ? null : Path.of(mapping.asText());
+			runtime.updateMappingsPath(path, body.get("expectedSessionId").asText(),
+					body.get("expectedLogicalRevision").longValue());
+			write(response, 200, settingsResponse(runtime.settingsSnapshot()));
+		} catch (ProjectRuntime.ProjectNotReadyException notReady) {
+			writeLifecycleError(response, notReady.status());
+		} catch (NativeProjectRepository.StaleRevisionException stale) {
+			writeError(response, 409, "STALE_REVISION", stale.getMessage());
+		} catch (NativeProjectRepository.ExternalModificationException conflict) {
+			writeError(response, 409, "EXTERNAL_MODIFICATION_CONFLICT", conflict.getMessage());
+		} catch (SecurityException denied) {
+			writeError(response, 403, "INVALID_REQUEST", denied.getMessage());
+		} catch (IllegalArgumentException invalid) {
+			writeError(response, 400, "INVALID_REQUEST", invalid.getMessage());
+		} catch (IOException invalidPath) {
+			writeError(response, 400, "INVALID_REQUEST", "Mapping path cannot be resolved or read");
+		} catch (Exception failure) {
+			writeError(response, 500, "INTERNAL_ERROR", "Settings rebuild failed; the previous analysis remains active");
+		}
 	}
 
 	@Override
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+		String path = request.getRequestURI();
+		if ("/api/v1/project/save".equals(path) || "/api/v1/project/reload".equals(path)
+				|| "/api/v1/project/pending-edits/export".equals(path)) {
+			try {
+				runtime.projectSnapshot();
+				if ("/api/v1/project/pending-edits/export".equals(path)) {
+					write(response, 200, json.readValue(runtime.pendingEdits().toString(), Object.class));
+					return;
+				}
+				if (!isJsonContentType(request.getContentType())) {
+					writeError(response, 415, "INVALID_REQUEST", "Content-Type must be application/json");
+					return;
+				}
+				JsonNode body = readBody(request);
+				if ("/api/v1/project/save".equals(path)) {
+					if (body.has("targetPath") && !body.get("targetPath").isTextual()) throw new IllegalArgumentException("targetPath must be a string");
+					if (body.has("expectedLogicalRevision") && !body.get("expectedLogicalRevision").canConvertToLong()) {
+						throw new IllegalArgumentException("expectedLogicalRevision must be an integer");
+					}
+					if (body.has("expectedLogicalRevision") && (!body.hasNonNull("expectedSessionId")
+							|| !body.get("expectedSessionId").isTextual())) {
+						throw new IllegalArgumentException("expectedSessionId is required with expectedLogicalRevision");
+					}
+					Path target = body.hasNonNull("targetPath") ? Path.of(body.get("targetPath").asText()) : null;
+					Long expected = body.hasNonNull("expectedLogicalRevision") ? body.get("expectedLogicalRevision").longValue() : null;
+					String expectedSession = body.hasNonNull("expectedSessionId") ? body.get("expectedSessionId").asText() : null;
+					write(response, 200, projectResponse(runtime.saveProject(target, expectedSession, expected)));
+				} else if ("/api/v1/project/reload".equals(path)) {
+					if (!body.has("discardUnsaved") || !body.get("discardUnsaved").isBoolean()
+							|| !body.hasNonNull("expectedSessionId") || !body.get("expectedSessionId").isTextual()
+							|| !body.hasNonNull("expectedLogicalRevision")
+							|| !body.get("expectedLogicalRevision").canConvertToLong()
+							|| body.get("expectedLogicalRevision").longValue() < 0) {
+						throw new IllegalArgumentException("discardUnsaved, expectedSessionId and expectedLogicalRevision are required");
+					}
+					write(response, 200, projectResponse(runtime.reloadProject(
+							body.get("discardUnsaved").booleanValue(), body.get("expectedSessionId").asText(),
+							body.get("expectedLogicalRevision").longValue())));
+				}
+			} catch (ProjectRuntime.ProjectNotReadyException notReady) {
+				writeLifecycleError(response, notReady.status());
+			} catch (NativeProjectRepository.ExternalModificationException conflict) {
+				writeError(response, 409, "EXTERNAL_MODIFICATION_CONFLICT", conflict.getMessage());
+			} catch (NativeProjectRepository.StaleRevisionException stale) {
+				writeError(response, 409, "STALE_REVISION", stale.getMessage());
+			} catch (NativeProjectRepository.UnsavedChangesException unsaved) {
+				writeError(response, 409, "PROJECT_BUSY", unsaved.getMessage());
+			} catch (SecurityException denied) {
+				writeError(response, 403, "INVALID_REQUEST", denied.getMessage());
+			} catch (IllegalArgumentException invalid) {
+				writeError(response, 400, "INVALID_REQUEST", invalid.getMessage());
+			} catch (Exception failure) {
+				writeError(response, 500, "INTERNAL_ERROR", "Project operation failed; inspect the local service log");
+			}
+			return;
+		}
 		writeUnavailableOrUnimplemented(request, response);
+	}
+
+	private JsonNode readBody(HttpServletRequest request) throws IOException {
+		byte[] bytes = request.getInputStream().readNBytes(65_537);
+		if (bytes.length > 65_536) throw new IllegalArgumentException("Request body exceeds 64 KiB");
+		JsonNode body;
+		try {
+			body = json.readTree(new String(bytes, StandardCharsets.UTF_8));
+		} catch (JsonProcessingException malformed) {
+			throw new IllegalArgumentException("Malformed JSON request body", malformed);
+		}
+		if (body == null || !body.isObject()) throw new IllegalArgumentException("JSON object body required");
+		return body;
+	}
+
+	private static boolean isJsonContentType(String contentType) {
+		return contentType != null && "application/json".equalsIgnoreCase(contentType.split(";", 2)[0].trim());
+	}
+
+	private static FixedProjectResponse projectResponse(ProjectSnapshot snapshot) {
+		return new FixedProjectResponse(string(snapshot.projectPath()), snapshot.inputs().stream().map(StatusServlet::string).toList(),
+				snapshot.dirty(), snapshot.revisions());
+	}
+
+	private static ProjectSettingsResponse settingsResponse(ProjectRuntime.SettingsSnapshot snapshot) {
+		return new ProjectSettingsResponse(string(snapshot.mappingsPath()), snapshot.effective().decompilationMode(),
+				snapshot.revisions());
 	}
 
 	@Override
@@ -73,11 +216,20 @@ public final class StatusServlet extends HttpServlet {
 			writeError(response, HttpServletResponse.SC_METHOD_NOT_ALLOWED, "METHOD_NOT_ALLOWED", "The HTTP method is not allowed for this path");
 			return;
 		}
-		if (!"GET".equals(request.getMethod()) && !"POST".equals(request.getMethod())) {
+		if (!"GET".equals(request.getMethod()) && !"POST".equals(request.getMethod())
+				&& !"PATCH".equals(request.getMethod())) {
 			writeUnavailableOrUnimplemented(request, response);
 			return;
 		}
-		super.service(request, response);
+		if ("PATCH".equals(request.getMethod())) {
+			handlePatch(request, response);
+			return;
+		}
+		try {
+			super.service(request, response);
+		} catch (ProjectRuntime.ProjectNotReadyException notReady) {
+			writeLifecycleError(response, notReady.status());
+		}
 	}
 
 	private void write(HttpServletResponse response, int status, Object body) throws IOException {
@@ -98,6 +250,14 @@ public final class StatusServlet extends HttpServlet {
 			return;
 		}
 		RuntimeStatus current = runtime.status();
+		if (!"READY".equals(current.state())) {
+			writeLifecycleError(response, current);
+			return;
+		}
+		writeError(response, HttpServletResponse.SC_NOT_IMPLEMENTED, "OPERATION_NOT_IMPLEMENTED", "This API operation is not implemented yet");
+	}
+
+	private void writeLifecycleError(HttpServletResponse response, RuntimeStatus current) throws IOException {
 		if ("LOADING".equals(current.state()) || "RELOADING".equals(current.state())) {
 			response.setHeader("Retry-After", "2");
 			writeError(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, "PROJECT_NOT_READY",
@@ -115,11 +275,7 @@ public final class StatusServlet extends HttpServlet {
 			writeError(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, "SERVICE_SHUTTING_DOWN", "The service is shutting down");
 			return;
 		}
-		if (!"READY".equals(current.state())) {
-			writeError(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, "PROJECT_NOT_READY", "The fixed project is not ready");
-			return;
-		}
-		writeError(response, HttpServletResponse.SC_NOT_IMPLEMENTED, "OPERATION_NOT_IMPLEMENTED", "This API operation is not implemented yet");
+		writeError(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, "PROJECT_NOT_READY", "The fixed project is not ready");
 	}
 
 	private static Set<String> allowedMethods(String path) {
@@ -157,4 +313,8 @@ public final class StatusServlet extends HttpServlet {
 	public record CapabilitiesResponse(String serverVersion, String jadxVersion, List<Capability> capabilities) { }
 	public record ErrorBody(String code, String message, boolean retryable, String requestId, Object details) { }
 	public record ErrorEnvelope(ErrorBody error) { }
+	public record FixedProjectResponse(String projectPath, List<String> inputs, boolean dirty,
+			dev.libjadx.core.RevisionState revisions) { }
+	public record ProjectSettingsResponse(String mappingsPath, String decompilationMode,
+			dev.libjadx.core.RevisionState revisions) { }
 }
