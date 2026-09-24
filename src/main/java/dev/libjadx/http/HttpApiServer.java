@@ -1,9 +1,5 @@
 package dev.libjadx.http;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
 import org.eclipse.jetty.ee10.servlet.ServletHolder;

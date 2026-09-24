@@ -21,6 +21,6 @@ allowedRoots:
 
 Supported environment variables are `LIBJADX_PROJECT`, `LIBJADX_INPUT`, `LIBJADX_BIND`, `LIBJADX_PORT` and `LIBJADX_ALLOWED_ROOT`. The two list-valued environment variables use the platform path separator. Repeat `--input` and `--allowed-root` for multiple CLI values.
 
-The HTTP listener starts before Jadx loads the project. `GET /api/v1/health/live` reports process liveness and `GET /api/v1/status` reports `LOADING`, `READY` or `FAILED`. `GET /api/v1/capabilities` reports tested capability evidence. Analysis, edit and save routes are not implemented yet; planned operations return a structured `PROJECT_NOT_READY` error during loading and a structured not-implemented response after readiness.
+The HTTP listener starts before Jadx loads the project. `GET /api/v1/health/live` reports process liveness and `GET /api/v1/status` reports `LOADING`, `READY`, `FAILED`, or shutdown state. `GET /api/v1/capabilities` reports tested capability evidence. Analysis, edit and save routes are not implemented yet. Planned operations return `PROJECT_NOT_READY` with `Retry-After` while loading, the recorded non-retryable load error after failure, and a structured not-implemented response after readiness. Unknown paths return `NOT_FOUND` in every state.
 
 The current startup layer does not create a native project sidecar for raw inputs and does not save project changes. There is no project-switch route.

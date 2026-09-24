@@ -16,6 +16,10 @@ public record ServiceConfig(String bindAddress, int port, Path projectPath, List
 		NativeProjectDocument nativeProject) {
 
 	public static ServiceConfig parse(String[] args) throws IOException {
+		return parse(args, System.getenv());
+	}
+
+	static ServiceConfig parse(String[] args, Map<String, String> environment) throws IOException {
 		Path cliProject = null;
 		Path configPath = null;
 		List<Path> cliInputs = new ArrayList<>();
@@ -42,8 +46,8 @@ public record ServiceConfig(String bindAddress, int port, Path projectPath, List
 			}
 		}
 		Map<String, Object> fileConfig = readConfig(configPath);
-		String envProject = blankToNull(System.getenv("LIBJADX_PROJECT"));
-		String envInput = blankToNull(System.getenv("LIBJADX_INPUT"));
+		String envProject = blankToNull(environment.get("LIBJADX_PROJECT"));
+		String envInput = blankToNull(environment.get("LIBJADX_INPUT"));
 		Path project;
 		List<Path> inputs;
 		if (cliProject != null || !cliInputs.isEmpty()) {
@@ -57,9 +61,9 @@ public record ServiceConfig(String bindAddress, int port, Path projectPath, List
 			inputs = pathList(null, fileConfig.get("input"));
 		}
 		List<Path> roots = new ArrayList<>(!cliRoots.isEmpty() ? List.copyOf(cliRoots)
-				: pathList(System.getenv("LIBJADX_ALLOWED_ROOT"), fileConfig.get("allowedRoots")));
-		String bind = cliBind != null ? cliBind : stringValue(envOrFile("LIBJADX_BIND", fileConfig.get("bind")), "127.0.0.1");
-		int port = cliPort != null ? cliPort : intValue(envOrFile("LIBJADX_PORT", fileConfig.get("port")), 18777);
+				: pathList(environment.get("LIBJADX_ALLOWED_ROOT"), fileConfig.get("allowedRoots")));
+		String bind = cliBind != null ? cliBind : stringValue(envOrFile(environment, "LIBJADX_BIND", fileConfig.get("bind")), "127.0.0.1");
+		int port = cliPort != null ? cliPort : intValue(envOrFile(environment, "LIBJADX_PORT", fileConfig.get("port")), 18777);
 		if (!"127.0.0.1".equals(bind)) {
 			throw new IllegalArgumentException("Only loopback bind address 127.0.0.1 is currently supported");
 		}
@@ -116,8 +120,8 @@ public record ServiceConfig(String bindAddress, int port, Path projectPath, List
 		return (Map<String, Object>) map;
 	}
 
-	private static Object envOrFile(String key, Object fileValue) {
-		String envValue = System.getenv(key);
+	private static Object envOrFile(Map<String, String> environment, String key, Object fileValue) {
+		String envValue = environment.get(key);
 		return envValue == null || envValue.isBlank() ? fileValue : envValue;
 	}
 

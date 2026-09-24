@@ -25,9 +25,10 @@ gui_path=$1
 input_project=$2
 output_name=$3
 output_project=$4
+output_dir=$(dirname "$output_project")
 gui_log=/tmp/libjadx-gui-roundtrip.log
 : > "$gui_log"
-"$gui_path" "$input_project" >"$gui_log" 2>&1 &
+JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS:-} -Duser.home=$output_dir" "$gui_path" "$input_project" >"$gui_log" 2>&1 &
 gui_pid=$!
 cleanup() {
 	kill "$gui_pid" 2>/dev/null || true

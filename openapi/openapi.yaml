@@ -66,7 +66,7 @@ components:
         Retry-After:
           schema:
             type: integer
-          description: Present on retryable project readiness errors.
+          description: Present while the project is still loading; omitted for failed loads and shutdown.
       content:
         application/json:
           schema:
@@ -152,6 +152,7 @@ components:
             - PROJECT_NOT_READY
             - SERVICE_SHUTTING_DOWN
             - PROJECT_LOAD_FAILED
+            - METHOD_NOT_ALLOWED
             - PROJECT_BUSY
             - INVALID_REQUEST
             - INVALID_ENTITY_ID

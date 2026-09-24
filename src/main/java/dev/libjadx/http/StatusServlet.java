@@ -16,11 +16,6 @@ import jakarta.servlet.http.HttpServletResponse;
 
 /** Initial read-only API surface; the OpenAPI document is the public contract. */
 public final class StatusServlet extends HttpServlet {
-	private static final Set<String> PLANNED_OPERATIONS = Set.of(
-			"/api/v1/project", "/api/v1/project/settings", "/api/v1/project/save", "/api/v1/project/reload",
-			"/api/v1/classes", "/api/v1/symbols/resolve", "/api/v1/decompile", "/api/v1/references/query",
-			"/api/v1/analysis/cfg", "/api/v1/search", "/api/v1/search/build-index", "/api/v1/edits/batch",
-			"/api/v1/resources/query", "/api/v1/jobs", "/api/v1/shutdown");
 	private final ProjectRuntime runtime;
 	private final ObjectMapper json;
 
@@ -68,6 +63,20 @@ public final class StatusServlet extends HttpServlet {
 	protected void service(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		response.setHeader("X-Request-Id", UUID.randomUUID().toString());
 		response.setHeader("Cache-Control", "no-store");
+		Set<String> allowedMethods = allowedMethods(request.getRequestURI());
+		if (allowedMethods.isEmpty()) {
+			writeError(response, HttpServletResponse.SC_NOT_FOUND, "NOT_FOUND", "No endpoint is defined for this path");
+			return;
+		}
+		if (!allowedMethods.contains(request.getMethod())) {
+			response.setHeader("Allow", String.join(", ", allowedMethods));
+			writeError(response, HttpServletResponse.SC_METHOD_NOT_ALLOWED, "METHOD_NOT_ALLOWED", "The HTTP method is not allowed for this path");
+			return;
+		}
+		if (!"GET".equals(request.getMethod()) && !"POST".equals(request.getMethod())) {
+			writeUnavailableOrUnimplemented(request, response);
+			return;
+		}
 		super.service(request, response);
 	}
 
@@ -84,24 +93,57 @@ public final class StatusServlet extends HttpServlet {
 	}
 
 	private void writeUnavailableOrUnimplemented(HttpServletRequest request, HttpServletResponse response) throws IOException {
-		if (!runtime.isReady()) {
-			response.setHeader("Retry-After", "2");
-			writeError(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, "PROJECT_NOT_READY",
-					"The fixed project is not ready; inspect GET /api/v1/status for lifecycle details");
-			return;
-		}
 		if (!isPlannedOperation(request.getRequestURI())) {
 			writeError(response, HttpServletResponse.SC_NOT_FOUND, "NOT_FOUND", "No endpoint is defined for this path");
+			return;
+		}
+		RuntimeStatus current = runtime.status();
+		if ("LOADING".equals(current.state()) || "RELOADING".equals(current.state())) {
+			response.setHeader("Retry-After", "2");
+			writeError(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, "PROJECT_NOT_READY",
+					"The fixed project is still loading; inspect GET /api/v1/status for lifecycle details");
+			return;
+		}
+		if ("FAILED".equals(current.state())) {
+			RuntimeStatus.ApiError failure = current.error();
+			String code = failure == null ? "PROJECT_LOAD_FAILED" : failure.code();
+			String message = failure == null ? "The fixed project could not be loaded" : failure.message();
+			writeError(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, code, message);
+			return;
+		}
+		if ("SHUTTING_DOWN".equals(current.state()) || "STOPPED".equals(current.state())) {
+			writeError(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, "SERVICE_SHUTTING_DOWN", "The service is shutting down");
+			return;
+		}
+		if (!"READY".equals(current.state())) {
+			writeError(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, "PROJECT_NOT_READY", "The fixed project is not ready");
 			return;
 		}
 		writeError(response, HttpServletResponse.SC_NOT_IMPLEMENTED, "OPERATION_NOT_IMPLEMENTED", "This API operation is not implemented yet");
 	}
 
+	private static Set<String> allowedMethods(String path) {
+		if ("/api/v1/health/live".equals(path) || "/api/v1/status".equals(path) || "/api/v1/capabilities".equals(path)
+				|| "/api/v1/project".equals(path) || "/api/v1/classes".equals(path)
+				|| path.matches("/api/v1/jobs/[^/]+") || path.matches("/api/v1/jobs/[^/]+/events")) {
+			return Set.of("GET");
+		}
+		if ("/api/v1/project/settings".equals(path)) return Set.of("GET", "PATCH");
+		if ("/api/v1/project/save".equals(path) || "/api/v1/project/reload".equals(path)
+				|| "/api/v1/project/export".equals(path) || "/api/v1/project/pending-edits/export".equals(path)
+				|| "/api/v1/symbols/resolve".equals(path) || "/api/v1/decompile".equals(path)
+				|| "/api/v1/references/query".equals(path) || "/api/v1/analysis/cfg".equals(path)
+				|| "/api/v1/search".equals(path) || "/api/v1/search/build-index".equals(path)
+				|| "/api/v1/edits/batch".equals(path) || "/api/v1/resources/query".equals(path)
+				|| "/api/v1/shutdown".equals(path) || path.matches("/api/v1/jobs/[^/]+/cancel")) {
+			return Set.of("POST");
+		}
+		return Set.of();
+	}
+
 	private static boolean isPlannedOperation(String path) {
-		return PLANNED_OPERATIONS.contains(path)
-				|| path.startsWith("/api/v1/jobs/")
-				|| "/api/v1/project/export".equals(path)
-				|| "/api/v1/project/pending-edits/export".equals(path);
+		return !"/api/v1/health/live".equals(path) && !"/api/v1/status".equals(path) && !"/api/v1/capabilities".equals(path)
+				&& !allowedMethods(path).isEmpty();
 	}
 
 	private static String string(Object value) {
