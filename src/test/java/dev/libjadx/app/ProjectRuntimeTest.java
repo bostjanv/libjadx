@@ -150,6 +150,7 @@ class ProjectRuntimeTest {
 		releaseFactory.countDown();
 		initialization.get(5, TimeUnit.SECONDS);
 		assertEquals("STOPPED", runtime.status().state());
+		assertEquals(0, engine.loadCount.get(), "A loader created after shutdown must not begin Jadx initialization");
 		assertEquals(1, closeCount.get());
 	}
 
@@ -179,6 +180,7 @@ class ProjectRuntimeTest {
 		private final JadxDecompiler decompiler;
 		private final LoadAction loadAction;
 		private final AtomicInteger closeCount;
+		private final AtomicInteger loadCount = new AtomicInteger();
 
 		private FakeEngine(JadxArgs args, LoadAction loadAction) {
 			this(args, loadAction, new AtomicInteger());
@@ -192,6 +194,7 @@ class ProjectRuntimeTest {
 
 		@Override
 		public void load() throws Exception {
+			loadCount.incrementAndGet();
 			loadAction.run();
 		}
 

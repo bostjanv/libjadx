@@ -99,7 +99,14 @@ public final class ProjectRuntime implements AutoCloseable {
 					args.setUserRenamesMappingsPath(mappings);
 				}
 			}
+			if (!isLoading()) {
+				return;
+			}
 			local = engineFactory.create(args);
+			if (!isLoading()) {
+				return;
+			}
+			local.load();
 			local.load();
 			beforePublish.run();
 			synchronized (lifecycleLock) {
@@ -189,6 +196,12 @@ public final class ProjectRuntime implements AutoCloseable {
 		if (lifecycle == Lifecycle.SHUTTING_DOWN && !loadInProgress && cleanupInProgress == 0 && activeEngine == null) {
 			lifecycle = Lifecycle.STOPPED;
 			status = status("STOPPED", "STOPPED", status.progress(), null);
+		}
+	}
+
+	private boolean isLoading() {
+		synchronized (lifecycleLock) {
+			return lifecycle == Lifecycle.LOADING;
 		}
 	}
 
