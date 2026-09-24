@@ -1,0 +1,314 @@
+openapi: 3.1.0
+info:
+  title: LibJadx API
+  version: 0.1.0-experimental
+  summary: Local REST API for one fixed Jadx project per process.
+  description: >-
+    Experimental contract. A process opens one project or one or more input files
+    at startup. There are no upload, project-open, or project-switch operations.
+servers:
+  - url: http://127.0.0.1:18777/api/v1
+    description: Default loopback listener
+tags:
+  - name: Service
+paths:
+  /health/live:
+    get:
+      tags: [Service]
+      operationId: getLiveness
+      summary: Check whether the HTTP process is alive
+      responses:
+        '200':
+          description: The process can serve HTTP requests.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Liveness'
+        'default':
+          $ref: '#/components/responses/ApiErrorResponse'
+  /status:
+    get:
+      tags: [Service]
+      operationId: getStatus
+      summary: Read the fixed project's lifecycle and load progress
+      responses:
+        '200':
+          description: Current lifecycle state, including LOADING and FAILED.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceStatus'
+        'default':
+          $ref: '#/components/responses/ApiErrorResponse'
+  /capabilities:
+    get:
+      tags: [Service]
+      operationId: getCapabilities
+      summary: Read server and pinned-Jadx capability evidence
+      responses:
+        '200':
+          description: Capability status is scoped to tested behavior.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Capabilities'
+        'default':
+          $ref: '#/components/responses/ApiErrorResponse'
+components:
+  responses:
+    ApiErrorResponse:
+      description: Structured API error.
+      headers:
+        X-Request-Id:
+          schema:
+            type: string
+          description: Identifier for correlating this response with local service logs.
+        Retry-After:
+          schema:
+            type: integer
+          description: Present while the project is still loading; omitted for failed loads and shutdown.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+  schemas:
+    Liveness:
+      type: object
+      required: [status]
+      properties:
+        status:
+          const: ALIVE
+    ServiceStatus:
+      type: object
+      required: [state, stage, progress, inputs]
+      properties:
+        state:
+          type: string
+          enum: [STARTING, LOADING, READY, RELOADING, FAILED, SHUTTING_DOWN, STOPPED]
+        stage:
+          type: string
+          description: Active initialization or lifecycle stage.
+        progress:
+          $ref: '#/components/schemas/Progress'
+        projectPath:
+          type: [string, 'null']
+          description: Native .jadx path when started from an existing native project.
+        inputs:
+          type: array
+          items:
+            type: string
+        error:
+          oneOf:
+            - $ref: '#/components/schemas/ApiError'
+            - type: 'null'
+    Progress:
+      type: object
+      required: [completed, total, unit]
+      properties:
+        completed:
+          type: integer
+          minimum: 0
+        total:
+          type: integer
+          minimum: 0
+        unit:
+          type: string
+    Capabilities:
+      type: object
+      required: [serverVersion, jadxVersion, capabilities]
+      properties:
+        serverVersion:
+          type: string
+        jadxVersion:
+          type: string
+        capabilities:
+          type: array
+          items:
+            $ref: '#/components/schemas/Capability'
+    Capability:
+      type: object
+      required: [name, status, evidence, persistence]
+      properties:
+        name:
+          type: string
+        status:
+          type: string
+          enum: [SUPPORTED, PARTIAL, UNSUPPORTED, UNKNOWN]
+        evidence:
+          type: string
+        precision:
+          type: [string, 'null']
+          enum: [EXACT, APPROXIMATE, UNKNOWN, UNAVAILABLE, null]
+        persistence:
+          type: string
+          description: Persistence scope proven for the capability, or UNAVAILABLE.
+    ApiError:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          enum:
+            - PROJECT_NOT_READY
+            - SERVICE_SHUTTING_DOWN
+            - PROJECT_LOAD_FAILED
+            - METHOD_NOT_ALLOWED
+            - PROJECT_BUSY
+            - INVALID_REQUEST
+            - INVALID_ENTITY_ID
+            - NOT_FOUND
+            - UNSUPPORTED_CAPABILITY
+            - INCOMPLETE_ANALYSIS
+            - STALE_REVISION
+            - EXTERNAL_MODIFICATION_CONFLICT
+            - RESOURCE_LIMIT
+            - CANCELLATION_PENDING
+            - INPUT_SECURITY_REJECTION
+            - INTERNAL_ERROR
+            - OPERATION_NOT_IMPLEMENTED
+          description: Stable machine-readable error code.
+        message:
+          type: string
+        retryable:
+          type: boolean
+        requestId:
+          type: [string, 'null']
+        details:
+          type: [object, 'null']
+          additionalProperties: true
+        causes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ApiError'
+        itemErrors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ItemError'
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          $ref: '#/components/schemas/ApiError'
+    ItemError:
+      type: object
+      required: [index, code, message]
+      properties:
+        index:
+          type: integer
+          minimum: 0
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: [object, 'null']
+          additionalProperties: true
+    RevisionSet:
+      type: object
+      required: [sessionId, logicalRevision, indexRevision, persistedIdentity]
+      properties:
+        sessionId:
+          type: string
+        logicalRevision:
+          type: string
+        indexRevision:
+          type: string
+        persistedIdentity:
+          type: string
+    ResultProvenance:
+      type: object
+      required: [completeness, revisions, diagnostics]
+      properties:
+        completeness:
+          type: string
+          enum: [COMPLETE, PARTIAL]
+        revisions:
+          $ref: '#/components/schemas/RevisionSet'
+        diagnostics:
+          type: array
+          items:
+            type: string
+    Job:
+      type: object
+      required: [jobId, state, createdAt]
+      properties:
+        jobId:
+          type: string
+        state:
+          type: string
+          enum: [QUEUED, RUNNING, CANCELLING, SUCCEEDED, FAILED, CANCELLED]
+        createdAt:
+          type: string
+          format: date-time
+        progress:
+          $ref: '#/components/schemas/Progress'
+        result:
+          type: [object, 'null']
+          additionalProperties: true
+        error:
+          oneOf:
+            - $ref: '#/components/schemas/ApiError'
+            - type: 'null'
+    FixedProject:
+      type: object
+      required: [inputs, dirty, revisions]
+      properties:
+        projectPath:
+          type: [string, 'null']
+        inputs:
+          type: array
+          items:
+            type: string
+        dirty:
+          type: boolean
+        revisions:
+          $ref: '#/components/schemas/RevisionSet'
+    Page:
+      type: object
+      required: [items, complete]
+      properties:
+        items:
+          type: array
+          items: {}
+        nextCursor:
+          type: [string, 'null']
+        complete:
+          type: boolean
+    Coverage:
+      type: object
+      required: [status, indexed, total]
+      properties:
+        status:
+          type: string
+          enum: [COMPLETE, PARTIAL]
+        indexed:
+          type: integer
+          minimum: 0
+        total:
+          type: [integer, 'null']
+          minimum: 0
+    EditItem:
+      type: object
+      required: [kind, target, value]
+      properties:
+        kind:
+          type: string
+          enum: [RENAME_CLASS, RENAME_METHOD, RENAME_FIELD, COMMENT]
+        target:
+          type: object
+          additionalProperties: true
+        value:
+          type: string
+    ItemResult:
+      type: object
+      required: [index, status]
+      properties:
+        index:
+          type: integer
+          minimum: 0
+        status:
+          type: string
+          enum: [APPLIED, FAILED, SKIPPED]
+        message:
+          type: [string, 'null']
