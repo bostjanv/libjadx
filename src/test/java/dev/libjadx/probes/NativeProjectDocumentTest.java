@@ -59,5 +59,25 @@ class NativeProjectDocumentTest {
 		assertEquals("reviewed", ((ICodeComment) reopened.getCodeData().getComments().get(0)).getComment());
 		assertFalse(reopened.getCodeData().isEmpty());
 	}
-}
 
+	@Test
+	void preservesUnknownMembersInsideEditedNativeEntries() throws IOException {
+		Path project = tempDir.resolve("nested.jadx");
+		Files.writeString(project, """
+				{"projectVersion":2,"files":[],"codeData":{
+				 "renames":[{"nodeRef":{"refType":"CLASS","declClass":"probe.Sample"},
+				             "newName":"Old","futureRename":{"keep":1}}],
+				 "comments":[{"nodeRef":{"refType":"CLASS","declClass":"probe.Sample"},
+				              "comment":"old","style":"LINE","futureComment":true}]}}
+				""");
+		NativeProjectDocument document = NativeProjectDocument.open(project);
+		document.getCodeData().setRenames(List.of(new JadxCodeRename(JadxNodeRef.forCls("probe.Sample"), "New")));
+		document.getCodeData().setComments(List.of(new JadxCodeComment(JadxNodeRef.forCls("probe.Sample"), "new comment")));
+		document.save();
+		String saved = Files.readString(project);
+		assertTrue(saved.contains("futureRename"));
+		assertTrue(saved.contains("futureComment"));
+		assertTrue(saved.contains("New"));
+		assertTrue(saved.contains("new comment"));
+	}
+}

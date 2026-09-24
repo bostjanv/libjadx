@@ -72,3 +72,33 @@ tasks.register<Test>("guiRoundTripTest") {
     }
     environment("LIBJADX_GUI_SAVED_PROJECT", guiSavedProject.get().asFile.absolutePath)
 }
+
+val rawGuiSavedProject = layout.buildDirectory.file("raw-roundtrip-fixture/gui-resaved.jadx")
+
+tasks.register<Exec>("saveRawProjectWithMatchingGui") {
+    dependsOn(tasks.test)
+    val guiPath = providers.environmentVariable("JADX_GUI")
+    doFirst {
+        if (!guiPath.isPresent) {
+            throw GradleException("Set JADX_GUI to the matching jadx-gui executable before running rawGuiRoundTripTest")
+        }
+    }
+    commandLine(
+        "bash",
+        "tests/gui-round-trip.sh",
+        guiPath.orNull ?: "",
+        layout.buildDirectory.file("raw-roundtrip-fixture/raw.jadx").get().asFile.absolutePath,
+        rawGuiSavedProject.get().asFile.absolutePath,
+    )
+}
+
+tasks.register<Test>("rawGuiRoundTripTest") {
+    dependsOn("saveRawProjectWithMatchingGui")
+    useJUnitPlatform()
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    filter {
+        includeTestsMatching("dev.libjadx.probes.RawGuiReverseRoundTripTest")
+    }
+    environment("LIBJADX_RAW_GUI_SAVED_PROJECT", rawGuiSavedProject.get().asFile.absolutePath)
+}

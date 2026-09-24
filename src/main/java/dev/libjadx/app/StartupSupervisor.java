@@ -82,7 +82,7 @@ final class StartupSupervisor implements AutoCloseable {
 
 	private void close(boolean waitForLoader) {
 		if (!closed.compareAndSet(false, true)) {
-			if (waitForLoader) awaitCloseFinished();
+			awaitCloseFinished();
 			return;
 		}
 		try {

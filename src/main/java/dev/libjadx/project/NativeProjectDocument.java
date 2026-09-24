@@ -14,6 +14,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonArray;
 
 import jadx.api.data.ICodeComment;
 import jadx.api.data.ICodeRename;
@@ -27,13 +28,12 @@ import jadx.api.data.impl.JadxNodeRef;
 import jadx.core.utils.GsonUtils;
 
 /**
- * Phase 0 spike for an in-memory view of a native {@code .jadx} document.
+ * In-memory view of a native {@code .jadx} document.
  *
  * <p>The native document is kept as a JSON tree so fields unknown to this
  * Jadx version survive edits. Only the native {@code codeData} object is
  * decoded and replaced. Opening this object never writes to disk. Callers must
- * add external-modification detection before exposing {@link #save()} through
- * a service endpoint.
+	 * The repository checks external changes before exposing writes through HTTP.
  */
 public final class NativeProjectDocument {
 	private static final String CODE_DATA_KEY = "codeData";
@@ -64,6 +64,26 @@ public final class NativeProjectDocument {
 			}
 			return new NativeProjectDocument(projectPath, parsed.getAsJsonObject());
 		}
+	}
+
+	/** Native project model for a raw input, held only in memory until explicit save. */
+	public static NativeProjectDocument newFromInputs(Path futurePath, List<Path> inputs) {
+		JsonObject root = new JsonObject();
+		root.addProperty("projectVersion", 2);
+		var files = new com.google.gson.JsonArray();
+		for (Path input : inputs) files.add(nativePath(futurePath, input));
+		root.add("files", files);
+		root.add("treeExpansionsV2", new com.google.gson.JsonArray());
+		root.add("codeData", CODE_DATA_GSON.toJsonTree(new JadxCodeData()));
+		root.add("openTabs", new com.google.gson.JsonArray());
+		root.add("cacheDir", com.google.gson.JsonNull.INSTANCE);
+		root.addProperty("enableLiveReload", false);
+		root.add("searchHistory", new com.google.gson.JsonArray());
+		root.addProperty("searchResourcesFilter", "$TEXT");
+		root.addProperty("searchResourcesSizeLimit", 0);
+		root.add("pluginOptions", new JsonObject());
+		root.add("mappingsPath", com.google.gson.JsonNull.INSTANCE);
+		return new NativeProjectDocument(futurePath, root);
 	}
 
 	public Path getProjectPath() {
@@ -104,8 +124,70 @@ public final class NativeProjectDocument {
 		JsonObject merged = root.has(CODE_DATA_KEY) && root.get(CODE_DATA_KEY).isJsonObject()
 				? root.getAsJsonObject(CODE_DATA_KEY).deepCopy()
 				: new JsonObject();
-		updated.entrySet().forEach(entry -> merged.add(entry.getKey(), entry.getValue()));
+		updated.entrySet().forEach(entry -> {
+			String key = entry.getKey();
+			if (("renames".equals(key) || "comments".equals(key)) && merged.has(key)) {
+				merged.add(key, preserveUnknownEntryFields(merged.get(key), entry.getValue()));
+			} else {
+				merged.add(key, entry.getValue());
+			}
+		});
 		root.add(CODE_DATA_KEY, merged);
+	}
+
+	private static JsonElement preserveUnknownEntryFields(JsonElement oldEntries, JsonElement updatedEntries) {
+		if (!oldEntries.isJsonArray() || !updatedEntries.isJsonArray()) return updatedEntries;
+		JsonArray result = new JsonArray();
+		boolean[] used = new boolean[oldEntries.getAsJsonArray().size()];
+		for (JsonElement updated : updatedEntries.getAsJsonArray()) {
+			JsonObject combined = updated.getAsJsonObject().deepCopy();
+			for (int i = 0; i < used.length; i++) {
+				JsonElement old = oldEntries.getAsJsonArray().get(i);
+				if (used[i] || !old.isJsonObject()) continue;
+				JsonObject oldObject = old.getAsJsonObject();
+				if (Objects.equals(oldObject.get("nodeRef"), combined.get("nodeRef"))
+						&& Objects.equals(oldObject.get("codeRef"), combined.get("codeRef"))) {
+					JsonObject preserved = oldObject.deepCopy();
+					combined.entrySet().forEach(entry -> preserved.add(entry.getKey(), entry.getValue()));
+					combined = preserved;
+					used[i] = true;
+					break;
+				}
+			}
+			result.add(combined);
+		}
+		return result;
+	}
+
+	public static JadxCodeData copyCodeData(JadxCodeData source) {
+		return CODE_DATA_GSON.fromJson(CODE_DATA_GSON.toJsonTree(source), JadxCodeData.class);
+	}
+
+	public NativeProjectDocument rebasedTo(Path target) {
+		JsonObject rebased = toJsonTree();
+		var files = new com.google.gson.JsonArray();
+		for (Path input : getInputFiles()) files.add(nativePath(target, input));
+		rebased.add("files", files);
+		Path mappings = getMappingsPath();
+		if (mappings != null) rebased.addProperty("mappingsPath", nativePath(target, mappings));
+		return new NativeProjectDocument(target, rebased);
+	}
+
+	public NativeProjectDocument withMappingsPath(Path mappings) {
+		JsonObject updated = toJsonTree();
+		if (mappings == null) updated.add("mappingsPath", com.google.gson.JsonNull.INSTANCE);
+		else updated.addProperty("mappingsPath", nativePath(projectPath, mappings));
+		return new NativeProjectDocument(projectPath, updated);
+	}
+
+	private static String nativePath(Path project, Path referenced) {
+		Path base = project.toAbsolutePath().normalize().getParent();
+		Path path = referenced.toAbsolutePath().normalize();
+		try {
+			return base.relativize(path).toString();
+		} catch (IllegalArgumentException differentRoot) {
+			return path.toString();
+		}
 	}
 
 	public JsonObject toJsonTree() {

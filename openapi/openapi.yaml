@@ -11,6 +11,7 @@ servers:
     description: Default loopback listener
 tags:
   - name: Service
+  - name: Project
 paths:
   /health/live:
     get:
@@ -52,6 +53,112 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Capabilities'
+        'default':
+          $ref: '#/components/responses/ApiErrorResponse'
+  /project:
+    get:
+      tags: [Project]
+      operationId: getProject
+      summary: Read the fixed project's native path, inputs, dirty state and revisions
+      responses:
+        '200':
+          description: Current in-memory project state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FixedProject'
+        'default':
+          $ref: '#/components/responses/ApiErrorResponse'
+  /project/save:
+    post:
+      tags: [Project]
+      operationId: saveProject
+      summary: Explicitly save native Jadx project data
+      description: >-
+        The targetPath is required for the first save after raw-input startup.
+        The service checks the native project and mappings against their on-disk
+        baselines before writing. Interrupted native writes may require a user backup.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaveProjectRequest'
+      responses:
+        '200':
+          description: Native save completed and the file was fingerprinted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FixedProject'
+        'default':
+          $ref: '#/components/responses/ApiErrorResponse'
+  /project/settings:
+    get:
+      tags: [Project]
+      operationId: getProjectSettings
+      summary: Read native mapping path and effective decompilation mode
+      responses:
+        '200':
+          description: Current settings and revisions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectSettings'
+        'default':
+          $ref: '#/components/responses/ApiErrorResponse'
+    patch:
+      tags: [Project]
+      operationId: updateProjectSettings
+      summary: Stage a native mapping path and rebuild Jadx analysis
+      description: The decompilation mode is temporary-only and cannot be persisted here.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProjectSettingsRequest'
+      responses:
+        '200':
+          description: Jadx was rebuilt and the native mapping path is staged in memory.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectSettings'
+        'default':
+          $ref: '#/components/responses/ApiErrorResponse'
+  /project/reload:
+    post:
+      tags: [Project]
+      operationId: reloadProject
+      summary: Reload the same native project from disk
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReloadProjectRequest'
+      responses:
+        '200':
+          description: Native project and Jadx analysis reloaded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FixedProject'
+        'default':
+          $ref: '#/components/responses/ApiErrorResponse'
+  /project/pending-edits/export:
+    post:
+      tags: [Project]
+      operationId: exportPendingEdits
+      summary: Return the current native code data without writing a file
+      responses:
+        '200':
+          description: Transient in-memory code data snapshot.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PendingEdits'
         'default':
           $ref: '#/components/responses/ApiErrorResponse'
 components:
@@ -206,16 +313,24 @@ components:
           additionalProperties: true
     RevisionSet:
       type: object
-      required: [sessionId, logicalRevision, indexRevision, persistedIdentity]
+      required: [sessionId, logicalRevision, indexRevision, persistedIdentity, persistedIdentityState]
       properties:
         sessionId:
           type: string
         logicalRevision:
-          type: string
+          type: integer
+          format: int64
+          minimum: 0
         indexRevision:
-          type: string
+          type: integer
+          format: int64
+          minimum: 0
         persistedIdentity:
+          type: [string, 'null']
+          description: Content fingerprint; null while background hashing is pending or failed.
+        persistedIdentityState:
           type: string
+          enum: [PENDING, READY, FAILED]
     ResultProvenance:
       type: object
       required: [completeness, revisions, diagnostics]
@@ -264,6 +379,71 @@ components:
           type: boolean
         revisions:
           $ref: '#/components/schemas/RevisionSet'
+    SaveProjectRequest:
+      type: object
+      dependentRequired:
+        expectedLogicalRevision: [expectedSessionId]
+      properties:
+        targetPath:
+          type: string
+          description: Existing project path or a new .jadx path for raw-input startup.
+        expectedLogicalRevision:
+          type: integer
+          format: int64
+          minimum: 0
+        expectedSessionId:
+          type: string
+          format: uuid
+    ReloadProjectRequest:
+      type: object
+      required: [discardUnsaved]
+      properties:
+        discardUnsaved:
+          type: boolean
+    PendingEdits:
+      type: object
+      required: [sessionId, logicalRevision, dirty, codeData]
+      properties:
+        sessionId:
+          type: string
+        logicalRevision:
+          type: integer
+          format: int64
+        dirty:
+          type: boolean
+        codeData:
+          type: object
+          description: Native Jadx codeData JSON, including unrecognized fields.
+          additionalProperties: true
+        mappingsPath:
+          type: [string, 'null']
+          description: Current in-memory native mapping reference.
+    ProjectSettings:
+      type: object
+      required: [mappingsPath, decompilationMode, revisions]
+      properties:
+        mappingsPath:
+          type: [string, 'null']
+          description: Native mapping reference; an accepted change remains dirty until explicit save.
+        decompilationMode:
+          type: string
+          enum: [AUTO, RESTRUCTURE, SIMPLE, FALLBACK]
+          description: Effective primary mode; this mode has no supported native persistence here.
+        revisions:
+          $ref: '#/components/schemas/RevisionSet'
+    UpdateProjectSettingsRequest:
+      type: object
+      required: [mappingsPath, expectedSessionId, expectedLogicalRevision]
+      properties:
+        mappingsPath:
+          type: [string, 'null']
+        expectedLogicalRevision:
+          type: integer
+          format: int64
+          minimum: 0
+        expectedSessionId:
+          type: string
+          format: uuid
     Page:
       type: object
       required: [items, complete]

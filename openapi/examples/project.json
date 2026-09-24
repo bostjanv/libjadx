@@ -1,0 +1,12 @@
+{
+  "projectPath": "/work/sample.jadx",
+  "inputs": ["/work/sample.jar"],
+  "dirty": true,
+  "revisions": {
+    "sessionId": "5e324939-7e91-4963-9247-faa9f874b2ee",
+    "logicalRevision": 2,
+    "indexRevision": 2,
+    "persistedIdentity": "sha256:6d710f5bb706e42231f38aa8cf81e2d18c38748446915117ad4fca7e8c6d98ef",
+    "persistedIdentityState": "READY"
+  }
+}

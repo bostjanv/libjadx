@@ -11,14 +11,26 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 import dev.libjadx.project.NativeProjectDocument;
+import dev.libjadx.project.NativeProjectRepository;
+import dev.libjadx.core.ProjectSnapshot;
+import dev.libjadx.core.EffectiveAnalysisConfig;
+import dev.libjadx.jadxadapter.JadxEngineFactory;
+import com.google.gson.JsonObject;
+import java.io.IOException;
+import jadx.api.data.impl.JadxCodeData;
+import java.util.concurrent.Semaphore;
+import java.util.function.Function;
 import jadx.api.JadxArgs;
 import jadx.api.JadxDecompiler;
 
 /** Owns one fixed project and publishes its engine only after initialization succeeds. */
 public final class ProjectRuntime implements AutoCloseable {
 	private final Object lifecycleLock = new Object();
+	private final Object operationLock = new Object();
+	private final Semaphore temporarySlots = new Semaphore(1);
 	private final Path projectPath;
 	private final List<Path> inputPaths;
+	private final List<Path> allowedRoots;
 	private final EngineFactory engineFactory;
 	private final Runnable beforePublish;
 	private final ExecutorService loader;
@@ -31,12 +43,19 @@ public final class ProjectRuntime implements AutoCloseable {
 	private Lifecycle lifecycle = Lifecycle.LOADING;
 	private RuntimeStatus status;
 	private ProjectEngine activeEngine;
+	private NativeProjectRepository repository;
+	private EffectiveAnalysisConfig effectiveConfig = EffectiveAnalysisConfig.defaults();
 	private boolean initializationStarted;
 	private InitializationTask initializationTask;
 	private int cleanupInProgress;
 
 	public ProjectRuntime(Path projectPath, List<Path> inputPaths) {
-		this(projectPath, inputPaths, JadxProjectEngine::new);
+		this(projectPath, inputPaths, defaultRoots(projectPath, inputPaths));
+	}
+
+	public ProjectRuntime(Path projectPath, List<Path> inputPaths, List<Path> allowedRoots) {
+		this(projectPath, inputPaths, allowedRoots, JadxProjectEngine::new, () -> { },
+				Executors.newSingleThreadExecutor(LOADER_THREADS));
 	}
 
 	ProjectRuntime(Path projectPath, List<Path> inputPaths, EngineFactory engineFactory) {
@@ -49,12 +68,210 @@ public final class ProjectRuntime implements AutoCloseable {
 
 	ProjectRuntime(Path projectPath, List<Path> inputPaths, EngineFactory engineFactory,
 			Runnable beforePublish, ExecutorService loader) {
+		this(projectPath, inputPaths, defaultRoots(projectPath, inputPaths), engineFactory, beforePublish, loader);
+	}
+
+	private ProjectRuntime(Path projectPath, List<Path> inputPaths, List<Path> allowedRoots,
+			EngineFactory engineFactory, Runnable beforePublish, ExecutorService loader) {
 		this.projectPath = projectPath;
 		this.inputPaths = List.copyOf(inputPaths);
+		this.allowedRoots = List.copyOf(allowedRoots);
 		this.engineFactory = engineFactory;
 		this.beforePublish = beforePublish;
 		this.loader = loader;
 		this.status = status("LOADING", "INITIALIZING", new RuntimeStatus.Progress(0, 1, "project"), null);
+	}
+
+	private static List<Path> defaultRoots(Path projectPath, List<Path> inputPaths) {
+		java.util.ArrayList<Path> roots = new java.util.ArrayList<>();
+		if (projectPath != null && projectPath.toAbsolutePath().getParent() != null) roots.add(projectPath.toAbsolutePath().getParent());
+		for (Path input : inputPaths) if (input.toAbsolutePath().getParent() != null) roots.add(input.toAbsolutePath().getParent());
+		return roots;
+	}
+
+	public ProjectSnapshot projectSnapshot() {
+		synchronized (lifecycleLock) {
+			requireReady();
+			return repository.snapshot();
+		}
+	}
+
+	public SettingsSnapshot settingsSnapshot() {
+		synchronized (lifecycleLock) {
+			requireReady();
+			return new SettingsSnapshot(repository.mappingsPath(), effectiveConfig, repository.snapshot().revisions());
+		}
+	}
+
+	public record SettingsSnapshot(Path mappingsPath, EffectiveAnalysisConfig effective,
+			dev.libjadx.core.RevisionState revisions) { }
+
+	public JsonObject pendingEdits() {
+		synchronized (lifecycleLock) {
+			requireReady();
+			return repository.pendingEdits();
+		}
+	}
+
+	public ProjectSnapshot saveProject(Path target, Long expectedRevision) throws IOException {
+		return saveProject(target, null, expectedRevision);
+	}
+
+	public ProjectSnapshot saveProject(Path target, String expectedSessionId, Long expectedRevision) throws IOException {
+		synchronized (operationLock) {
+			synchronized (lifecycleLock) {
+				requireReady();
+				return repository.save(target, expectedSessionId, expectedRevision).project();
+			}
+		}
+	}
+
+	/** Internal edit entry point; callers must validate native edit semantics before invoking it. */
+	void replaceCodeData(JadxCodeData edited, long expectedRevision) {
+		synchronized (operationLock) {
+			synchronized (lifecycleLock) {
+				requireReady();
+				repository.replaceCodeData(edited, expectedRevision);
+				activeEngine.decompiler().getArgs().setCodeData(repository.codeDataCopy());
+				activeEngine.decompiler().reloadCodeData();
+			}
+		}
+	}
+
+	/** One isolated, read-only analysis operation over an admitted immutable native edit snapshot. */
+	<T> TemporaryResult<T> withTemporaryAnalysis(EffectiveAnalysisConfig override,
+			Function<JadxDecompiler, T> operation) throws Exception {
+		if (!temporarySlots.tryAcquire()) throw new IllegalStateException("Temporary analysis capacity is busy");
+		ProjectEngine temporary = null;
+		try {
+			JadxArgs args;
+			ProjectSnapshot snapshot;
+			synchronized (operationLock) {
+				synchronized (lifecycleLock) {
+					requireReady();
+					snapshot = repository.snapshot();
+					args = JadxEngineFactory.arguments(inputPaths, repository.mappingsPath(), repository.codeDataCopy(), override);
+				}
+			}
+			temporary = engineFactory.create(args);
+			temporary.load();
+			String sourceSnapshotId = sourceSnapshotId(snapshot, override);
+			return new TemporaryResult<>(snapshot.revisions(), override, override.fingerprint(), sourceSnapshotId,
+					operation.apply(temporary.decompiler()));
+		} finally {
+			if (temporary != null) closeOwned(temporary, null);
+			temporarySlots.release();
+		}
+	}
+
+	private static String sourceSnapshotId(ProjectSnapshot snapshot, EffectiveAnalysisConfig config) {
+		try {
+			var digest = java.security.MessageDigest.getInstance("SHA-256");
+			String material = snapshot.revisions().sessionId() + ":" + snapshot.revisions().logicalRevision()
+					+ ":" + config.fingerprint();
+			return "sha256:" + java.util.HexFormat.of().formatHex(digest.digest(material.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+		} catch (java.security.NoSuchAlgorithmException impossible) {
+			throw new IllegalStateException(impossible);
+		}
+	}
+
+	record TemporaryResult<T>(dev.libjadx.core.RevisionState revisions, EffectiveAnalysisConfig settings,
+			String settingsFingerprint, String sourceSnapshotId, T value) { }
+
+	public ProjectSnapshot reloadProject(boolean discardUnsaved) throws Exception {
+		synchronized (operationLock) {
+			NativeProjectRepository current;
+			synchronized (lifecycleLock) {
+				requireReady();
+				current = repository;
+			}
+			// A failed replacement leaves the fixed service in FAILED rather than publishing stale analysis.
+			ProjectSnapshot next = current.reload(discardUnsaved);
+			ProjectEngine replacement = null;
+			try {
+				synchronized (lifecycleLock) {
+					requireReady();
+					lifecycle = Lifecycle.RELOADING;
+					status = status("RELOADING", "LOADING_JADX", new RuntimeStatus.Progress(0, 1, "project"), null);
+				}
+				replacement = engineFactory.create(buildArgs(current));
+				replacement.load();
+				ProjectEngine old;
+				synchronized (lifecycleLock) {
+					if (lifecycle != Lifecycle.RELOADING) throw new IllegalStateException("Reload interrupted by shutdown");
+					old = activeEngine;
+					activeEngine = replacement;
+					replacement = null;
+					lifecycle = Lifecycle.READY;
+					status = status("READY", "READY", new RuntimeStatus.Progress(1, 1, "project"), null);
+				}
+				closeOwned(old, null);
+				return next;
+			} catch (Exception failure) {
+				ProjectEngine old;
+				synchronized (lifecycleLock) {
+					old = activeEngine;
+					activeEngine = null;
+					if (lifecycle == Lifecycle.RELOADING) {
+						lifecycle = Lifecycle.FAILED;
+						status = status("FAILED", "FAILED", status.progress(),
+								new RuntimeStatus.ApiError("PROJECT_LOAD_FAILED", safeFailureMessage(failure), null));
+					}
+				}
+				if (old != null) closeOwned(old, failure);
+				throw failure;
+			} finally {
+				if (replacement != null) closeOwned(replacement, null);
+			}
+		}
+	}
+
+	public ProjectSnapshot updateMappingsPath(Path mappings, String expectedSessionId, long expectedRevision) throws Exception {
+		synchronized (operationLock) {
+			NativeProjectRepository current;
+			NativeProjectRepository.MappingCandidate candidate;
+			synchronized (lifecycleLock) {
+				requireReady();
+				current = repository;
+				candidate = current.stageMappingsPath(mappings, expectedSessionId, expectedRevision);
+				lifecycle = Lifecycle.RELOADING;
+				status = status("RELOADING", "LOADING_JADX", new RuntimeStatus.Progress(0, 1, "project"), null);
+			}
+			ProjectEngine replacement = null;
+			try {
+				JadxArgs args = JadxEngineFactory.arguments(inputPaths, candidate.path(),
+						candidate.document().getCodeData(), effectiveConfig);
+				replacement = engineFactory.create(args);
+				replacement.load();
+				ProjectEngine old;
+				ProjectSnapshot snapshot;
+				synchronized (lifecycleLock) {
+					if (lifecycle != Lifecycle.RELOADING) throw new IllegalStateException("Settings rebuild interrupted by shutdown");
+					snapshot = current.commitMappingsPath(candidate);
+					old = activeEngine;
+					activeEngine = replacement;
+					replacement = null;
+					lifecycle = Lifecycle.READY;
+					status = status("READY", "READY", new RuntimeStatus.Progress(1, 1, "project"), null);
+				}
+				closeOwned(old, null);
+				return snapshot;
+			} catch (Exception failure) {
+				synchronized (lifecycleLock) {
+					if (lifecycle == Lifecycle.RELOADING) {
+						lifecycle = Lifecycle.READY;
+						status = status("READY", "READY", new RuntimeStatus.Progress(1, 1, "project"), null);
+					}
+				}
+				throw failure;
+			} finally {
+				if (replacement != null) closeOwned(replacement, null);
+			}
+		}
+	}
+
+	private void requireReady() {
+		if (lifecycle != Lifecycle.READY || repository == null) throw new IllegalStateException("Project is not ready");
 	}
 
 	public RuntimeStatus status() {
@@ -108,18 +325,16 @@ public final class ProjectRuntime implements AutoCloseable {
 
 	private void initialize(NativeProjectDocument nativeProject) {
 		ProjectEngine local = null;
+		NativeProjectRepository localRepository = null;
 		Exception expectedFailure = null;
 		Error fatalFailure = null;
 		try {
-			JadxArgs args = new JadxArgs();
-			inputPaths.forEach(path -> args.getInputFiles().add(path.toFile()));
-			if (nativeProject != null) {
-				args.setCodeData(nativeProject.getCodeData());
-				Path mappings = nativeProject.getMappingsPath();
-				if (mappings != null) {
-					args.setUserRenamesMappingsPath(mappings);
-				}
+			if (nativeProject != null) localRepository = NativeProjectRepository.open(nativeProject.getProjectPath(), allowedRoots);
+			else if (!inputPaths.isEmpty()) localRepository = NativeProjectRepository.fromInputs(inputPaths, allowedRoots);
+			if (localRepository != null && !localRepository.snapshot().inputs().equals(inputPaths)) {
+				throw new IllegalStateException("Native project input references changed after startup validation");
 			}
+			JadxArgs args = localRepository == null ? new JadxArgs() : buildArgs(localRepository);
 			if (!isLoading()) {
 				return;
 			}
@@ -132,6 +347,7 @@ public final class ProjectRuntime implements AutoCloseable {
 			synchronized (lifecycleLock) {
 				if (lifecycle == Lifecycle.LOADING) {
 					activeEngine = local;
+					repository = localRepository;
 					local = null; // ownership transferred to the runtime
 					lifecycle = Lifecycle.READY;
 					status = status("READY", "READY", new RuntimeStatus.Progress(1, 1, "project"), null);
@@ -170,8 +386,23 @@ public final class ProjectRuntime implements AutoCloseable {
 		}
 	}
 
+	private JadxArgs buildArgs(NativeProjectRepository project) {
+		return JadxEngineFactory.arguments(inputPaths, project.mappingsPath(), project.codeDataCopy(), effectiveConfig);
+	}
+
 	@Override
 	public void close() {
+		synchronized (operationLock) {
+			temporarySlots.acquireUninterruptibly();
+			try {
+				closeInternal();
+			} finally {
+				temporarySlots.release();
+			}
+		}
+	}
+
+	private void closeInternal() {
 		ProjectEngine detached;
 		InitializationTask cancelled = null;
 		synchronized (lifecycleLock) {
@@ -267,6 +498,7 @@ public final class ProjectRuntime implements AutoCloseable {
 	enum Lifecycle {
 		LOADING,
 		READY,
+		RELOADING,
 		FAILED,
 		SHUTTING_DOWN,
 		STOPPED
