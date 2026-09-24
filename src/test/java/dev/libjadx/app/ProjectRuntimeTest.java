@@ -7,10 +7,15 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.AbstractExecutorService;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -29,6 +34,7 @@ class ProjectRuntimeTest {
 		runtime.initializeAsync(null).get(5, TimeUnit.SECONDS);
 
 		assertEquals("READY", runtime.status().state());
+		assertEquals(1, engine.loadCount.get());
 		assertTrue(runtime.isReady());
 		assertSame(engine.decompiler, runtime.decompiler());
 		runtime.close();
@@ -52,6 +58,7 @@ class ProjectRuntimeTest {
 		assertEquals("PROJECT_LOAD_FAILED", runtime.status().error().code());
 		assertFalse(runtime.status().error().message().contains("/private/path"));
 		assertEquals(1, engine.closeCount.get());
+		assertEquals(1, engine.loadCount.get());
 		assertThrows(IllegalStateException.class, runtime::decompiler);
 		runtime.close();
 		assertEquals("STOPPED", runtime.status().state());
@@ -154,6 +161,111 @@ class ProjectRuntimeTest {
 		assertEquals(1, closeCount.get());
 	}
 
+	@Test
+	void shutdownCancelsQueuedTaskEvenWhenExecutorDiscardsIt() throws Exception {
+		HoldingExecutor executor = new HoldingExecutor();
+		AtomicInteger creations = new AtomicInteger();
+		ProjectRuntime runtime = new ProjectRuntime(Path.of("fixture.jadx"), List.of(), args -> {
+			creations.incrementAndGet();
+			return new FakeEngine(args, () -> { });
+		}, () -> { }, executor);
+		CompletableFuture<Void> initialization = runtime.initializeAsync(null);
+		try {
+			assertEquals(1, executor.queued.size());
+			assertEquals(0, creations.get());
+			runtime.close();
+			assertEquals("STOPPED", runtime.status().state());
+			assertThrows(CancellationException.class, () -> initialization.get(5, TimeUnit.SECONDS));
+			assertEquals(0, creations.get());
+			assertEquals(1, executor.discarded);
+		} finally {
+			runtime.close();
+		}
+	}
+
+	@Test
+	void closeAndWorkerStartInterleavingsAlwaysTerminateWithoutPublishingReady() throws Exception {
+		for (int i = 0; i < 20; i++) {
+			HoldingExecutor executor = new HoldingExecutor();
+			CountDownLatch enteredFactory = new CountDownLatch(1);
+			CountDownLatch releaseFactory = new CountDownLatch(1);
+			AtomicInteger creations = new AtomicInteger();
+			FakeEngine engine = new FakeEngine(new JadxArgs(), () -> { });
+			ProjectRuntime runtime = new ProjectRuntime(Path.of("fixture.jadx"), List.of(), args -> {
+				creations.incrementAndGet();
+				enteredFactory.countDown();
+				awaitIgnoringInterrupt(releaseFactory);
+				return engine;
+			}, () -> { }, executor);
+			CompletableFuture<Void> initialization = runtime.initializeAsync(null);
+			Runnable task = executor.queued.get(0);
+			Thread worker = null;
+			try {
+				if (i % 2 == 0) {
+					runtime.close();
+					worker = new Thread(task);
+					worker.start();
+					assertThrows(CancellationException.class, () -> initialization.get(5, TimeUnit.SECONDS));
+					assertEquals(0, creations.get());
+				} else {
+					worker = new Thread(task);
+					worker.start();
+					assertTrue(enteredFactory.await(5, TimeUnit.SECONDS));
+					runtime.close();
+					assertEquals("SHUTTING_DOWN", runtime.status().state());
+					releaseFactory.countDown();
+					initialization.get(5, TimeUnit.SECONDS);
+					assertEquals(1, creations.get());
+					assertEquals(0, engine.loadCount.get());
+					assertEquals(1, engine.closeCount.get());
+				}
+				worker.join(5_000);
+				assertFalse(worker.isAlive());
+				assertEquals("STOPPED", runtime.status().state());
+				assertFalse(runtime.isReady());
+			} finally {
+				releaseFactory.countDown();
+				runtime.close();
+				if (worker != null) worker.join(5_000);
+			}
+		}
+	}
+
+	@Test
+	void repeatedCloseDuringQueuedCancellationCompletesOnlyOnce() throws Exception {
+		HoldingExecutor executor = new HoldingExecutor();
+		AtomicInteger creations = new AtomicInteger();
+		ProjectRuntime runtime = new ProjectRuntime(null, List.of(), args -> {
+			creations.incrementAndGet();
+			return new FakeEngine(args, () -> { });
+		}, () -> { }, executor);
+		CompletableFuture<Void> initialization = runtime.initializeAsync(null);
+		AtomicInteger completions = new AtomicInteger();
+		initialization.whenComplete((result, failure) -> completions.incrementAndGet());
+		runtime.close();
+		runtime.close();
+		assertThrows(CancellationException.class, () -> initialization.get(5, TimeUnit.SECONDS));
+		assertEquals(1, completions.get());
+		assertEquals(0, creations.get());
+		assertEquals("STOPPED", runtime.status().state());
+	}
+
+	@Test
+	void submissionRejectionCompletesFutureAndLeavesNoPendingLoad() throws Exception {
+		HoldingExecutor executor = new HoldingExecutor();
+		executor.shutdown();
+		ProjectRuntime runtime = new ProjectRuntime(null, List.of(), args -> {
+			throw new AssertionError("Factory must not run");
+		}, () -> { }, executor);
+		CompletableFuture<Void> initialization = runtime.initializeAsync(null);
+		ExecutionException failure = assertThrows(ExecutionException.class,
+				() -> initialization.get(5, TimeUnit.SECONDS));
+		assertTrue(failure.getCause() instanceof RejectedExecutionException);
+		assertEquals("FAILED", runtime.status().state());
+		runtime.close();
+		assertEquals("STOPPED", runtime.status().state());
+	}
+
 	private static ProjectRuntime runtime(FakeEngine engine) {
 		return new ProjectRuntime(Path.of("fixture.jadx"), List.of(), args -> engine);
 	}
@@ -208,5 +320,32 @@ class ProjectRuntimeTest {
 			closeCount.incrementAndGet();
 			decompiler.close();
 		}
+	}
+
+	private static final class HoldingExecutor extends AbstractExecutorService {
+		private final List<Runnable> queued = new ArrayList<>();
+		private boolean shutdown;
+		private int discarded;
+
+		@Override public void execute(Runnable command) {
+			if (shutdown) throw new RejectedExecutionException("controlled rejection");
+			queued.add(command);
+		}
+
+		@Override public void shutdown() { shutdown = true; }
+
+		@Override public List<Runnable> shutdownNow() {
+			shutdown = true;
+			List<Runnable> removed = List.copyOf(queued);
+			discarded += queued.size();
+			queued.clear();
+			return removed;
+		}
+
+		@Override public boolean isShutdown() { return shutdown; }
+
+		@Override public boolean isTerminated() { return shutdown && queued.isEmpty(); }
+
+		@Override public boolean awaitTermination(long timeout, TimeUnit unit) { return isTerminated(); }
 	}
 }

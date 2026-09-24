@@ -2,9 +2,12 @@ package dev.libjadx.app;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadFactory;
 
 import dev.libjadx.project.NativeProjectDocument;
 import jadx.api.JadxArgs;
@@ -17,17 +20,18 @@ public final class ProjectRuntime implements AutoCloseable {
 	private final List<Path> inputPaths;
 	private final EngineFactory engineFactory;
 	private final Runnable beforePublish;
-	private final ExecutorService loader = Executors.newSingleThreadExecutor(r -> {
+	private final ExecutorService loader;
+	private static final ThreadFactory LOADER_THREADS = r -> {
 		Thread thread = new Thread(r, "libjadx-project-loader");
 		thread.setDaemon(true);
 		return thread;
-	});
+	};
 
 	private Lifecycle lifecycle = Lifecycle.LOADING;
 	private RuntimeStatus status;
 	private ProjectEngine activeEngine;
 	private boolean initializationStarted;
-	private boolean loadInProgress;
+	private InitializationTask initializationTask;
 	private int cleanupInProgress;
 
 	public ProjectRuntime(Path projectPath, List<Path> inputPaths) {
@@ -39,10 +43,16 @@ public final class ProjectRuntime implements AutoCloseable {
 	}
 
 	ProjectRuntime(Path projectPath, List<Path> inputPaths, EngineFactory engineFactory, Runnable beforePublish) {
+		this(projectPath, inputPaths, engineFactory, beforePublish, Executors.newSingleThreadExecutor(LOADER_THREADS));
+	}
+
+	ProjectRuntime(Path projectPath, List<Path> inputPaths, EngineFactory engineFactory,
+			Runnable beforePublish, ExecutorService loader) {
 		this.projectPath = projectPath;
 		this.inputPaths = List.copyOf(inputPaths);
 		this.engineFactory = engineFactory;
 		this.beforePublish = beforePublish;
+		this.loader = loader;
 		this.status = status("LOADING", "INITIALIZING", new RuntimeStatus.Progress(0, 1, "project"), null);
 	}
 
@@ -67,8 +77,18 @@ public final class ProjectRuntime implements AutoCloseable {
 			if (lifecycle != Lifecycle.LOADING) {
 				return CompletableFuture.failedFuture(new IllegalStateException("Project runtime is shutting down"));
 			}
-			loadInProgress = true;
-			return CompletableFuture.runAsync(() -> initialize(nativeProject), loader);
+			InitializationTask task = new InitializationTask(nativeProject);
+			initializationTask = task;
+			try {
+				loader.execute(task);
+			} catch (RejectedExecutionException failure) {
+				task.state = TaskState.FINISHED;
+				lifecycle = Lifecycle.FAILED;
+				status = status("FAILED", "FAILED", status.progress(),
+						new RuntimeStatus.ApiError("INTERNAL_ERROR", "Project initialization could not be scheduled", null));
+				task.completion.completeExceptionally(failure);
+			}
+			return task.completion;
 		}
 	}
 
@@ -107,7 +127,6 @@ public final class ProjectRuntime implements AutoCloseable {
 				return;
 			}
 			local.load();
-			local.load();
 			beforePublish.run();
 			synchronized (lifecycleLock) {
 				if (lifecycle == Lifecycle.LOADING) {
@@ -139,15 +158,8 @@ public final class ProjectRuntime implements AutoCloseable {
 				}
 			}
 		} finally {
-			try {
-				if (local != null) {
-					closeOwned(local, expectedFailure != null ? expectedFailure : fatalFailure);
-				}
-			} finally {
-				synchronized (lifecycleLock) {
-					loadInProgress = false;
-					finishShutdownIfQuiescent();
-				}
+			if (local != null) {
+				closeOwned(local, expectedFailure != null ? expectedFailure : fatalFailure);
 			}
 		}
 		if (fatalFailure != null) {
@@ -158,6 +170,7 @@ public final class ProjectRuntime implements AutoCloseable {
 	@Override
 	public void close() {
 		ProjectEngine detached;
+		InitializationTask cancelled = null;
 		synchronized (lifecycleLock) {
 			if (lifecycle == Lifecycle.STOPPED) {
 				return;
@@ -171,11 +184,18 @@ public final class ProjectRuntime implements AutoCloseable {
 				activeEngine = null;
 				cleanupInProgress++;
 			}
+			if (initializationTask != null && initializationTask.state == TaskState.QUEUED) {
+				cancelled = initializationTask;
+				cancelled.state = TaskState.FINISHED;
+			}
 		}
 
 		// State and ownership are settled before interrupting the loader. A load that
 		// ignores interruption remains responsible for its local engine in initialize().
 		loader.shutdownNow();
+		if (cancelled != null) {
+			cancelled.completion.completeExceptionally(new CancellationException("Project initialization cancelled by shutdown"));
+		}
 		if (detached != null) {
 			try {
 				closeOwned(detached, null);
@@ -193,7 +213,9 @@ public final class ProjectRuntime implements AutoCloseable {
 	}
 
 	private void finishShutdownIfQuiescent() {
-		if (lifecycle == Lifecycle.SHUTTING_DOWN && !loadInProgress && cleanupInProgress == 0 && activeEngine == null) {
+		if (lifecycle == Lifecycle.SHUTTING_DOWN
+				&& (initializationTask == null || initializationTask.state == TaskState.FINISHED)
+				&& cleanupInProgress == 0 && activeEngine == null) {
 			lifecycle = Lifecycle.STOPPED;
 			status = status("STOPPED", "STOPPED", status.progress(), null);
 		}
@@ -231,6 +253,39 @@ public final class ProjectRuntime implements AutoCloseable {
 		FAILED,
 		SHUTTING_DOWN,
 		STOPPED
+	}
+
+	private enum TaskState { QUEUED, RUNNING, FINISHED }
+
+	private final class InitializationTask implements Runnable {
+		private final NativeProjectDocument nativeProject;
+		private final CompletableFuture<Void> completion = new CompletableFuture<>();
+		private TaskState state = TaskState.QUEUED;
+
+		private InitializationTask(NativeProjectDocument nativeProject) {
+			this.nativeProject = nativeProject;
+		}
+
+		@Override
+		public void run() {
+			synchronized (lifecycleLock) {
+				if (state != TaskState.QUEUED) return;
+				state = TaskState.RUNNING;
+			}
+			Throwable failure = null;
+			try {
+				initialize(nativeProject);
+			} catch (Throwable caught) {
+				failure = caught;
+			} finally {
+				synchronized (lifecycleLock) {
+					state = TaskState.FINISHED;
+					finishShutdownIfQuiescent();
+				}
+				if (failure == null) completion.complete(null);
+				else completion.completeExceptionally(failure);
+			}
+		}
 	}
 
 	@FunctionalInterface

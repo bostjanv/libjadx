@@ -13,6 +13,7 @@ public final class HttpApiServer implements AutoCloseable {
 
 	public HttpApiServer(String host, int port, ProjectRuntime runtime) {
 		this.server = new Server();
+		this.server.setStopTimeout(5_000);
 		ServerConnector connector = new ServerConnector(server);
 		connector.setHost(host);
 		connector.setPort(port);

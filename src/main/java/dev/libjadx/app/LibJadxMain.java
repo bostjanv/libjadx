@@ -19,18 +19,40 @@ public final class LibJadxMain {
 
 		ProjectRuntime runtime = new ProjectRuntime(config.projectPath(), config.inputPaths());
 		HttpApiServer server = new HttpApiServer(config.bindAddress(), config.port(), runtime);
-		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+		StartupSupervisor supervisor = new StartupSupervisor(server, runtime, LibJadxMain::startFatalWatchdog,
+				System::exit);
+		Thread shutdownHook = new Thread(supervisor::close, "libjadx-shutdown");
+		Runtime.getRuntime().addShutdownHook(shutdownHook);
+		try {
+			server.start();
+			System.out.println("LibJadx listening on http://" + config.bindAddress() + ":" + server.localPort());
+			supervisor.watch(runtime.initializeAsync(config.nativeProject()));
+			server.join();
+			supervisor.awaitFatalExitIfObserved();
+		} finally {
+			supervisor.close();
 			try {
-				server.close();
-				runtime.close();
-			} catch (Exception e) {
-				System.err.println("Shutdown error: " + e.getMessage());
+				Runtime.getRuntime().removeShutdownHook(shutdownHook);
+			} catch (IllegalStateException ignored) {
+				// JVM shutdown already started.
 			}
-		}, "libjadx-shutdown"));
+		}
+	}
 
-		server.start();
-		System.out.println("LibJadx listening on http://" + config.bindAddress() + ":" + server.localPort());
-		runtime.initializeAsync(config.nativeProject());
-		server.join();
+	private static void startFatalWatchdog() {
+		try {
+			Thread watchdog = new Thread(() -> {
+				try {
+					Thread.sleep(10_000);
+				} catch (InterruptedException ignored) {
+					return;
+				}
+				Runtime.getRuntime().halt(1);
+			}, "libjadx-fatal-watchdog");
+			watchdog.setDaemon(true);
+			watchdog.start();
+		} catch (Throwable failure) {
+			Runtime.getRuntime().halt(1);
+		}
 	}
 }
