@@ -4,6 +4,8 @@ The native project repository owns the in-memory `.jadx` JSON tree. Explicit sav
 updates that native file and preserves unrelated GUI and unknown root fields.
 For raw input, no project file exists until `POST /api/v1/project/save` supplies
 an unused `.jadx` target under an allowed root. A later save uses that path.
+The initial raw-input save reserves the path with exclusive create so another
+process cannot replace a concurrently created project.
 
 The service checks the project and referenced mapping file content against the
 baseline observed at load or last save. A staged mapping change also checks
@@ -11,11 +13,16 @@ the new mapping file against the content observed when it was selected. An
 external change returns `EXTERNAL_MODIFICATION_CONFLICT`; pending code data and
 the mapping path can be recovered from the transient export response. Reload
 requires `discardUnsaved: true` when the in-memory state is dirty.
+Every reload request also requires the session ID and logical revision last
+observed by that client; a stale request returns `STALE_REVISION` before any
+in-memory edit is discarded.
 
 `sessionId` and logical/index counters exist for this process only. The
 persisted identity hashes native project, mapping and input bytes. Inputs over
 32 MiB are hashed in a background virtual thread. During hashing, the identity
 is null and its state is `PENDING`; a read failure sets `FAILED`.
+Each background hash uses a fixed snapshot of the saved project, mapping and
+input paths, so a staged mapping change cannot affect persisted identity.
 Temporary analysis produces a source snapshot ID and settings fingerprint.
 Cursor validation is deferred until the search/index endpoints exist.
 

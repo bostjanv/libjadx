@@ -132,6 +132,9 @@ paths:
       tags: [Project]
       operationId: reloadProject
       summary: Reload the same native project from disk
+      description: >-
+        The caller must provide the session and logical revision it observed.
+        A stale precondition is rejected before any unsaved edit is discarded.
       requestBody:
         required: true
         content:
@@ -396,10 +399,17 @@ components:
           format: uuid
     ReloadProjectRequest:
       type: object
-      required: [discardUnsaved]
+      required: [discardUnsaved, expectedSessionId, expectedLogicalRevision]
       properties:
         discardUnsaved:
           type: boolean
+        expectedSessionId:
+          type: string
+          format: uuid
+        expectedLogicalRevision:
+          type: integer
+          format: int64
+          minimum: 0
     PendingEdits:
       type: object
       required: [sessionId, logicalRevision, dirty, codeData]

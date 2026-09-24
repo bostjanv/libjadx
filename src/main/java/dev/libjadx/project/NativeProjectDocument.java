@@ -6,6 +6,7 @@ import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.Objects;
 import java.util.ArrayList;
 import java.util.List;
@@ -197,8 +198,17 @@ public final class NativeProjectDocument {
 
 	/** Writes using ordinary native JSON file semantics. This method is the only disk mutation. */
 	public void save() throws IOException {
+		write(StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+	}
+
+	/** First raw-input save reserves the target with an exclusive native file create. */
+	public void saveNew() throws IOException {
+		write(StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
+	}
+
+	private void write(StandardOpenOption... options) throws IOException {
 		setCodeData(codeData);
-		try (Writer writer = Files.newBufferedWriter(projectPath, StandardCharsets.UTF_8)) {
+		try (Writer writer = Files.newBufferedWriter(projectPath, StandardCharsets.UTF_8, options)) {
 			DOCUMENT_GSON.toJson(root, writer);
 		}
 	}

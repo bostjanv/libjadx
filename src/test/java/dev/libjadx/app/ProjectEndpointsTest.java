@@ -75,8 +75,17 @@ class ProjectEndpointsTest {
 			assertEquals("EXTERNAL_MODIFICATION_CONFLICT", conflict.path("error").path("code").asText());
 			assertTrue(body(post(server, "/api/v1/project/pending-edits/export", "{}"))
 					.path("codeData").toString().contains("second pending edit"));
-			assertEquals(409, post(server, "/api/v1/project/reload", "{\"discardUnsaved\":false}").statusCode());
-			assertEquals(200, post(server, "/api/v1/project/reload", "{\"discardUnsaved\":true}").statusCode());
+			assertEquals(400, post(server, "/api/v1/project/reload", "{\"discardUnsaved\":true}").statusCode());
+			JsonNode staleReload = body(post(server, "/api/v1/project/reload", "{\"discardUnsaved\":true,"
+					+ "\"expectedSessionId\":\"" + session + "\",\"expectedLogicalRevision\":1}"));
+			assertEquals("STALE_REVISION", staleReload.path("error").path("code").asText());
+			assertTrue(body(get(server, "/api/v1/project")).path("dirty").asBoolean());
+			assertTrue(body(post(server, "/api/v1/project/pending-edits/export", "{}"))
+					.path("codeData").toString().contains("second pending edit"));
+			assertEquals(409, post(server, "/api/v1/project/reload", "{\"discardUnsaved\":false,"
+					+ "\"expectedSessionId\":\"" + session + "\",\"expectedLogicalRevision\":2}").statusCode());
+			assertEquals(200, post(server, "/api/v1/project/reload", "{\"discardUnsaved\":true,"
+					+ "\"expectedSessionId\":\"" + session + "\",\"expectedLogicalRevision\":2}").statusCode());
 			assertFalse(body(get(server, "/api/v1/project")).path("dirty").asBoolean());
 			assertEquals("READY", runtime.status().state());
 			assertEquals(session, body(get(server, "/api/v1/project")).path("revisions").path("sessionId").asText());

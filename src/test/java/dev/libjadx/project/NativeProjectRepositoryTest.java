@@ -9,6 +9,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.io.RandomAccessFile;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -39,8 +43,11 @@ class NativeProjectRepositoryTest {
 		assertThrows(NativeProjectRepository.ExternalModificationException.class, () -> repository.save(null, 1L));
 		assertTrue(repository.snapshot().dirty());
 		assertTrue(repository.pendingEdits().toString().contains("Changed"));
-		assertThrows(NativeProjectRepository.UnsavedChangesException.class, () -> repository.reload(false));
-		repository.reload(true);
+		String session = repository.snapshot().revisions().sessionId();
+		assertThrows(NativeProjectRepository.StaleRevisionException.class,
+				() -> repository.reload(true, "00000000-0000-0000-0000-000000000000", 1));
+		assertThrows(NativeProjectRepository.UnsavedChangesException.class, () -> repository.reload(false, session, 1));
+		repository.reload(true, session, 1);
 		assertFalse(repository.snapshot().dirty());
 		assertFalse(repository.pendingEdits().toString().contains("Changed"));
 
@@ -71,6 +78,37 @@ class NativeProjectRepositoryTest {
 		assertFalse(repository.snapshot().dirty());
 		assertEquals(session, repository.snapshot().revisions().sessionId());
 		assertThrows(IllegalArgumentException.class, () -> repository.save(dir.resolve("other.jadx"), null));
+	}
+
+	@Test
+	void twoRawInputWritersCannotClobberTheSameNewProjectTarget() throws Exception {
+		Path input = Files.createFile(dir.resolve("racing.jar"));
+		Path target = dir.resolve("racing.jadx");
+		NativeProjectRepository first = NativeProjectRepository.fromInputs(List.of(input), List.of(dir));
+		NativeProjectRepository second = NativeProjectRepository.fromInputs(List.of(input), List.of(dir));
+		CountDownLatch start = new CountDownLatch(1);
+		var pool = Executors.newFixedThreadPool(2);
+		try {
+			var one = pool.submit(() -> attemptSave(first, target, start));
+			var two = pool.submit(() -> attemptSave(second, target, start));
+			start.countDown();
+			assertEquals(1, List.of(one.get(5, TimeUnit.SECONDS), two.get(5, TimeUnit.SECONDS))
+					.stream().filter("saved"::equals).count());
+			assertEquals(1, List.of(one.get(), two.get()).stream().filter("conflict"::equals).count());
+			assertEquals(List.of(input), NativeProjectDocument.open(target).getInputFiles());
+		} finally {
+			pool.shutdownNow();
+		}
+	}
+
+	private static String attemptSave(NativeProjectRepository repository, Path target, CountDownLatch start) throws Exception {
+		start.await();
+		try {
+			repository.save(target, 0L);
+			return "saved";
+		} catch (NativeProjectRepository.ExternalModificationException expected) {
+			return "conflict";
+		}
 	}
 
 	@Test
@@ -116,6 +154,33 @@ class NativeProjectRepositoryTest {
 				&& System.nanoTime() < deadline) Thread.sleep(10);
 		assertEquals("READY", repository.snapshot().revisions().persistedIdentityState());
 		assertTrue(repository.snapshot().revisions().persistedIdentity().startsWith("sha256:"));
+	}
+
+	@Test
+	void delayedFingerprintHashesSavedMappingAfterAnUnsavedMappingChange() throws Exception {
+		Path large = dir.resolve("large.bin");
+		try (RandomAccessFile file = new RandomAccessFile(large.toFile(), "rw")) {
+			file.setLength(33L * 1024 * 1024);
+		}
+		Path firstMapping = dir.resolve("first.tiny");
+		Path secondMapping = dir.resolve("second.tiny");
+		Files.writeString(firstMapping, "tiny\t2\t0\toriginal\tmapped\n");
+		Files.writeString(secondMapping, "tiny\t2\t0\toriginal\tother\n");
+		Path project = dir.resolve("large.jadx");
+		Files.writeString(project, """
+				{"projectVersion":2,"files":["large.bin"],"mappingsPath":"first.tiny",
+				 "codeData":{"renames":[],"comments":[]}}
+				""");
+		NativeProjectRepository baseline = NativeProjectRepository.open(project, List.of(dir), Runnable::run);
+		String expectedIdentity = baseline.snapshot().revisions().persistedIdentity();
+		AtomicReference<Runnable> delayedHash = new AtomicReference<>();
+		NativeProjectRepository pending = NativeProjectRepository.open(project, List.of(dir), delayedHash::set);
+		assertEquals("PENDING", pending.snapshot().revisions().persistedIdentityState());
+		pending.commitMappingsPath(pending.stageMappingsPath(secondMapping, 0));
+		assertTrue(pending.snapshot().dirty());
+		delayedHash.get().run();
+		assertEquals("READY", pending.snapshot().revisions().persistedIdentityState());
+		assertEquals(expectedIdentity, pending.snapshot().revisions().persistedIdentity());
 	}
 
 	private Path fixture() throws Exception {

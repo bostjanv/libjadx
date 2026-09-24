@@ -10,5 +10,9 @@
   can be null while background hashing is pending or failed.
 - Save revision preconditions now pair `expectedLogicalRevision` with
   `expectedSessionId`. The mapping-path update requires both.
+- Reload requires the same session and logical-revision precondition before it
+  can discard unsaved edits.
+- First raw-input save-as uses exclusive target creation; a concurrent target
+  creation is reported as `EXTERNAL_MODIFICATION_CONFLICT`.
 - Added reviewed JSON examples under `openapi/examples/`. The generated Python
   transport does not exist yet; it remains a Phase 6 deliverable.

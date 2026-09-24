@@ -23,7 +23,7 @@ class OpenApiDocumentTest {
 		assertTrue(yaml.path("components").path("schemas").path("RevisionSet")
 				.path("required").toString().contains("persistedIdentityState"));
 		ObjectMapper json = new ObjectMapper();
-		for (String file : List.of("project.json", "save-request.json", "settings-update-request.json",
+		for (String file : List.of("project.json", "save-request.json", "reload-request.json", "settings-update-request.json",
 				"external-conflict.json")) {
 			assertTrue(json.readTree(Files.readString(Path.of("openapi/examples", file))).isObject());
 		}

@@ -4,10 +4,12 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.nio.file.FileAlreadyExistsException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 import com.google.gson.JsonObject;
 
@@ -20,6 +22,7 @@ public final class NativeProjectRepository {
 	private final String sessionId;
 	private final List<Path> allowedRoots;
 	private final List<Path> inputs;
+	private final Consumer<Runnable> fingerprintLauncher;
 	private NativeProjectDocument document;
 	private JadxCodeData rawCodeData = new JadxCodeData();
 	private FileFingerprint projectBaseline;
@@ -35,8 +38,9 @@ public final class NativeProjectRepository {
 	private long identityGeneration;
 
 	private NativeProjectRepository(Path fixedProjectPath, List<Path> inputs, List<Path> allowedRoots,
-			NativeProjectDocument document) throws IOException {
+			NativeProjectDocument document, Consumer<Runnable> fingerprintLauncher) throws IOException {
 		this.sessionId = UUID.randomUUID().toString();
+		this.fingerprintLauncher = fingerprintLauncher;
 		this.allowedRoots = allowedRoots.stream().map(path -> {
 			try { return path.toRealPath(); }
 			catch (IOException failure) { throw new IllegalArgumentException("Allowed root cannot be resolved", failure); }
@@ -57,13 +61,18 @@ public final class NativeProjectRepository {
 	}
 
 	public static NativeProjectRepository open(Path project, List<Path> roots) throws IOException {
+		return open(project, roots, task -> Thread.ofVirtual().name("libjadx-input-fingerprint").start(task));
+	}
+
+	static NativeProjectRepository open(Path project, List<Path> roots, Consumer<Runnable> fingerprintLauncher) throws IOException {
 		NativeProjectDocument document = NativeProjectDocument.open(project);
-		return new NativeProjectRepository(project.toRealPath(), document.getInputFiles(), roots, document);
+		return new NativeProjectRepository(project.toRealPath(), document.getInputFiles(), roots, document, fingerprintLauncher);
 	}
 
 	public static NativeProjectRepository fromInputs(List<Path> inputs, List<Path> roots) throws IOException {
 		if (inputs.isEmpty()) throw new IllegalArgumentException("At least one input is required");
-		return new NativeProjectRepository(null, inputs, roots, null);
+		return new NativeProjectRepository(null, inputs, roots, null,
+				task -> Thread.ofVirtual().name("libjadx-input-fingerprint").start(task));
 	}
 
 	public synchronized ProjectSnapshot snapshot() {
@@ -154,7 +163,15 @@ public final class NativeProjectRepository {
 				? NativeProjectDocument.newFromInputs(target, inputs)
 				: document.rebasedTo(target);
 		if (document == null) toSave.setCodeData(rawCodeData);
-		toSave.save();
+		if (document == null) {
+			try {
+				toSave.saveNew();
+			} catch (FileAlreadyExistsException conflict) {
+				throw new ExternalModificationException("Save target was created by another process; choose an unused .jadx path");
+			}
+		} else {
+			toSave.save();
+		}
 		if (document == null) document = toSave;
 		projectBaseline = FileFingerprint.of(target);
 		mappingBaseline = FileFingerprint.of(toSave.getMappingsPath());
@@ -171,7 +188,10 @@ public final class NativeProjectRepository {
 		return save(target, expectedRevision);
 	}
 
-	public synchronized ProjectSnapshot reload(boolean discardUnsaved) throws IOException {
+	public synchronized ProjectSnapshot reload(boolean discardUnsaved, String expectedSessionId,
+			long expectedRevision) throws IOException {
+		checkSession(expectedSessionId);
+		checkRevision(expectedRevision);
 		if (currentPath() == null) throw new IllegalStateException("Raw input has no saved native project to reload");
 		if (dirty() && !discardUnsaved) throw new UnsavedChangesException();
 		NativeProjectDocument reopened = NativeProjectDocument.open(currentPath());
@@ -245,12 +265,8 @@ public final class NativeProjectRepository {
 		return real;
 	}
 
-	private String identity() throws IOException {
+	private String identity(List<Path> paths) throws IOException {
 		var digest = FileFingerprint.sha256Digest();
-		List<Path> paths = new ArrayList<>();
-		if (currentPath() != null) paths.add(currentPath());
-		if (document != null && document.getMappingsPath() != null) paths.add(document.getMappingsPath());
-		paths.addAll(inputs);
 		for (Path path : paths) {
 			digest.update(path.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
 			FileFingerprint fingerprint = FileFingerprint.of(path);
@@ -262,18 +278,24 @@ public final class NativeProjectRepository {
 
 	private void refreshIdentity() throws IOException {
 		long generation = ++identityGeneration;
+		List<Path> savedPaths = new ArrayList<>();
+		if (currentPath() != null) savedPaths.add(currentPath());
+		if (savedMappingsPath != null) savedPaths.add(savedMappingsPath);
+		savedPaths.addAll(inputs);
+		savedPaths = List.copyOf(savedPaths);
 		long totalBytes = 0;
 		for (Path path : inputs) totalBytes += Files.size(path);
 		if (totalBytes <= 32L * 1024 * 1024) {
-			persistedIdentity = identity();
+			persistedIdentity = identity(savedPaths);
 			persistedIdentityState = "READY";
 			return;
 		}
 		persistedIdentity = null;
 		persistedIdentityState = "PENDING";
-		Thread.ofVirtual().name("libjadx-input-fingerprint").start(() -> {
+		List<Path> immutablePaths = savedPaths;
+		fingerprintLauncher.accept(() -> {
 			try {
-				String computed = identity();
+				String computed = identity(immutablePaths);
 				synchronized (this) {
 					if (identityGeneration == generation) {
 						persistedIdentity = computed;

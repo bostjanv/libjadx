@@ -45,6 +45,7 @@ public final class ProjectRuntime implements AutoCloseable {
 	private ProjectEngine activeEngine;
 	private NativeProjectRepository repository;
 	private EffectiveAnalysisConfig effectiveConfig = EffectiveAnalysisConfig.defaults();
+	private int activeTemporaryAnalyses;
 	private boolean initializationStarted;
 	private InitializationTask initializationTask;
 	private int cleanupInProgress;
@@ -141,26 +142,40 @@ public final class ProjectRuntime implements AutoCloseable {
 	/** One isolated, read-only analysis operation over an admitted immutable native edit snapshot. */
 	<T> TemporaryResult<T> withTemporaryAnalysis(EffectiveAnalysisConfig override,
 			Function<JadxDecompiler, T> operation) throws Exception {
-		if (!temporarySlots.tryAcquire()) throw new IllegalStateException("Temporary analysis capacity is busy");
 		ProjectEngine temporary = null;
-		try {
-			JadxArgs args;
-			ProjectSnapshot snapshot;
-			synchronized (operationLock) {
-				synchronized (lifecycleLock) {
-					requireReady();
+		JadxArgs args;
+		ProjectSnapshot snapshot;
+		synchronized (operationLock) {
+			synchronized (lifecycleLock) {
+				requireReady();
+				if (!temporarySlots.tryAcquire()) throw new IllegalStateException("Temporary analysis capacity is busy");
+				activeTemporaryAnalyses++;
+				try {
 					snapshot = repository.snapshot();
 					args = JadxEngineFactory.arguments(inputPaths, repository.mappingsPath(), repository.codeDataCopy(), override);
+				} catch (RuntimeException | Error failure) {
+					activeTemporaryAnalyses--;
+					temporarySlots.release();
+					throw failure;
 				}
 			}
+		}
+		try {
 			temporary = engineFactory.create(args);
 			temporary.load();
 			String sourceSnapshotId = sourceSnapshotId(snapshot, override);
 			return new TemporaryResult<>(snapshot.revisions(), override, override.fingerprint(), sourceSnapshotId,
 					operation.apply(temporary.decompiler()));
 		} finally {
-			if (temporary != null) closeOwned(temporary, null);
-			temporarySlots.release();
+			try {
+				if (temporary != null) closeOwned(temporary, null);
+			} finally {
+				synchronized (lifecycleLock) {
+					activeTemporaryAnalyses--;
+					temporarySlots.release();
+					finishShutdownIfQuiescent();
+				}
+			}
 		}
 	}
 
@@ -178,7 +193,8 @@ public final class ProjectRuntime implements AutoCloseable {
 	record TemporaryResult<T>(dev.libjadx.core.RevisionState revisions, EffectiveAnalysisConfig settings,
 			String settingsFingerprint, String sourceSnapshotId, T value) { }
 
-	public ProjectSnapshot reloadProject(boolean discardUnsaved) throws Exception {
+	public ProjectSnapshot reloadProject(boolean discardUnsaved, String expectedSessionId,
+			long expectedRevision) throws Exception {
 		synchronized (operationLock) {
 			NativeProjectRepository current;
 			synchronized (lifecycleLock) {
@@ -186,7 +202,7 @@ public final class ProjectRuntime implements AutoCloseable {
 				current = repository;
 			}
 			// A failed replacement leaves the fixed service in FAILED rather than publishing stale analysis.
-			ProjectSnapshot next = current.reload(discardUnsaved);
+			ProjectSnapshot next = current.reload(discardUnsaved, expectedSessionId, expectedRevision);
 			ProjectEngine replacement = null;
 			try {
 				synchronized (lifecycleLock) {
@@ -393,12 +409,7 @@ public final class ProjectRuntime implements AutoCloseable {
 	@Override
 	public void close() {
 		synchronized (operationLock) {
-			temporarySlots.acquireUninterruptibly();
-			try {
-				closeInternal();
-			} finally {
-				temporarySlots.release();
-			}
+			closeInternal();
 		}
 	}
 
@@ -449,7 +460,7 @@ public final class ProjectRuntime implements AutoCloseable {
 	private void finishShutdownIfQuiescent() {
 		if (lifecycle == Lifecycle.SHUTTING_DOWN
 				&& (initializationTask == null || initializationTask.state == TaskState.FINISHED)
-				&& cleanupInProgress == 0 && activeEngine == null) {
+				&& cleanupInProgress == 0 && activeEngine == null && activeTemporaryAnalyses == 0) {
 			lifecycle = Lifecycle.STOPPED;
 			status = status("STOPPED", "STOPPED", status.progress(), null);
 			lifecycleLock.notifyAll();

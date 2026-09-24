@@ -138,10 +138,16 @@ public final class StatusServlet extends HttpServlet {
 					String expectedSession = body.hasNonNull("expectedSessionId") ? body.get("expectedSessionId").asText() : null;
 					write(response, 200, projectResponse(runtime.saveProject(target, expectedSession, expected)));
 				} else if ("/api/v1/project/reload".equals(path)) {
-					if (!body.has("discardUnsaved") || !body.get("discardUnsaved").isBoolean()) {
-						throw new IllegalArgumentException("discardUnsaved must be a boolean");
+					if (!body.has("discardUnsaved") || !body.get("discardUnsaved").isBoolean()
+							|| !body.hasNonNull("expectedSessionId") || !body.get("expectedSessionId").isTextual()
+							|| !body.hasNonNull("expectedLogicalRevision")
+							|| !body.get("expectedLogicalRevision").canConvertToLong()
+							|| body.get("expectedLogicalRevision").longValue() < 0) {
+						throw new IllegalArgumentException("discardUnsaved, expectedSessionId and expectedLogicalRevision are required");
 					}
-					write(response, 200, projectResponse(runtime.reloadProject(body.get("discardUnsaved").booleanValue())));
+					write(response, 200, projectResponse(runtime.reloadProject(
+							body.get("discardUnsaved").booleanValue(), body.get("expectedSessionId").asText(),
+							body.get("expectedLogicalRevision").longValue())));
 				}
 			} catch (NativeProjectRepository.ExternalModificationException conflict) {
 				writeError(response, 409, "EXTERNAL_MODIFICATION_CONFLICT", conflict.getMessage());

@@ -1,6 +1,8 @@
 package dev.libjadx.app;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
@@ -10,12 +12,14 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import dev.libjadx.core.EffectiveAnalysisConfig;
 import dev.libjadx.project.NativeProjectDocument;
 import jadx.api.data.impl.JadxCodeComment;
 import jadx.api.data.impl.JadxCodeRename;
 import jadx.api.data.impl.JadxNodeRef;
+import jadx.api.JadxDecompiler;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -76,6 +80,57 @@ class TemporaryAnalysisTest {
 			assertTrue(newer.value().contains("NewAlias"));
 			assertEquals(before + 1, runtime.projectSnapshot().revisions().logicalRevision());
 		} finally {
+			runtime.close();
+		}
+	}
+
+	@Test
+	void shutdownDoesNotWaitForAnActiveTemporaryOperationWhileHoldingItsAdmissionLock() throws Exception {
+		Path input = Files.createFile(dir.resolve("input.bin"));
+		CountDownLatch temporaryLoadEntered = new CountDownLatch(1);
+		CountDownLatch releaseTemporaryLoad = new CountDownLatch(1);
+		AtomicInteger creations = new AtomicInteger();
+		AtomicInteger closes = new AtomicInteger();
+		ProjectRuntime runtime = new ProjectRuntime(null, List.of(input), args -> {
+			int sequence = creations.incrementAndGet();
+			return new ProjectRuntime.ProjectEngine() {
+				private final JadxDecompiler jadx = new JadxDecompiler(args);
+				@Override public void load() throws Exception {
+					if (sequence == 2) {
+						temporaryLoadEntered.countDown();
+						releaseTemporaryLoad.await();
+					}
+				}
+				@Override public JadxDecompiler decompiler() { return jadx; }
+				@Override public void close() {
+					closes.incrementAndGet();
+					jadx.close();
+				}
+			};
+		});
+		CompletableFuture<ProjectRuntime.TemporaryResult<String>> temporary = null;
+		try {
+			runtime.initializeAsync(null).get(5, TimeUnit.SECONDS);
+			temporary = CompletableFuture.supplyAsync(() -> {
+				try {
+					return runtime.withTemporaryAnalysis(new EffectiveAnalysisConfig("SIMPLE"), jadx -> "complete");
+				} catch (Exception failure) {
+					throw new RuntimeException(failure);
+				}
+			});
+			assertTrue(temporaryLoadEntered.await(5, TimeUnit.SECONDS));
+			CompletableFuture.runAsync(runtime::close).get(2, TimeUnit.SECONDS);
+			assertEquals("SHUTTING_DOWN", runtime.status().state());
+			assertFalse(runtime.awaitStopped(50, TimeUnit.MILLISECONDS));
+			assertThrows(IllegalStateException.class, () -> runtime.withTemporaryAnalysis(
+					new EffectiveAnalysisConfig("SIMPLE"), jadx -> "late"));
+			releaseTemporaryLoad.countDown();
+			assertEquals("complete", temporary.get(5, TimeUnit.SECONDS).value());
+			assertTrue(runtime.awaitStopped(1, TimeUnit.SECONDS));
+			assertEquals(2, closes.get());
+		} finally {
+			releaseTemporaryLoad.countDown();
+			if (temporary != null) temporary.get(5, TimeUnit.SECONDS);
 			runtime.close();
 		}
 	}
