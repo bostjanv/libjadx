@@ -1,0 +1,23 @@
+{
+  "projectVersion": 2,
+  "files": [
+    "sample.jar",
+    "second.jar"
+  ],
+  "treeExpansionsV2": [],
+  "codeData": {
+    "comments": [],
+    "renames": []
+  },
+  "openTabs": [],
+  "cacheDir": null,
+  "enableLiveReload": false,
+  "searchHistory": [],
+  "searchResourcesFilter": "$TEXT",
+  "searchResourcesSizeLimit": 0,
+  "pluginOptions": {},
+  "mappingsPath": "sample.tiny",
+  "futureGuiField": {
+    "preserve": true
+  }
+}
