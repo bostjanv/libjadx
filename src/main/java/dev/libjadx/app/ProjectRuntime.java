@@ -46,6 +46,8 @@ public final class ProjectRuntime implements AutoCloseable {
 	private NativeProjectRepository repository;
 	private EffectiveAnalysisConfig effectiveConfig = EffectiveAnalysisConfig.defaults();
 	private int activeTemporaryAnalyses;
+	private int activeRebuilds;
+	private final CompletableFuture<Void> fatalRuntimeFailure = new CompletableFuture<>();
 	private boolean initializationStarted;
 	private InitializationTask initializationTask;
 	private int cleanupInProgress;
@@ -195,75 +197,50 @@ public final class ProjectRuntime implements AutoCloseable {
 
 	public ProjectSnapshot reloadProject(boolean discardUnsaved, String expectedSessionId,
 			long expectedRevision) throws Exception {
-		synchronized (operationLock) {
-			NativeProjectRepository current;
-			synchronized (lifecycleLock) {
-				requireReady();
-				current = repository;
-			}
-			// A failed replacement leaves the fixed service in FAILED rather than publishing stale analysis.
-			ProjectSnapshot next = current.reload(discardUnsaved, expectedSessionId, expectedRevision);
-			ProjectEngine replacement = null;
-			try {
-				synchronized (lifecycleLock) {
-					requireReady();
-					lifecycle = Lifecycle.RELOADING;
-					status = status("RELOADING", "LOADING_JADX", new RuntimeStatus.Progress(0, 1, "project"), null);
-				}
-				replacement = engineFactory.create(buildArgs(current));
-				replacement.load();
-				ProjectEngine old;
-				synchronized (lifecycleLock) {
-					if (lifecycle != Lifecycle.RELOADING) throw new IllegalStateException("Reload interrupted by shutdown");
-					old = activeEngine;
-					activeEngine = replacement;
-					replacement = null;
-					lifecycle = Lifecycle.READY;
-					status = status("READY", "READY", new RuntimeStatus.Progress(1, 1, "project"), null);
-				}
-				closeOwned(old, null);
-				return next;
-			} catch (Exception failure) {
-				ProjectEngine old;
-				synchronized (lifecycleLock) {
-					old = activeEngine;
-					activeEngine = null;
-					if (lifecycle == Lifecycle.RELOADING) {
-						lifecycle = Lifecycle.FAILED;
-						status = status("FAILED", "FAILED", status.progress(),
-								new RuntimeStatus.ApiError("PROJECT_LOAD_FAILED", safeFailureMessage(failure), null));
-					}
-				}
-				if (old != null) closeOwned(old, failure);
-				throw failure;
-			} finally {
-				if (replacement != null) closeOwned(replacement, null);
-			}
-		}
+		return rebuild(current -> {
+			NativeProjectRepository.ReloadCandidate candidate =
+					current.prepareReload(discardUnsaved, expectedSessionId, expectedRevision);
+			JadxArgs args = JadxEngineFactory.arguments(inputPaths, candidate.document().getMappingsPath(),
+					candidate.document().getCodeData(), effectiveConfig);
+			return new StagedRebuild(args, () -> current.commitReload(candidate));
+		});
 	}
 
 	public ProjectSnapshot updateMappingsPath(Path mappings, String expectedSessionId, long expectedRevision) throws Exception {
+		return rebuild(current -> {
+			NativeProjectRepository.MappingCandidate candidate =
+					current.stageMappingsPath(mappings, expectedSessionId, expectedRevision);
+			JadxArgs args = JadxEngineFactory.arguments(inputPaths, candidate.path(),
+					candidate.document().getCodeData(), effectiveConfig);
+			return new StagedRebuild(args, () -> current.commitMappingsPath(candidate));
+		});
+	}
+
+	private ProjectSnapshot rebuild(RebuildStager stager) throws Exception {
 		synchronized (operationLock) {
 			NativeProjectRepository current;
-			NativeProjectRepository.MappingCandidate candidate;
 			synchronized (lifecycleLock) {
 				requireReady();
 				current = repository;
-				candidate = current.stageMappingsPath(mappings, expectedSessionId, expectedRevision);
 				lifecycle = Lifecycle.RELOADING;
-				status = status("RELOADING", "LOADING_JADX", new RuntimeStatus.Progress(0, 1, "project"), null);
+				activeRebuilds++;
+				status = status("RELOADING", "STAGING_PROJECT", new RuntimeStatus.Progress(0, 1, "project"), null);
 			}
 			ProjectEngine replacement = null;
+			Error fatal = null;
 			try {
-				JadxArgs args = JadxEngineFactory.arguments(inputPaths, candidate.path(),
-						candidate.document().getCodeData(), effectiveConfig);
-				replacement = engineFactory.create(args);
+				StagedRebuild staged = stager.stage(current);
+				synchronized (lifecycleLock) {
+					if (lifecycle != Lifecycle.RELOADING) throw new ProjectNotReadyException(status);
+					status = status("RELOADING", "LOADING_JADX", new RuntimeStatus.Progress(0, 1, "project"), null);
+				}
+				replacement = engineFactory.create(staged.args());
 				replacement.load();
 				ProjectEngine old;
 				ProjectSnapshot snapshot;
 				synchronized (lifecycleLock) {
-					if (lifecycle != Lifecycle.RELOADING) throw new IllegalStateException("Settings rebuild interrupted by shutdown");
-					snapshot = current.commitMappingsPath(candidate);
+					if (lifecycle != Lifecycle.RELOADING) throw new ProjectNotReadyException(status);
+					snapshot = staged.commit().apply();
 					old = activeEngine;
 					activeEngine = replacement;
 					replacement = null;
@@ -280,14 +257,78 @@ public final class ProjectRuntime implements AutoCloseable {
 					}
 				}
 				throw failure;
+			} catch (Error failure) {
+				fatal = failure;
+				throw failure;
 			} finally {
-				if (replacement != null) closeOwned(replacement, null);
+				try {
+					if (replacement != null) closeOwned(replacement, fatal);
+				} finally {
+					synchronized (lifecycleLock) {
+						activeRebuilds--;
+						finishShutdownIfQuiescent();
+					}
+					if (fatal != null) reportFatalRebuild(fatal);
+				}
 			}
 		}
 	}
 
+	@FunctionalInterface
+	private interface RebuildStager {
+		StagedRebuild stage(NativeProjectRepository project) throws Exception;
+	}
+
+	@FunctionalInterface
+	private interface RebuildCommit {
+		ProjectSnapshot apply() throws Exception;
+	}
+
+	private record StagedRebuild(JadxArgs args, RebuildCommit commit) { }
+
+	public CompletableFuture<Void> fatalRuntimeFailure() {
+		return fatalRuntimeFailure;
+	}
+
+	private void reportFatalRebuild(Error failure) {
+		ProjectEngine detached;
+		synchronized (lifecycleLock) {
+			if (lifecycle != Lifecycle.SHUTTING_DOWN && lifecycle != Lifecycle.STOPPED) {
+				lifecycle = Lifecycle.FAILED;
+				status = status("FAILED", "FAILED", status.progress(),
+						new RuntimeStatus.ApiError("INTERNAL_ERROR", "A fatal JVM error interrupted project rebuilding", null));
+			}
+			detached = activeEngine;
+			activeEngine = null;
+			if (detached != null) cleanupInProgress++;
+		}
+		try {
+			if (detached != null) {
+				try {
+					closeOwned(detached, failure);
+				} finally {
+					synchronized (lifecycleLock) {
+						cleanupInProgress--;
+						finishShutdownIfQuiescent();
+					}
+				}
+			}
+		} finally {
+			fatalRuntimeFailure.completeExceptionally(failure);
+		}
+	}
+
 	private void requireReady() {
-		if (lifecycle != Lifecycle.READY || repository == null) throw new IllegalStateException("Project is not ready");
+		if (lifecycle != Lifecycle.READY || repository == null) throw new ProjectNotReadyException(status);
+	}
+
+	public static final class ProjectNotReadyException extends IllegalStateException {
+		private final RuntimeStatus status;
+		private ProjectNotReadyException(RuntimeStatus status) {
+			super("Project is not ready");
+			this.status = status;
+		}
+		public RuntimeStatus status() { return status; }
 	}
 
 	public RuntimeStatus status() {
@@ -333,7 +374,7 @@ public final class ProjectRuntime implements AutoCloseable {
 	public JadxDecompiler decompiler() {
 		synchronized (lifecycleLock) {
 			if (lifecycle != Lifecycle.READY || activeEngine == null) {
-				throw new IllegalStateException("Project is not ready");
+				throw new ProjectNotReadyException(status);
 			}
 			return activeEngine.decompiler();
 		}
@@ -408,9 +449,7 @@ public final class ProjectRuntime implements AutoCloseable {
 
 	@Override
 	public void close() {
-		synchronized (operationLock) {
-			closeInternal();
-		}
+		closeInternal();
 	}
 
 	private void closeInternal() {
@@ -460,7 +499,8 @@ public final class ProjectRuntime implements AutoCloseable {
 	private void finishShutdownIfQuiescent() {
 		if (lifecycle == Lifecycle.SHUTTING_DOWN
 				&& (initializationTask == null || initializationTask.state == TaskState.FINISHED)
-				&& cleanupInProgress == 0 && activeEngine == null && activeTemporaryAnalyses == 0) {
+				&& cleanupInProgress == 0 && activeEngine == null
+				&& activeTemporaryAnalyses == 0 && activeRebuilds == 0) {
 			lifecycle = Lifecycle.STOPPED;
 			status = status("STOPPED", "STOPPED", status.progress(), null);
 			lifecycleLock.notifyAll();

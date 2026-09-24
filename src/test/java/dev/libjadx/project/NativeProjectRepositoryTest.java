@@ -45,9 +45,10 @@ class NativeProjectRepositoryTest {
 		assertTrue(repository.pendingEdits().toString().contains("Changed"));
 		String session = repository.snapshot().revisions().sessionId();
 		assertThrows(NativeProjectRepository.StaleRevisionException.class,
-				() -> repository.reload(true, "00000000-0000-0000-0000-000000000000", 1));
-		assertThrows(NativeProjectRepository.UnsavedChangesException.class, () -> repository.reload(false, session, 1));
-		repository.reload(true, session, 1);
+				() -> repository.prepareReload(true, "00000000-0000-0000-0000-000000000000", 1));
+		assertThrows(NativeProjectRepository.UnsavedChangesException.class,
+				() -> repository.prepareReload(false, session, 1));
+		repository.commitReload(repository.prepareReload(true, session, 1));
 		assertFalse(repository.snapshot().dirty());
 		assertFalse(repository.pendingEdits().toString().contains("Changed"));
 
@@ -57,6 +58,43 @@ class NativeProjectRepositoryTest {
 		Files.writeString(dir.resolve("sample.tiny"), "v2\tintermediary\tchanged\n");
 		assertThrows(NativeProjectRepository.ExternalModificationException.class, () -> repository.save(null, 3L));
 		assertTrue(repository.snapshot().dirty());
+	}
+
+	@Test
+	void reloadPublishesOnlyWhenCandidateIsCommitted() throws Exception {
+		Path project = fixture();
+		NativeProjectRepository repository = NativeProjectRepository.open(project, List.of(dir));
+		var edited = repository.codeDataCopy();
+		edited.setRenames(List.of(new JadxCodeRename(JadxNodeRef.forCls("probe.Sample"), "PendingAlias")));
+		repository.replaceCodeData(edited, 0);
+		Files.writeString(project, Files.readString(project).replace("futureGuiField", "updatedGuiField"));
+		String session = repository.snapshot().revisions().sessionId();
+		var candidate = repository.prepareReload(true, session, 1);
+		assertEquals(1, repository.snapshot().revisions().logicalRevision());
+		assertTrue(repository.snapshot().dirty());
+		assertTrue(repository.pendingEdits().toString().contains("PendingAlias"));
+		Files.writeString(project, Files.readString(project).replace("updatedGuiField", "changedAgain"));
+		assertThrows(NativeProjectRepository.ExternalModificationException.class,
+				() -> repository.commitReload(candidate));
+		assertTrue(repository.pendingEdits().toString().contains("PendingAlias"));
+		var fresh = repository.prepareReload(true, session, 1);
+		assertEquals(2, repository.commitReload(fresh).revisions().logicalRevision());
+		assertFalse(repository.snapshot().dirty());
+		assertFalse(repository.pendingEdits().toString().contains("PendingAlias"));
+	}
+
+	@Test
+	void changedMappingCandidateCannotPublishAfterJadxLoad() throws Exception {
+		Path project = fixture();
+		NativeProjectRepository repository = NativeProjectRepository.open(project, List.of(dir));
+		Path replacement = dir.resolve("replacement.tiny");
+		Files.writeString(replacement, "tiny\t2\t0\toriginal\tmapped\n");
+		var candidate = repository.stageMappingsPath(replacement, 0);
+		Files.writeString(replacement, "tiny\t2\t0\toriginal\tchanged\n");
+		assertThrows(NativeProjectRepository.ExternalModificationException.class,
+				() -> repository.commitMappingsPath(candidate));
+		assertEquals(dir.resolve("sample.tiny").toRealPath(), repository.mappingsPath());
+		assertEquals(0, repository.snapshot().revisions().logicalRevision());
 	}
 
 	@Test

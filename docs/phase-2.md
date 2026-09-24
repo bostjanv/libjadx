@@ -16,6 +16,11 @@ requires `discardUnsaved: true` when the in-memory state is dirty.
 Every reload request also requires the session ID and logical revision last
 observed by that client; a stale request returns `STALE_REVISION` before any
 in-memory edit is discarded.
+Reload stages the disk document while the service reports `RELOADING`. The
+replacement Jadx instance must load before the document, engine and revision
+are published together. A changed project or mapping file during that rebuild
+returns `EXTERNAL_MODIFICATION_CONFLICT` and leaves the previous state active.
+Ordinary rebuild failures likewise retain the prior engine and pending edits.
 
 `sessionId` and logical/index counters exist for this process only. The
 persisted identity hashes native project, mapping and input bytes. Inputs over
@@ -33,6 +38,10 @@ analysis; the pinned native project model does not persist it. Temporary
 instances use a deep code-data copy and are limited to one active instance.
 A failed mapping rebuild leaves the previous analysis, revisions and unsaved
 edits active; the failed replacement instance is closed.
+Shutdown changes lifecycle without waiting for a Jadx rebuild to finish. The
+ordinary shutdown wait remains bounded to five seconds, while a blocked rebuild
+finishes cleanup when it returns. Fatal JVM errors in either rebuild path are
+supervised through a nonzero process exit.
 
 Save uses ordinary native JSON writing semantics. If a process stops during a
 write, the file may be truncated; users should keep their own backup for

@@ -103,8 +103,11 @@ public final class NativeProjectRepository {
 		return stageMappingsPath(mappings, expectedRevision);
 	}
 
-	public synchronized ProjectSnapshot commitMappingsPath(MappingCandidate candidate) {
+	public synchronized ProjectSnapshot commitMappingsPath(MappingCandidate candidate) throws IOException {
 		checkRevision(candidate.expectedRevision());
+		if (!FileFingerprint.of(candidate.path()).equals(candidate.baseline())) {
+			throw new ExternalModificationException("Mappings changed during rebuild; retry with a fresh revision");
+		}
 		if (!Objects.equals(mappingsPath(), candidate.path())) {
 			document = candidate.document();
 			stagedMappingBaseline = candidate.baseline();
@@ -188,23 +191,41 @@ public final class NativeProjectRepository {
 		return save(target, expectedRevision);
 	}
 
-	public synchronized ProjectSnapshot reload(boolean discardUnsaved, String expectedSessionId,
+	/** Reads and validates a replacement without changing the published project. */
+	public synchronized ReloadCandidate prepareReload(boolean discardUnsaved, String expectedSessionId,
 			long expectedRevision) throws IOException {
 		checkSession(expectedSessionId);
 		checkRevision(expectedRevision);
 		if (currentPath() == null) throw new IllegalStateException("Raw input has no saved native project to reload");
 		if (dirty() && !discardUnsaved) throw new UnsavedChangesException();
-		NativeProjectDocument reopened = NativeProjectDocument.open(currentPath());
+		Path path = currentPath();
+		FileFingerprint beforeOpen = FileFingerprint.of(path);
+		NativeProjectDocument reopened = NativeProjectDocument.open(path);
+		FileFingerprint afterOpen = FileFingerprint.of(path);
+		if (!beforeOpen.equals(afterOpen)) {
+			throw new ExternalModificationException("Native project changed during reload; retry with a fresh revision");
+		}
 		List<Path> reopenedInputs = new ArrayList<>();
 		for (Path input : reopened.getInputFiles()) reopenedInputs.add(checkedReference(input));
 		if (!reopenedInputs.equals(inputs)) {
 			throw new IllegalArgumentException("Reload would change the fixed input identity");
 		}
 		if (reopened.getMappingsPath() != null) checkedReference(reopened.getMappingsPath());
-		document = reopened;
-		projectBaseline = FileFingerprint.of(currentPath());
-		mappingBaseline = FileFingerprint.of(reopened.getMappingsPath());
-		baselineMappingsPath = reopened.getMappingsPath();
+		return new ReloadCandidate(reopened, afterOpen,
+				FileFingerprint.of(reopened.getMappingsPath()), expectedRevision);
+	}
+
+	/** Publishes a staged native document after its matching Jadx engine has loaded. */
+	public synchronized ProjectSnapshot commitReload(ReloadCandidate candidate) throws IOException {
+		checkRevision(candidate.expectedRevision());
+		if (!FileFingerprint.of(candidate.document().getProjectPath()).equals(candidate.projectFingerprint())
+				|| !FileFingerprint.of(candidate.document().getMappingsPath()).equals(candidate.mappingFingerprint())) {
+			throw new ExternalModificationException("Native project or mappings changed during reload; retry with a fresh revision");
+		}
+		document = candidate.document();
+		projectBaseline = candidate.projectFingerprint();
+		mappingBaseline = candidate.mappingFingerprint();
+		baselineMappingsPath = candidate.document().getMappingsPath();
 		savedMappingsPath = baselineMappingsPath;
 		stagedMappingBaseline = null;
 		savedCodeData = codeDataJson();
@@ -276,18 +297,24 @@ public final class NativeProjectRepository {
 		return "sha256:" + java.util.HexFormat.of().formatHex(digest.digest());
 	}
 
-	private void refreshIdentity() throws IOException {
+	private void refreshIdentity() {
 		long generation = ++identityGeneration;
 		List<Path> savedPaths = new ArrayList<>();
 		if (currentPath() != null) savedPaths.add(currentPath());
 		if (savedMappingsPath != null) savedPaths.add(savedMappingsPath);
 		savedPaths.addAll(inputs);
 		savedPaths = List.copyOf(savedPaths);
-		long totalBytes = 0;
-		for (Path path : inputs) totalBytes += Files.size(path);
-		if (totalBytes <= 32L * 1024 * 1024) {
-			persistedIdentity = identity(savedPaths);
-			persistedIdentityState = "READY";
+		try {
+			long totalBytes = 0;
+			for (Path path : inputs) totalBytes += Files.size(path);
+			if (totalBytes <= 32L * 1024 * 1024) {
+				persistedIdentity = identity(savedPaths);
+				persistedIdentityState = "READY";
+				return;
+			}
+		} catch (IOException failure) {
+			persistedIdentity = null;
+			persistedIdentityState = "FAILED";
 			return;
 		}
 		persistedIdentity = null;
@@ -311,6 +338,8 @@ public final class NativeProjectRepository {
 	}
 
 	public record SaveResult(Path path, ProjectSnapshot project) { }
+	public record ReloadCandidate(NativeProjectDocument document, FileFingerprint projectFingerprint,
+			FileFingerprint mappingFingerprint, long expectedRevision) { }
 	public record MappingCandidate(NativeProjectDocument document, Path path, FileFingerprint baseline,
 			long expectedRevision) { }
 	public static final class ExternalModificationException extends IOException {

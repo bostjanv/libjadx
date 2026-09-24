@@ -59,11 +59,11 @@ public final class StatusServlet extends HttpServlet {
 					new Capability("analysis.cancellation", "UNKNOWN", "NOT_PROBED", "UNAVAILABLE"))));
 			return;
 		}
-		if ("/api/v1/project".equals(path) && runtime.isReady()) {
+		if ("/api/v1/project".equals(path)) {
 			write(response, HttpServletResponse.SC_OK, projectResponse(runtime.projectSnapshot()));
 			return;
 		}
-		if ("/api/v1/project/settings".equals(path) && runtime.isReady()) {
+		if ("/api/v1/project/settings".equals(path)) {
 			write(response, 200, settingsResponse(runtime.settingsSnapshot()));
 			return;
 		}
@@ -71,15 +71,16 @@ public final class StatusServlet extends HttpServlet {
 	}
 
 	private void handlePatch(HttpServletRequest request, HttpServletResponse response) throws IOException {
-		if (!"/api/v1/project/settings".equals(request.getRequestURI()) || !runtime.isReady()) {
+		if (!"/api/v1/project/settings".equals(request.getRequestURI())) {
 			writeUnavailableOrUnimplemented(request, response);
 			return;
 		}
-		if (!isJsonContentType(request.getContentType())) {
-			writeError(response, 415, "INVALID_REQUEST", "Content-Type must be application/json");
-			return;
-		}
 		try {
+			runtime.projectSnapshot();
+			if (!isJsonContentType(request.getContentType())) {
+				writeError(response, 415, "INVALID_REQUEST", "Content-Type must be application/json");
+				return;
+			}
 			JsonNode body = readBody(request);
 			if (!body.has("mappingsPath") || !body.has("expectedLogicalRevision")
 					|| !body.hasNonNull("expectedSessionId") || !body.get("expectedSessionId").isTextual()
@@ -96,8 +97,12 @@ public final class StatusServlet extends HttpServlet {
 			runtime.updateMappingsPath(path, body.get("expectedSessionId").asText(),
 					body.get("expectedLogicalRevision").longValue());
 			write(response, 200, settingsResponse(runtime.settingsSnapshot()));
+		} catch (ProjectRuntime.ProjectNotReadyException notReady) {
+			writeLifecycleError(response, notReady.status());
 		} catch (NativeProjectRepository.StaleRevisionException stale) {
 			writeError(response, 409, "STALE_REVISION", stale.getMessage());
+		} catch (NativeProjectRepository.ExternalModificationException conflict) {
+			writeError(response, 409, "EXTERNAL_MODIFICATION_CONFLICT", conflict.getMessage());
 		} catch (SecurityException denied) {
 			writeError(response, 403, "INVALID_REQUEST", denied.getMessage());
 		} catch (IllegalArgumentException invalid) {
@@ -112,17 +117,18 @@ public final class StatusServlet extends HttpServlet {
 	@Override
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
 		String path = request.getRequestURI();
-		if (("/api/v1/project/save".equals(path) || "/api/v1/project/reload".equals(path)
-				|| "/api/v1/project/pending-edits/export".equals(path)) && runtime.isReady()) {
-			if ("/api/v1/project/pending-edits/export".equals(path)) {
-				write(response, 200, json.readValue(runtime.pendingEdits().toString(), Object.class));
-				return;
-			}
-			if (!isJsonContentType(request.getContentType())) {
-				writeError(response, 415, "INVALID_REQUEST", "Content-Type must be application/json");
-				return;
-			}
+		if ("/api/v1/project/save".equals(path) || "/api/v1/project/reload".equals(path)
+				|| "/api/v1/project/pending-edits/export".equals(path)) {
 			try {
+				runtime.projectSnapshot();
+				if ("/api/v1/project/pending-edits/export".equals(path)) {
+					write(response, 200, json.readValue(runtime.pendingEdits().toString(), Object.class));
+					return;
+				}
+				if (!isJsonContentType(request.getContentType())) {
+					writeError(response, 415, "INVALID_REQUEST", "Content-Type must be application/json");
+					return;
+				}
 				JsonNode body = readBody(request);
 				if ("/api/v1/project/save".equals(path)) {
 					if (body.has("targetPath") && !body.get("targetPath").isTextual()) throw new IllegalArgumentException("targetPath must be a string");
@@ -149,6 +155,8 @@ public final class StatusServlet extends HttpServlet {
 							body.get("discardUnsaved").booleanValue(), body.get("expectedSessionId").asText(),
 							body.get("expectedLogicalRevision").longValue())));
 				}
+			} catch (ProjectRuntime.ProjectNotReadyException notReady) {
+				writeLifecycleError(response, notReady.status());
 			} catch (NativeProjectRepository.ExternalModificationException conflict) {
 				writeError(response, 409, "EXTERNAL_MODIFICATION_CONFLICT", conflict.getMessage());
 			} catch (NativeProjectRepository.StaleRevisionException stale) {
@@ -217,7 +225,11 @@ public final class StatusServlet extends HttpServlet {
 			handlePatch(request, response);
 			return;
 		}
-		super.service(request, response);
+		try {
+			super.service(request, response);
+		} catch (ProjectRuntime.ProjectNotReadyException notReady) {
+			writeLifecycleError(response, notReady.status());
+		}
 	}
 
 	private void write(HttpServletResponse response, int status, Object body) throws IOException {
@@ -238,6 +250,14 @@ public final class StatusServlet extends HttpServlet {
 			return;
 		}
 		RuntimeStatus current = runtime.status();
+		if (!"READY".equals(current.state())) {
+			writeLifecycleError(response, current);
+			return;
+		}
+		writeError(response, HttpServletResponse.SC_NOT_IMPLEMENTED, "OPERATION_NOT_IMPLEMENTED", "This API operation is not implemented yet");
+	}
+
+	private void writeLifecycleError(HttpServletResponse response, RuntimeStatus current) throws IOException {
 		if ("LOADING".equals(current.state()) || "RELOADING".equals(current.state())) {
 			response.setHeader("Retry-After", "2");
 			writeError(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, "PROJECT_NOT_READY",
@@ -255,11 +275,7 @@ public final class StatusServlet extends HttpServlet {
 			writeError(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, "SERVICE_SHUTTING_DOWN", "The service is shutting down");
 			return;
 		}
-		if (!"READY".equals(current.state())) {
-			writeError(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, "PROJECT_NOT_READY", "The fixed project is not ready");
-			return;
-		}
-		writeError(response, HttpServletResponse.SC_NOT_IMPLEMENTED, "OPERATION_NOT_IMPLEMENTED", "This API operation is not implemented yet");
+		writeError(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, "PROJECT_NOT_READY", "The fixed project is not ready");
 	}
 
 	private static Set<String> allowedMethods(String path) {
