@@ -29,6 +29,8 @@ class OpenApiDocumentTest {
 				.path("total").path("type").toString().contains("null"));
 		assertTrue(yaml.path("components").path("responses").has("AcceptedJob"));
 		assertTrue(yaml.path("components").path("responses").has("JobResourceLimit"));
+		assertTrue(yaml.path("paths").path("/jobs/{jobId}/cancel").path("post")
+				.path("responses").has("403"));
 		assertTrue(yaml.path("paths").path("/jobs/{jobId}/events").path("get")
 				.path("responses").has("409"));
 		assertTrue(yaml.path("paths").path("/jobs/{jobId}/events").path("get")

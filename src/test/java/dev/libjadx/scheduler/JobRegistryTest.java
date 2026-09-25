@@ -287,10 +287,10 @@ class JobRegistryTest {
 		} finally { nextItem.countDown(); }
 	}
 
-	@Test void completedRetentionAndTotalResultBytesAreBounded() throws Exception {
+	@Test void resultBytePressureEvictsOldestTerminalResultBeforePublishingSuccess() throws Exception {
 		OperationCoordinator coordinator = new OperationCoordinator();
 		AtomicReference<JobRegistry> owner = new AtomicReference<>();
-		JobLimits small = new JobLimits(2, 1, 1, 16, 20, 2, 128,
+		JobLimits small = new JobLimits(2, 1, 4, 16, 20, 2, 128,
 				8, 1024, 2, 4, 4, Duration.ofSeconds(10), Duration.ofMillis(20));
 		try (JobRegistry jobs = new JobRegistry(small,
 				(req, admission) -> coordinator.tryAdmit(req, admission, () -> owner.get().signal()),
@@ -301,13 +301,33 @@ class JobRegistryTest {
 			assertEquals(JobSnapshot.State.SUCCEEDED, terminal(jobs, first).state());
 			UUID second = jobs.submit(spec("B", null,
 					(ctx, ignored) -> new JobSpec.JobResult("{\"count\":456}", JobSpec.Completeness.COMPLETE))).jobId();
-			assertEquals(JobSnapshot.State.FAILED, terminal(jobs, second).state());
+			assertEquals(JobSnapshot.State.SUCCEEDED, terminal(jobs, second).state());
 			assertThrows(java.util.NoSuchElementException.class, () -> jobs.snapshot(first));
-			assertEquals("RESOURCE_LIMIT", jobs.snapshot(second).error().code());
+			assertEquals("{\"count\":456}", jobs.snapshot(second).resultJson());
 			UUID third = jobs.submit(spec("C", null,
 					(ctx, ignored) -> new JobSpec.JobResult("{\"count\":789}", JobSpec.Completeness.COMPLETE))).jobId();
 			assertEquals(JobSnapshot.State.SUCCEEDED, terminal(jobs, third).state());
 			assertThrows(java.util.NoSuchElementException.class, () -> jobs.snapshot(second));
+			assertEquals("{\"count\":789}", jobs.snapshot(third).resultJson());
+		}
+	}
+
+	@Test void terminalCountRetentionEvictsOldestEvenWithoutBytePressure() throws Exception {
+		OperationCoordinator coordinator = new OperationCoordinator();
+		AtomicReference<JobRegistry> owner = new AtomicReference<>();
+		JobLimits small = new JobLimits(2, 1, 1, 16, 100, 2, 128,
+				8, 1024, 2, 4, 4, Duration.ofSeconds(10), Duration.ofMillis(20));
+		try (JobRegistry jobs = new JobRegistry(small,
+				(req, admission) -> coordinator.tryAdmit(req, admission, () -> owner.get().signal()),
+				fatal -> fail("Unexpected fatal error"), System::nanoTime, WALL, false)) {
+			owner.set(jobs);
+			UUID first = jobs.submit(spec("A", null,
+					(ctx, ignored) -> new JobSpec.JobResult("{}", JobSpec.Completeness.COMPLETE))).jobId();
+			assertEquals(JobSnapshot.State.SUCCEEDED, terminal(jobs, first).state());
+			UUID second = jobs.submit(spec("B", null,
+					(ctx, ignored) -> new JobSpec.JobResult("{}", JobSpec.Completeness.COMPLETE))).jobId();
+			assertEquals(JobSnapshot.State.SUCCEEDED, terminal(jobs, second).state());
+			assertThrows(java.util.NoSuchElementException.class, () -> jobs.snapshot(first));
 		}
 	}
 

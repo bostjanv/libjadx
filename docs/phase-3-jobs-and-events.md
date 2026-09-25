@@ -27,8 +27,10 @@ values are injectable through immutable `JobLimits` for tests and future
 configuration. Active and cancellation-pending jobs never expire or count as
 retained terminal records. When queue or overall record capacity is full, a
 new submission is refused without creating a job. The oldest terminal record
-is evicted when the retained count is exceeded. All records and events vanish
-on restart; no job data is written to `.jadx` or another file.
+is evicted when the retained count is exceeded. If result bytes fill first,
+the oldest completed result records are evicted until the new successful
+result fits; evicted IDs return 404. All records and events vanish on restart;
+no job data is written to `.jadx` or another file.
 
 The FIFO dispatcher keeps a queue slot separate from the Phase 3.1 operation
 lease. It acquires the scoped lease only at dispatch. If a conflicting lease
@@ -62,9 +64,9 @@ and `completed` may only increase. Polling works without an SSE subscriber.
 
 `GET /api/v1/jobs/{id}` returns the authoritative snapshot while retained.
 `POST /api/v1/jobs/{id}/cancel` is idempotent and returns the current snapshot;
-an obvious cross-origin `Origin` is rejected. Unknown or expired IDs are 404,
-malformed UUIDs are 400. Responses use the normal request ID and no-store
-headers.
+an obvious cross-origin `Origin` is rejected with 403 `INPUT_SECURITY_REJECTION`.
+Unknown, evicted, or expired IDs are 404; malformed UUIDs are 400. Responses
+use the normal request ID and no-store headers.
 
 `GET /api/v1/jobs/{id}/events` replays retained events and then follows live
 events. Sequence IDs start at 1 for each job and increase for `job.queued`,

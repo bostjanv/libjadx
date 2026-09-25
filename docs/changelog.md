@@ -13,6 +13,9 @@
 - SSE stale history returns 409 `EVENT_HISTORY_EXPIRED`; subscriber and future
   job-submission saturation use 429 `RESOURCE_LIMIT`. Future job-producing
   endpoints must return 202 with a job `Location` header.
+- Total result-byte pressure now evicts the oldest retained successful results
+  before publishing a newly successful job; evicted IDs return 404. The
+  cancellation route documents its cross-origin 403 response.
 - Index/query read compatibility now also checks session and logical revision.
 - The generated Python transport remains a Phase 6 deliverable.
 

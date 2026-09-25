@@ -298,9 +298,11 @@ public final class JobRegistry implements AutoCloseable {
 		} catch (Throwable caught) {
 			failure = caught;
 		}
+		boolean expectedCancellation;
 		synchronized (lock) {
 			runningSlots--;
-			if (failure instanceof CancellationException && record.token.isCancellationRequested()) {
+			expectedCancellation = failure instanceof CancellationException && record.token.isCancellationRequested();
+			if (expectedCancellation) {
 				finishCancelledLocked(record);
 			} else if (failure != null) {
 				finishFailedLocked(record, failure, failure instanceof ResourceLimitException
@@ -308,14 +310,12 @@ public final class JobRegistry implements AutoCloseable {
 			} else if (record.token.isCancellationRequested() || stopped) {
 				record.token.request(CancellationToken.Reason.SHUTDOWN);
 				finishCancelledLocked(record);
-			} else if ((long) retainedResultBytes + result.json().getBytes(StandardCharsets.UTF_8).length
-					> limits.maxTotalResultBytes()) {
-				finishFailedLocked(record, new ResourceLimitException("Result retention limit reached"),
-						"Job result exceeded its memory limit");
 			} else {
+				int resultBytes = result.json().getBytes(StandardCharsets.UTF_8).length;
+				reclaimResultRoomLocked(resultBytes);
 				record.resultJson = result.json();
 				record.completeness = result.completeness();
-				retainedResultBytes += result.json().getBytes(StandardCharsets.UTF_8).length;
+				retainedResultBytes += resultBytes;
 				record.state = JobSnapshot.State.SUCCEEDED;
 				record.completedAt = clock.instant();
 				record.completedNanos = ticker.getAsLong();
@@ -323,7 +323,7 @@ public final class JobRegistry implements AutoCloseable {
 			}
 			enforceRetentionLocked();
 		}
-		if (failure != null) {
+		if (failure != null && !expectedCancellation) {
 			System.err.println("libjadx: job " + record.id + " failed");
 			failure.printStackTrace(System.err);
 			if (failure instanceof Error fatal) fatalHandler.accept(fatal);
@@ -549,6 +549,21 @@ public final class JobRegistry implements AutoCloseable {
 				removeRetainedLocked(record);
 				return;
 			}
+		}
+	}
+
+	/** Oldest completed results are expendable when a newly successful job needs byte capacity. */
+	private void reclaimResultRoomLocked(int incomingBytes) {
+		while ((long) retainedResultBytes + incomingBytes > limits.maxTotalResultBytes()) {
+			Record<?> oldest = null;
+			for (Record<?> candidate : records.values()) {
+				if (candidate.completedNanos != null && candidate.resultJson != null) {
+					oldest = candidate;
+					break;
+				}
+			}
+			if (oldest == null) throw new IllegalStateException("Validated job result cannot fit retention budget");
+			removeRetainedLocked(oldest);
 		}
 	}
 

@@ -178,7 +178,7 @@ paths:
       tags: [Service]
       operationId: getJob
       summary: Poll a retained process-local job
-      description: Unknown and expired IDs return 404; malformed UUIDs return 400. Polling never requires an SSE connection.
+      description: Unknown, evicted, and expired IDs return 404; malformed UUIDs return 400. Polling never requires an SSE connection.
       responses:
         '200':
           description: Immutable current job snapshot.
@@ -199,7 +199,8 @@ paths:
       summary: Request cooperative cancellation
       description: >-
         Idempotent. A queued job can become CANCELLED immediately. A running job
-        remains CANCELLING until its work and owned cleanup actually cease.
+        remains CANCELLING until its work and owned cleanup actually cease. A
+        clearly cross-origin request returns 403 INPUT_SECURITY_REJECTION.
       responses:
         '200':
           description: Current job snapshot after the request.
@@ -208,6 +209,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/Job'
         '400':
+          $ref: '#/components/responses/ApiErrorResponse'
+        '403':
           $ref: '#/components/responses/ApiErrorResponse'
         '404':
           $ref: '#/components/responses/ApiErrorResponse'
@@ -227,6 +230,7 @@ paths:
         returns 400 INVALID_REQUEST. Clients may poll and reconnect without the
         stale ID. Comment heartbeats have no ID. Overflow disconnects the slow
         subscriber without cancelling the job. Terminal events close the stream.
+        Unknown, evicted, or expired jobs return 404.
       parameters:
         - in: header
           name: Last-Event-ID
