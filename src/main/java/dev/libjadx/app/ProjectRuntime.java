@@ -231,25 +231,37 @@ public final class ProjectRuntime implements AutoCloseable {
 	/** One isolated, read-only analysis operation over an admitted immutable native edit snapshot. */
 	<T> TemporaryResult<T> withTemporaryAnalysis(EffectiveAnalysisConfig override,
 			Function<JadxDecompiler, T> operation) throws Exception {
+		return withTemporarySourceRead(override, context -> operation.apply(context.decompiler()));
+	}
+
+	/** Source-specific isolated admission; callback receives the revision captured before temporary loading. */
+	<T> TemporaryResult<T> withTemporarySourceRead(EffectiveAnalysisConfig override,
+			Function<TemporarySourceRead, T> operation) throws Exception {
 		ProjectEngine temporary = null;
 		JadxArgs args;
 		ProjectSnapshot snapshot;
+		long epoch;
 		try (var lease = admit(OperationRequest.temporaryAnalysis(override.fingerprint()))) {
 			// Capture under the coordinator's brief gate, outside lifecycleLock.
 			snapshot = repository.snapshot();
 			args = JadxEngineFactory.arguments(inputPaths, repository.mappingsPath(), repository.codeDataCopy(), override);
+			synchronized (lifecycleLock) { epoch = publicationEpoch; }
 			lease.finishSnapshotCapture();
 			try {
 				temporary = engineFactory.create(args);
 				temporary.load();
 				String sourceSnapshotId = sourceSnapshotId(snapshot, override);
 				return new TemporaryResult<>(snapshot.revisions(), override, override.fingerprint(), sourceSnapshotId,
-						operation.apply(temporary.decompiler()));
+						operation.apply(new TemporarySourceRead(temporary.decompiler(), snapshot.revisions(), epoch, override)));
 			} finally {
 				if (temporary != null) closeOwned(temporary, null);
 			}
 		}
 	}
+
+	/** Borrowed temporary engine reference: the callback must return only immutable values. */
+	record TemporarySourceRead(JadxDecompiler decompiler, dev.libjadx.core.RevisionState revisions,
+			long publicationEpoch, EffectiveAnalysisConfig settings) { }
 
 	private static String sourceSnapshotId(ProjectSnapshot snapshot, EffectiveAnalysisConfig config) {
 		try {
@@ -616,21 +628,23 @@ public final class ProjectRuntime implements AutoCloseable {
 		ProjectEngine engine;
 		NativeProjectRepository current;
 		long epoch;
+		EffectiveAnalysisConfig settings;
 		synchronized (lifecycleLock) {
 			requireReady();
 			lease = coordinator.tryAdmit(OperationRequest.classRead(classKey), publishedAdmission, this::operationCompleted);
 			engine = activeEngine;
 			current = repository;
 			epoch = publicationEpoch;
+			settings = effectiveConfig;
 		}
 		try (lease) {
-			return operation.apply(new PrimarySymbolRead(engine.decompiler(), current.snapshot().revisions(), epoch));
+			return operation.apply(new PrimarySymbolRead(engine.decompiler(), current.snapshot().revisions(), epoch, settings));
 		}
 	}
 
 	/** Borrowed Jadx reference: never return it or another live Jadx object from the callback. */
 	public record PrimarySymbolRead(JadxDecompiler decompiler, dev.libjadx.core.RevisionState revisions,
-			long publicationEpoch) { }
+			long publicationEpoch, EffectiveAnalysisConfig settings) { }
 
 	private void initialize(NativeProjectDocument nativeProject) {
 		ProjectEngine local = null;

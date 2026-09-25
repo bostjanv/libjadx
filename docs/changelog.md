@@ -1,5 +1,20 @@
 # Experimental API changelog
 
+## 2026-09-25 — Phase 4.2 class Java source
+
+- Added `POST /api/v1/decompile` for original class and method refs. Method
+  requests return the containing emitted class source, plus a verified excerpt
+  where Jadx's declaration and end markers agree with lexical boundaries.
+- Added UTF-16 source offsets, code-point columns, process/revision/settings-
+  bound source snapshots, validated declaration/reference token annotations,
+  explicit per-result capability availability and bounded diagnostics.
+- Different decompilation modes use a one-operation isolated engine that sees
+  current unsaved native renames/comments without saving or changing the
+  primary mode. Java is the only exposed representation in this route.
+- Added typed `INCOMPLETE_ANALYSIS` and `RESOURCE_LIMIT` outcomes for strict
+  coverage and oversized source/metadata; original debug lines and bytecode
+  offsets remain unavailable pending pinned-fixture proof.
+
 ## 2026-09-25 — Phase 4.1 original symbol identity
 
 - Added `GET /api/v1/classes` with bounded original-name paging, inner and

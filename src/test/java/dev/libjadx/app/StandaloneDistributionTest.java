@@ -42,6 +42,14 @@ class StandaloneDistributionTest {
 					.path("originalClassDescriptor").asText());
 			cursor = page.path("nextCursor").asText();
 			assertFalse(cursor.isBlank());
+			HttpResponse<String> java = HTTP.send(HttpRequest.newBuilder(uri(port, "/api/v1/decompile"))
+					.header("Content-Type", "application/json")
+					.POST(HttpRequest.BodyPublishers.ofString("{\"ref\":{\"kind\":\"CLASS\","
+							+ "\"originalClassDescriptor\":\"Lprobe/Sample;\"}}"))
+					.build(), HttpResponse.BodyHandlers.ofString());
+			assertEquals(200, java.statusCode(), java.body());
+			assertEquals("RESOLVED", body(java).path("outcome").asText());
+			assertTrue(body(java).path("source").asText().contains("class Sample"));
 		} finally { stop(first, port); }
 
 		Process second = start(script, project, port, "second");

@@ -1,6 +1,6 @@
 # Compatibility and pinned dependencies
 
-Status: Phase 4.1 symbol lookup, updated 2026-09-25.
+Status: Phase 4.2 Java source and metadata, updated 2026-09-25.
 
 ## Jadx pin
 
@@ -31,6 +31,9 @@ The source archive was fetched from the `v1.5.6` tag and inspected at the commit
 - [`ProjectData.java`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-gui/src/main/java/jadx/gui/settings/data/ProjectData.java): native project fields include input files, tree expansions, `JadxCodeData`, tabs, mappings path, cache directory, live reload, search fields and plugin options.
 - [`jadx-java.gradle.kts`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/buildSrc/src/main/kotlin/jadx-java.gradle.kts): Jadx main sources target Java 11; `settings.gradle.kts` requires Java 11 or newer to build.
 - [`jadx-cli/build.gradle.kts`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-cli/build.gradle.kts): the pinned CLI's headless runtime plugin set used by the standalone LibJadx distribution.
+- [`ICodeInfo.java`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-core/src/main/java/jadx/api/ICodeInfo.java), [`ICodeMetadata.java`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-core/src/main/java/jadx/api/metadata/ICodeMetadata.java), [`NodeDeclareRef.java`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-core/src/main/java/jadx/api/metadata/annotations/NodeDeclareRef.java), and [`NodeEnd.java`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-core/src/main/java/jadx/api/metadata/annotations/NodeEnd.java): exact Java string, code-position map, declaration node and unattributed end markers used by `JadxSourceAdapter`.
+- [`ClassGen.java`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-core/src/main/java/jadx/core/codegen/ClassGen.java): emits `NodeEnd` after method body closing braces; lexical brace matching is required to associate an end marker with a specific original method.
+- [`JadxError.java`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-core/src/main/java/jadx/core/dex/attributes/nodes/JadxError.java) and [`JadxCommentsAttr.java`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-core/src/main/java/jadx/core/dex/attributes/nodes/JadxCommentsAttr.java): pinned internal class/method diagnostics; exception causes and stack traces are not copied to HTTP responses.
 
 ## Non-Jadx build dependencies
 
@@ -45,7 +48,7 @@ Resolved transitive versions are recorded in [gradle.lockfile](../gradle.lockfil
 
 ## Current feasibility status
 
-The public-core smoke probe, in-memory class rename/comment, native project JSON round-trip, unknown-field retention, and matching-GUI save/reopen have executable probes. Remaining P0.3 topics are listed with bounded follow-up probes in [feasibility-matrix.md](feasibility-matrix.md). Phase 2 adds native save/reload/conflict detection, process-scoped revisions, mapping-path rebuilds and isolated temporary decompilation mode. Phase 4.1 adds Jadx-visible class listing and original class/method/field resolution. Search and edit HTTP routes remain unimplemented.
+The public-core smoke probe, in-memory class rename/comment, native project JSON round-trip, unknown-field retention, and matching-GUI save/reopen have executable probes. Remaining P0.3 topics are listed with bounded follow-up probes in [feasibility-matrix.md](feasibility-matrix.md). Phase 2 adds native save/reload/conflict detection, process-scoped revisions, mapping-path rebuilds and isolated temporary decompilation mode. Phase 4.1 adds Jadx-visible class listing and original class/method/field resolution. Phase 4.2 adds class-oriented Java source, validated token annotations and verified method excerpts. Source-only internals are isolated in `JadxSourceAdapter`. Search and edit HTTP routes remain unimplemented.
 
 ## Reproducing Phase 0 probes
 
