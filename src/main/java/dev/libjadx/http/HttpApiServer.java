@@ -20,7 +20,9 @@ public final class HttpApiServer implements AutoCloseable {
 		server.addConnector(connector);
 		ServletContextHandler context = new ServletContextHandler(ServletContextHandler.NO_SESSIONS);
 		context.setContextPath("/");
-		context.addServlet(new ServletHolder(new StatusServlet(runtime, JsonMapper.builder().build())), "/api/v1/*");
+		ServletHolder api = new ServletHolder(new StatusServlet(runtime, JsonMapper.builder().build()));
+		api.setAsyncSupported(true);
+		context.addServlet(api, "/api/v1/*");
 		server.setHandler(context);
 	}
 

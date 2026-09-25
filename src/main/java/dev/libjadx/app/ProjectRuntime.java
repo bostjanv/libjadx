@@ -25,11 +25,16 @@ import jadx.api.JadxDecompiler;
 import dev.libjadx.scheduler.OperationCoordinator;
 import dev.libjadx.scheduler.OperationRequest;
 import dev.libjadx.scheduler.ServiceShuttingDownException;
+import dev.libjadx.scheduler.JobLimits;
+import dev.libjadx.scheduler.JobRegistry;
+import dev.libjadx.scheduler.JobSnapshot;
+import dev.libjadx.scheduler.JobSpec;
 
 /** Owns one fixed project and publishes its engine only after initialization succeeds. */
 public final class ProjectRuntime implements AutoCloseable {
 	private final Object lifecycleLock = new Object();
 	private final OperationCoordinator coordinator = new OperationCoordinator();
+	private final JobRegistry jobs;
 	private final Path projectPath;
 	private final List<Path> inputPaths;
 	private final List<Path> allowedRoots;
@@ -64,6 +69,11 @@ public final class ProjectRuntime implements AutoCloseable {
 				Executors.newSingleThreadExecutor(LOADER_THREADS));
 	}
 
+	ProjectRuntime(Path projectPath, List<Path> inputPaths, List<Path> allowedRoots, JobLimits limits) {
+		this(projectPath, inputPaths, allowedRoots, JadxProjectEngine::new, () -> { },
+				Executors.newSingleThreadExecutor(LOADER_THREADS), NativeProjectRepository::save, limits);
+	}
+
 	ProjectRuntime(Path projectPath, List<Path> inputPaths, EngineFactory engineFactory) {
 		this(projectPath, inputPaths, engineFactory, () -> { });
 	}
@@ -71,6 +81,11 @@ public final class ProjectRuntime implements AutoCloseable {
 	ProjectRuntime(Path projectPath, List<Path> inputPaths, EngineFactory engineFactory, SaveAction saveAction) {
 		this(projectPath, inputPaths, defaultRoots(projectPath, inputPaths), engineFactory, () -> { },
 				Executors.newSingleThreadExecutor(LOADER_THREADS), saveAction);
+	}
+
+	ProjectRuntime(Path projectPath, List<Path> inputPaths, EngineFactory engineFactory, JobLimits limits) {
+		this(projectPath, inputPaths, defaultRoots(projectPath, inputPaths), engineFactory, () -> { },
+				Executors.newSingleThreadExecutor(LOADER_THREADS), NativeProjectRepository::save, limits);
 	}
 
 	ProjectRuntime(Path projectPath, List<Path> inputPaths, EngineFactory engineFactory, Runnable beforePublish) {
@@ -90,6 +105,12 @@ public final class ProjectRuntime implements AutoCloseable {
 
 	private ProjectRuntime(Path projectPath, List<Path> inputPaths, List<Path> allowedRoots,
 			EngineFactory engineFactory, Runnable beforePublish, ExecutorService loader, SaveAction saveAction) {
+		this(projectPath, inputPaths, allowedRoots, engineFactory, beforePublish, loader, saveAction, JobLimits.defaults());
+	}
+
+	private ProjectRuntime(Path projectPath, List<Path> inputPaths, List<Path> allowedRoots,
+			EngineFactory engineFactory, Runnable beforePublish, ExecutorService loader, SaveAction saveAction,
+			JobLimits limits) {
 		this.projectPath = projectPath;
 		this.inputPaths = List.copyOf(inputPaths);
 		this.allowedRoots = List.copyOf(allowedRoots);
@@ -98,6 +119,7 @@ public final class ProjectRuntime implements AutoCloseable {
 		this.beforePublish = beforePublish;
 		this.loader = loader;
 		this.status = status("LOADING", "INITIALIZING", new RuntimeStatus.Progress(0, 1, "project"), null);
+		this.jobs = new JobRegistry(limits, this::admitJob, this::reportFatalRebuild);
 	}
 
 	private static List<Path> defaultRoots(Path projectPath, List<Path> inputPaths) {
@@ -334,10 +356,12 @@ public final class ProjectRuntime implements AutoCloseable {
 			if (lifecycle != Lifecycle.SHUTTING_DOWN && lifecycle != Lifecycle.STOPPED) {
 				lifecycle = Lifecycle.FAILED;
 				status = status("FAILED", "FAILED", status.progress(),
-						new RuntimeStatus.ApiError("INTERNAL_ERROR", "A fatal JVM error interrupted project rebuilding", null));
+						new RuntimeStatus.ApiError("INTERNAL_ERROR", "A fatal JVM error interrupted the project runtime", null));
 			}
-			detached = activeEngine;
-			activeEngine = null;
+			coordinator.stopAdmissions();
+			jobs.stopSubmissions();
+			detached = coordinator.primaryEngineInUse() ? null : activeEngine;
+			if (detached != null) activeEngine = null;
 			if (detached != null) cleanupInProgress++;
 		}
 		try {
@@ -379,6 +403,24 @@ public final class ProjectRuntime implements AutoCloseable {
 		}
 	}
 
+	private OperationCoordinator.Lease admitJob(OperationRequest request, OperationCoordinator.Admission expected) {
+		synchronized (lifecycleLock) {
+			if (lifecycle == Lifecycle.RELOADING) throw new JobRegistry.AdmissionDeferredException();
+			requireReady();
+			if (!publishedAdmission.equals(expected)) throw new JobRegistry.StaleJobSnapshotException();
+			return coordinator.tryAdmit(request, publishedAdmission, this::operationCompleted);
+		}
+	}
+
+	/** Internal submission seam for future typed analysis operations and deterministic tests. */
+	JobSnapshot submitJob(JobSpec<?> spec) {
+		assertReady();
+		return jobs.submit(spec);
+	}
+
+	/** Read-only HTTP access to polling, cancellation and SSE; no HTTP submission route exists. */
+	public JobRegistry jobRegistry() { return jobs; }
+
 	private OperationCoordinator.Lease admitReloading(OperationRequest request, String stage) {
 		synchronized (lifecycleLock) {
 			requireReady();
@@ -397,6 +439,7 @@ public final class ProjectRuntime implements AutoCloseable {
 			if (!shuttingDown) finishShutdownIfQuiescent();
 		}
 		if (shuttingDown) closeInternal();
+		else jobs.signal();
 	}
 
 	public static final class ProjectNotReadyException extends IllegalStateException {
@@ -558,6 +601,7 @@ public final class ProjectRuntime implements AutoCloseable {
 				status = status("SHUTTING_DOWN", "SHUTTING_DOWN", status.progress(), null);
 			}
 			coordinator.stopAdmissions();
+			jobs.stopSubmissions();
 			detached = coordinator.primaryEngineInUse() ? null : activeEngine;
 			if (detached != null) {
 				activeEngine = null;
@@ -571,6 +615,7 @@ public final class ProjectRuntime implements AutoCloseable {
 
 		// State and ownership are settled before interrupting the loader. A load that
 		// ignores interruption remains responsible for its local engine in initialize().
+		jobs.shutdown();
 		loader.shutdownNow();
 		if (cancelled != null) {
 			cancelled.completion.completeExceptionally(new CancellationException("Project initialization cancelled by shutdown"));

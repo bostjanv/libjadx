@@ -1,0 +1,13 @@
+id: 1
+event: job.queued
+data: {"jobId":"a142b85f-c8ed-4651-a087-0417147c18ca","sequence":1,"type":"job.queued","at":"2026-09-25T09:00:00Z","state":"QUEUED","resultUrl":"/api/v1/jobs/a142b85f-c8ed-4651-a087-0417147c18ca"}
+
+: heartbeat
+
+id: 2
+event: job.started
+data: {"jobId":"a142b85f-c8ed-4651-a087-0417147c18ca","sequence":2,"type":"job.started","at":"2026-09-25T09:00:01Z","state":"RUNNING","resultUrl":"/api/v1/jobs/a142b85f-c8ed-4651-a087-0417147c18ca"}
+
+id: 3
+event: job.completed
+data: {"jobId":"a142b85f-c8ed-4651-a087-0417147c18ca","sequence":3,"type":"job.completed","at":"2026-09-25T09:00:12Z","state":"SUCCEEDED","resultUrl":"/api/v1/jobs/a142b85f-c8ed-4651-a087-0417147c18ca"}

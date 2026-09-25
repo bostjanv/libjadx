@@ -52,7 +52,31 @@ class OperationCoordinatorTest {
 			assertThrows(ProjectBusyException.class, () -> coordinator.tryAdmit(
 					OperationRequest.queryRead("snapshot-b"), REV, () -> { }));
 			assertThrows(ProjectBusyException.class, () -> coordinator.tryAdmit(
+					OperationRequest.queryRead("snapshot-a"),
+					new OperationCoordinator.Admission("other-session", 7), () -> { }));
+			assertThrows(ProjectBusyException.class, () -> coordinator.tryAdmit(
+					OperationRequest.indexRead("snapshot-a"),
+					new OperationCoordinator.Admission("session-1", 8), () -> { }));
+			assertThrows(ProjectBusyException.class, () -> coordinator.tryAdmit(
 					OperationRequest.projectExclusive("edit"), REV, () -> { }));
+		}
+	}
+
+	@Test void indexAndQueryBothRejectMismatchedAdmissionMetadata() {
+		OperationCoordinator coordinator = new OperationCoordinator();
+		var otherSession = new OperationCoordinator.Admission("other-session", REV.logicalRevision());
+		var otherRevision = new OperationCoordinator.Admission(REV.sessionId(), REV.logicalRevision() + 1);
+		try (var index = coordinator.tryAdmit(OperationRequest.indexRead("same-key"), REV, () -> { })) {
+			assertThrows(ProjectBusyException.class, () -> coordinator.tryAdmit(
+					OperationRequest.queryRead("same-key"), otherSession, () -> { }));
+			assertThrows(ProjectBusyException.class, () -> coordinator.tryAdmit(
+					OperationRequest.queryRead("same-key"), otherRevision, () -> { }));
+		}
+		try (var query = coordinator.tryAdmit(OperationRequest.queryRead("same-key"), REV, () -> { })) {
+			assertThrows(ProjectBusyException.class, () -> coordinator.tryAdmit(
+					OperationRequest.indexRead("same-key"), otherSession, () -> { }));
+			assertThrows(ProjectBusyException.class, () -> coordinator.tryAdmit(
+					OperationRequest.indexRead("same-key"), otherRevision, () -> { }));
 		}
 	}
 

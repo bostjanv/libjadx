@@ -20,14 +20,14 @@ public final class OperationCoordinator {
 		Objects.requireNonNull(afterRelease, "afterRelease");
 		synchronized (monitor) {
 			if (stopped) throw new ServiceShuttingDownException();
-			if (!compatible(request)) throw new ProjectBusyException();
+			if (!compatible(request, admission)) throw new ProjectBusyException();
 			Lease lease = new Lease(UUID.randomUUID(), request, admission, afterRelease);
 			active.put(lease.id(), lease);
 			return lease;
 		}
 	}
 
-	private boolean compatible(OperationRequest candidate) {
+	private boolean compatible(OperationRequest candidate, Admission admission) {
 		if (candidate.category() == OperationRequest.Category.TEMPORARY_ANALYSIS
 				&& active.values().stream().anyMatch(l -> l.request.category() == OperationRequest.Category.TEMPORARY_ANALYSIS)) {
 			return false;
@@ -47,8 +47,8 @@ public final class OperationCoordinator {
 					|| existing == OperationRequest.Category.PROJECT_EXCLUSIVE) return false;
 			if (candidate.category() == OperationRequest.Category.CLASS_READ
 					|| existing == OperationRequest.Category.CLASS_READ) return false;
-			// Immutable index/query reads may share one exact snapshot only.
-			if (!candidate.key().equals(lease.request.key())) return false;
+			// A caller-selected key alone cannot prove snapshot identity.
+			if (!candidate.key().equals(lease.request.key()) || !admission.equals(lease.admission)) return false;
 		}
 		return true;
 	}
