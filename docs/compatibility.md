@@ -1,6 +1,6 @@
 # Compatibility and pinned dependencies
 
-Status: Phase 2 native lifecycle, updated 2026-09-24.
+Status: Phase 4.1 symbol lookup, updated 2026-09-25.
 
 ## Jadx pin
 
@@ -21,9 +21,10 @@ The 1.5.6 Git tag is `v1.5.6`, a stable, signed upstream release. No build-time 
 
 The source archive was fetched from the `v1.5.6` tag and inspected at the commit above. Commit-pinned source links:
 
-- [`JadxDecompiler.java`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-core/src/main/java/jadx/api/JadxDecompiler.java): public constructor, `load()`, `getClasses()`, original/alias class lookup and `reloadCodeData()` APIs; its class-level documentation shows the library loading/decompile flow.
+- [`JadxDecompiler.java`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-core/src/main/java/jadx/api/JadxDecompiler.java): public constructor, `load()`, `getClasses()`, `getClassesWithInners()`, original/alias class lookup and `reloadCodeData()` APIs; its class-level documentation shows the library loading/decompile flow.
 - [`JadxArgs.java`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-core/src/main/java/jadx/api/JadxArgs.java): public `setCodeData(ICodeData)` API.
 - [`JavaClass.java`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-core/src/main/java/jadx/api/JavaClass.java) and [`JavaMethod.java`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-core/src/main/java/jadx/api/JavaMethod.java): Java code and metadata, Smali, member listing and use references.
+- [`JavaField.java`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-core/src/main/java/jadx/api/JavaField.java), [`MethodInfo.java`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-core/src/main/java/jadx/core/dex/info/MethodInfo.java), [`FieldInfo.java`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-core/src/main/java/jadx/core/dex/info/FieldInfo.java), and [`TypeGen.java`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-core/src/main/java/jadx/core/codegen/TypeGen.java): original member names and raw type signatures used by the isolated symbol adapter.
 - [`JadxProject.java`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-gui/src/main/java/jadx/gui/settings/JadxProject.java): `loadProjectData(Path)` and `save()`; `saveAs(Path)` uses `MainWindow`/GUI cache services. `buildGson` applies native relative-path and code-data adapters.
 - [`ProjectData.java`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-gui/src/main/java/jadx/gui/settings/data/ProjectData.java): native project fields include input files, tree expansions, `JadxCodeData`, tabs, mappings path, cache directory, live reload, search fields and plugin options.
 - [`jadx-java.gradle.kts`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/buildSrc/src/main/kotlin/jadx-java.gradle.kts): Jadx main sources target Java 11; `settings.gradle.kts` requires Java 11 or newer to build.
@@ -41,7 +42,7 @@ Resolved transitive versions are recorded in [gradle.lockfile](../gradle.lockfil
 
 ## Current feasibility status
 
-The public-core smoke probe, in-memory class rename/comment, native project JSON round-trip, unknown-field retention, and matching-GUI save/reopen have executable probes. Remaining P0.3 topics are listed with bounded follow-up probes in [feasibility-matrix.md](feasibility-matrix.md). Phase 2 adds native save/reload/conflict detection, process-scoped revisions, mapping-path rebuilds and isolated temporary decompilation mode. Symbol, search and edit HTTP routes remain unimplemented.
+The public-core smoke probe, in-memory class rename/comment, native project JSON round-trip, unknown-field retention, and matching-GUI save/reopen have executable probes. Remaining P0.3 topics are listed with bounded follow-up probes in [feasibility-matrix.md](feasibility-matrix.md). Phase 2 adds native save/reload/conflict detection, process-scoped revisions, mapping-path rebuilds and isolated temporary decompilation mode. Phase 4.1 adds Jadx-visible class listing and original class/method/field resolution. Search and edit HTTP routes remain unimplemented.
 
 ## Reproducing Phase 0 probes
 

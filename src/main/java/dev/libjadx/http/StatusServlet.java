@@ -2,6 +2,7 @@ package dev.libjadx.http;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -12,6 +13,12 @@ import java.nio.charset.StandardCharsets;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import dev.libjadx.core.ProjectSnapshot;
+import dev.libjadx.core.symbols.ClassQuery;
+import dev.libjadx.core.symbols.SymbolCatalog;
+import dev.libjadx.core.symbols.SymbolLookup;
+import dev.libjadx.core.symbols.SymbolRef;
+import dev.libjadx.core.symbols.SymbolResolution;
+import dev.libjadx.jadxadapter.JadxSymbolAdapter;
 import dev.libjadx.project.NativeProjectRepository;
 import dev.libjadx.scheduler.ProjectBusyException;
 import dev.libjadx.scheduler.ServiceShuttingDownException;
@@ -36,6 +43,8 @@ public final class StatusServlet extends HttpServlet {
 	private final JobEventsHandler jobEvents;
 	private final ShutdownRequester shutdown;
 	private final AtomicBoolean shutdownRequestInProgress = new AtomicBoolean();
+	private final byte[] cursorKey = SymbolCatalog.newCursorKey();
+	private volatile SymbolCatalog symbolCatalog;
 
 	public StatusServlet(ProjectRuntime runtime, ObjectMapper json, ShutdownRequester shutdown) {
 		this.runtime = runtime;
@@ -60,7 +69,9 @@ public final class StatusServlet extends HttpServlet {
 		}
 		if ("/api/v1/capabilities".equals(path)) {
 			write(response, HttpServletResponse.SC_OK, new CapabilitiesResponse("0.1.0-SNAPSHOT", "1.5.6", List.of(
-					new Capability("class.list", "SUPPORTED", "SMALL_JAR_PROBED", "READ_ONLY"),
+					new Capability("class.list", "PARTIAL", "JADX_VISIBLE_INCLUDING_INNERS_AND_NO_CODE", "READ_ONLY"),
+					new Capability("symbol.resolve", "PARTIAL", "PINNED_RAW_CLASS_METHOD_FIELD_METADATA", "READ_ONLY"),
+					new Capability("symbol.input_provenance", "UNKNOWN", "TWO_JAR_DUPLICATE_COLLAPSED_ORIGIN_UNVERIFIED", "UNAVAILABLE"),
 					new Capability("code.java", "SUPPORTED", "SMALL_JAR_PROBED", "READ_ONLY"),
 					new Capability("code.smali", "SUPPORTED", "SMALL_JAR_PROBED", "READ_ONLY"),
 					new Capability("references.method_uses", "PARTIAL", "LOCAL_CALLERS_PROBED", "READ_ONLY"),
@@ -79,6 +90,10 @@ public final class StatusServlet extends HttpServlet {
 		}
 		if ("/api/v1/project/settings".equals(path)) {
 			write(response, 200, settingsResponse(runtime.settingsSnapshot()));
+			return;
+		}
+		if ("/api/v1/classes".equals(path)) {
+			handleClasses(request, response);
 			return;
 		}
 		if (path.matches("/api/v1/jobs/[^/]+") || path.matches("/api/v1/jobs/[^/]+/events")) {
@@ -152,6 +167,10 @@ public final class StatusServlet extends HttpServlet {
 	@Override
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
 		String path = request.getRequestURI();
+		if ("/api/v1/symbols/resolve".equals(path)) {
+			handleSymbolResolve(request, response);
+			return;
+		}
 		if ("/api/v1/shutdown".equals(path)) {
 			if (!sameOrigin(request)) {
 				writeError(response, 403, "INPUT_SECURITY_REJECTION", "Cross-origin shutdown is not allowed");
@@ -268,6 +287,152 @@ public final class StatusServlet extends HttpServlet {
 			return;
 		}
 		writeUnavailableOrUnimplemented(request, response);
+	}
+
+	private void handleClasses(HttpServletRequest request, HttpServletResponse response) throws IOException {
+		try {
+			runtime.assertReady();
+			ClassQuery query = parseClassQuery(request);
+			write(response, 200, runtime.withPrimarySymbolRead("symbol-catalog", context ->
+					catalog(context).page(query)));
+		} catch (SymbolCatalog.StaleCursorException stale) {
+			writeError(response, 409, "STALE_REVISION", "Class cursor belongs to a previous project snapshot");
+		} catch (ProjectRuntime.ProjectNotReadyException notReady) {
+			writeLifecycleError(response, notReady.status());
+		} catch (ServiceShuttingDownException stopping) {
+			writeError(response, 503, "SERVICE_SHUTTING_DOWN", stopping.getMessage());
+		} catch (ProjectBusyException busy) {
+			writeError(response, 409, "PROJECT_BUSY", busy.getMessage());
+		} catch (JadxSymbolAdapter.CatalogLimitException limit) {
+			writeError(response, 429, "RESOURCE_LIMIT", limit.getMessage());
+		} catch (IllegalArgumentException invalid) {
+			writeError(response, 400, "INVALID_REQUEST", invalid.getMessage());
+		} catch (RuntimeException failure) {
+			writeError(response, 500, "INTERNAL_ERROR", "Class enumeration failed; inspect the local service log");
+		}
+	}
+
+	private void handleSymbolResolve(HttpServletRequest request, HttpServletResponse response) throws IOException {
+		try {
+			runtime.assertReady();
+			if (!isJsonContentType(request.getContentType())) {
+				writeError(response, 415, "INVALID_REQUEST", "Content-Type must be application/json");
+				return;
+			}
+			JsonNode body = readBody(request);
+			requireFields(body, Set.of("ref", "expectedSessionId", "expectedLogicalRevision"));
+			if (!body.has("ref") || !body.get("ref").isObject()) throw new IllegalArgumentException("ref object is required");
+			boolean session = body.has("expectedSessionId");
+			boolean revision = body.has("expectedLogicalRevision");
+			if (session != revision) throw new IllegalArgumentException("Revision preconditions must be supplied together");
+			if (session && (!body.get("expectedSessionId").isTextual()
+					|| !body.get("expectedLogicalRevision").canConvertToLong()
+					|| body.get("expectedLogicalRevision").longValue() < 0)) {
+				throw new IllegalArgumentException("Invalid revision precondition");
+			}
+			if (session) {
+				String candidate = body.get("expectedSessionId").asText();
+				try {
+					if (!UUID.fromString(candidate).toString().equalsIgnoreCase(candidate))
+						throw new IllegalArgumentException("Invalid expectedSessionId");
+				} catch (IllegalArgumentException invalid) {
+					throw new IllegalArgumentException("Invalid expectedSessionId", invalid);
+				}
+			}
+			SymbolRef ref = parseSymbolRef(body.get("ref"));
+			String expectedSession = session ? body.get("expectedSessionId").asText() : null;
+			Long expectedRevision = revision ? body.get("expectedLogicalRevision").longValue() : null;
+			SymbolResolution result = runtime.withPrimarySymbolRead(ref.originalClassDescriptor(), context -> {
+				if (expectedSession != null && (!context.revisions().sessionId().equals(expectedSession)
+						|| context.revisions().logicalRevision() != expectedRevision)) {
+					throw new SymbolCatalog.StaleCursorException();
+				}
+				return SymbolLookup.resolve(catalog(context), ref, entry -> {
+					var cls = JadxSymbolAdapter.visibleClass(context.decompiler(),
+							ref.originalClassDescriptor(), entry.occurrence());
+					if (cls == null) throw new IllegalStateException("Visible class vanished during leased lookup");
+					return JadxSymbolAdapter.matchingMembers(cls, ref);
+				});
+			});
+			write(response, 200, result);
+		} catch (SymbolCatalog.StaleCursorException stale) {
+			writeError(response, 409, "STALE_REVISION", "Symbol precondition belongs to a previous project snapshot");
+		} catch (ProjectRuntime.ProjectNotReadyException notReady) {
+			writeLifecycleError(response, notReady.status());
+		} catch (ServiceShuttingDownException stopping) {
+			writeError(response, 503, "SERVICE_SHUTTING_DOWN", stopping.getMessage());
+		} catch (ProjectBusyException busy) {
+			writeError(response, 409, "PROJECT_BUSY", busy.getMessage());
+		} catch (JadxSymbolAdapter.CatalogLimitException limit) {
+			writeError(response, 429, "RESOURCE_LIMIT", limit.getMessage());
+		} catch (IllegalArgumentException invalid) {
+			writeError(response, 400, "INVALID_REQUEST", invalid.getMessage());
+		} catch (RuntimeException failure) {
+			writeError(response, 500, "INTERNAL_ERROR", "Symbol resolution failed; inspect the local service log");
+		}
+	}
+
+	private SymbolCatalog catalog(ProjectRuntime.PrimarySymbolRead context) {
+		SymbolCatalog current = symbolCatalog;
+		if (current == null || !current.sessionId().equals(context.revisions().sessionId())
+				|| current.logicalRevision() != context.revisions().logicalRevision()
+				|| current.publicationEpoch() != context.publicationEpoch()) {
+			current = new SymbolCatalog(JadxSymbolAdapter.classes(context.decompiler()),
+					context.revisions().sessionId(), context.revisions().logicalRevision(),
+					context.publicationEpoch(), cursorKey);
+			symbolCatalog = current;
+		}
+		return current;
+	}
+
+	private static SymbolRef parseSymbolRef(JsonNode node) {
+		requireFields(node, Set.of("kind", "originalClassDescriptor", "inputIdentity", "originalName", "originalDescriptor"));
+		if (!node.hasNonNull("kind") || !node.get("kind").isTextual()
+				|| !node.hasNonNull("originalClassDescriptor") || !node.get("originalClassDescriptor").isTextual()) {
+			throw new IllegalArgumentException("kind and originalClassDescriptor are required strings");
+		}
+		for (String key : List.of("inputIdentity", "originalName", "originalDescriptor")) {
+			if (node.has(key) && !node.get(key).isNull() && !node.get(key).isTextual()) {
+				throw new IllegalArgumentException(key + " must be a string or null");
+			}
+		}
+		SymbolRef.Kind kind;
+		try { kind = SymbolRef.Kind.valueOf(node.get("kind").asText()); }
+		catch (IllegalArgumentException invalid) { throw new IllegalArgumentException("Unknown symbol kind"); }
+		return new SymbolRef(kind, node.get("originalClassDescriptor").asText(), optionalText(node, "inputIdentity"),
+				optionalText(node, "originalName"), optionalText(node, "originalDescriptor"));
+	}
+
+	private static String optionalText(JsonNode node, String key) {
+		return node.hasNonNull(key) ? node.get(key).asText() : null;
+	}
+
+	private static void requireFields(JsonNode node, Set<String> allowed) {
+		node.fieldNames().forEachRemaining(name -> {
+			if (!allowed.contains(name)) throw new IllegalArgumentException("Unknown field: " + name);
+		});
+	}
+
+	private static ClassQuery parseClassQuery(HttpServletRequest request) {
+		String raw = request.getQueryString();
+		if (raw != null && raw.length() > 4096) throw new IllegalArgumentException("Query string exceeds 4096 characters");
+		Map<String, String[]> parameters = request.getParameterMap();
+		for (var entry : parameters.entrySet()) {
+			if (!Set.of("pageSize", "cursor", "packagePrefix", "nameContains", "nameDomain", "includeInner").contains(entry.getKey())
+					|| entry.getValue().length != 1) throw new IllegalArgumentException("Unknown or repeated class query parameter");
+		}
+		String size = request.getParameter("pageSize");
+		int pageSize;
+		try { pageSize = size == null ? 50 : Integer.parseInt(size); }
+		catch (NumberFormatException invalid) { throw new IllegalArgumentException("Invalid pageSize"); }
+		String domain = request.getParameter("nameDomain");
+		ClassQuery.NameDomain nameDomain;
+		try { nameDomain = domain == null ? ClassQuery.NameDomain.original : ClassQuery.NameDomain.valueOf(domain); }
+		catch (IllegalArgumentException invalid) { throw new IllegalArgumentException("Invalid nameDomain"); }
+		String inner = request.getParameter("includeInner");
+		if (inner != null && !inner.equals("true") && !inner.equals("false")) throw new IllegalArgumentException("Invalid includeInner");
+		return new ClassQuery(pageSize, request.getParameter("cursor"), request.getParameter("packagePrefix"),
+				request.getParameter("nameContains"), nameDomain, inner == null || Boolean.parseBoolean(inner));
 	}
 
 	private void handleShutdown(AsyncContext async, ShutdownPolicy policy) {

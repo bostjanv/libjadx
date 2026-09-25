@@ -12,6 +12,7 @@ servers:
 tags:
   - name: Service
   - name: Project
+  - name: Symbols
 paths:
   /health/live:
     get:
@@ -223,6 +224,88 @@ paths:
                 $ref: '#/components/schemas/PendingEdits'
         'default':
           $ref: '#/components/responses/ApiErrorResponse'
+  /classes:
+    get:
+      tags: [Symbols]
+      operationId: listClasses
+      summary: Page through currently Jadx-visible classes by original descriptor
+      description: >-
+        Includes eligible inner and anonymous classes by default. This is the
+        current Jadx-visible set, not a census of every source definition.
+        Original descriptors determine order; aliases never determine identity
+        or default order. complete means this filtered visible enumeration is
+        exhausted, while sourceCoverage=UNVERIFIED means discarded or merged
+        input definitions cannot be ruled out. Cursors bind session, logical
+        revision, engine publication and normalized filters. Busy work returns
+        retryable PROJECT_BUSY; loading/reloading/shutdown returns 503.
+      parameters:
+        - in: query
+          name: pageSize
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+        - in: query
+          name: cursor
+          schema: { type: string, maxLength: 4096 }
+        - in: query
+          name: packagePrefix
+          description: Exact original dotted package or its dot-delimited descendants.
+          schema: { type: string, maxLength: 512 }
+        - in: query
+          name: nameContains
+          description: Case-sensitive substring of the selected dotted qualified name.
+          schema: { type: string, maxLength: 256 }
+        - in: query
+          name: nameDomain
+          schema: { type: string, enum: [original, alias], default: original }
+        - in: query
+          name: includeInner
+          schema: { type: boolean, default: true }
+      responses:
+        '200':
+          description: One bounded page of the filtered visible class set.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ClassPage' }
+              examples:
+                firstPage:
+                  externalValue: ./examples/classes-first-page.json
+        '400': { $ref: '#/components/responses/ApiErrorResponse' }
+        '409': { $ref: '#/components/responses/ApiErrorResponse' }
+        '429': { $ref: '#/components/responses/ApiErrorResponse' }
+        '503': { $ref: '#/components/responses/ApiErrorResponse' }
+        '500': { $ref: '#/components/responses/ApiErrorResponse' }
+  /symbols/resolve:
+    post:
+      tags: [Symbols]
+      operationId: resolveSymbol
+      summary: Resolve an exact original class, method or field identity
+      description: >-
+        Well-formed domain misses and uncertain provenance return typed HTTP
+        200 outcomes. A supplied inputIdentity cannot be selected unless exact
+        per-input attribution is verified. Member lookup can load/decompile only
+        the requested declaring class. No lookup saves or changes a revision.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SymbolResolveRequest' }
+      responses:
+        '200':
+          description: RESOLVED, NOT_FOUND, AMBIGUOUS or PROVENANCE_UNAVAILABLE.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SymbolResolution' }
+              examples:
+                classResolved: { externalValue: ./examples/class-resolved.json }
+                methodResolved: { externalValue: ./examples/method-resolved.json }
+                fieldResolved: { externalValue: ./examples/field-resolved.json }
+                ambiguous: { externalValue: ./examples/symbol-ambiguous.json }
+                provenanceUnavailable: { externalValue: ./examples/symbol-provenance-unavailable.json }
+        '400': { $ref: '#/components/responses/ApiErrorResponse' }
+        '409': { $ref: '#/components/responses/ApiErrorResponse' }
+        '415': { $ref: '#/components/responses/ApiErrorResponse' }
+        '429': { $ref: '#/components/responses/ApiErrorResponse' }
+        '503': { $ref: '#/components/responses/ApiErrorResponse' }
+        '500': { $ref: '#/components/responses/ApiErrorResponse' }
   /jobs/{jobId}:
     parameters:
       - $ref: '#/components/parameters/JobId'
@@ -362,6 +445,120 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorEnvelope'
   schemas:
+    SymbolRef:
+      type: object
+      additionalProperties: false
+      required: [kind, originalClassDescriptor]
+      if:
+        properties:
+          kind: { enum: [METHOD, FIELD] }
+        required: [kind]
+      then:
+        required: [originalName, originalDescriptor]
+        properties:
+          originalName: { type: string }
+          originalDescriptor: { type: string }
+      else:
+        properties:
+          originalName: { type: 'null' }
+          originalDescriptor: { type: 'null' }
+      properties:
+        kind: { type: string, enum: [CLASS, METHOD, FIELD] }
+        originalClassDescriptor:
+          type: string
+          maxLength: 1024
+          pattern: '^L(?:[^./;\[\]<>\s]+/)*[^./;\[\]<>\s]+;$'
+        inputIdentity: { type: [string, 'null'], maxLength: 256 }
+        originalName: { type: [string, 'null'], maxLength: 512 }
+        originalDescriptor: { type: [string, 'null'], maxLength: 2048 }
+      description: >-
+        Exact original JVM/DEX identity. CLASS omits member fields or carries
+        null; METHOD and FIELD require non-null values for both. Class names use
+        Lpackage/Top$Inner; with nonempty
+        slash-delimited segments, no dots or array prefix. Method descriptors
+        contain zero or more nonvoid field types in parentheses and one return
+        type, which may be V. Field descriptors contain exactly one nonvoid
+        type. No whitespace, generic syntax or normalization is accepted.
+    SymbolInfo:
+      type: object
+      additionalProperties: false
+      required: [ref, originalName, originalDescriptor, displayName, displayQualifiedName, provenance]
+      properties:
+        ref: { $ref: '#/components/schemas/SymbolRef' }
+        originalName: { type: [string, 'null'] }
+        originalDescriptor: { type: [string, 'null'] }
+        displayName: { type: string }
+        displayQualifiedName: { type: string }
+        containingClass:
+          oneOf:
+            - { $ref: '#/components/schemas/SymbolRef' }
+            - { type: 'null' }
+        provenance: { type: string, enum: [EXACT, AMBIGUOUS, UNAVAILABLE] }
+    ClassInfo:
+      type: object
+      additionalProperties: false
+      required: [ref, originalDottedName, displayName, displayQualifiedName, isInner, codeAvailable, provenance]
+      properties:
+        ref: { $ref: '#/components/schemas/SymbolRef' }
+        originalDottedName: { type: string }
+        displayName: { type: string }
+        displayQualifiedName: { type: string }
+        isInner: { type: boolean }
+        codeAvailable:
+          type: boolean
+          description: False when Jadx marks the class DONT_GENERATE, including inlined anonymous classes.
+        originalParent:
+          oneOf:
+            - { $ref: '#/components/schemas/SymbolRef' }
+            - { type: 'null' }
+        provenance: { type: string, enum: [EXACT, AMBIGUOUS, UNAVAILABLE] }
+    ClassPage:
+      type: object
+      additionalProperties: false
+      required: [sessionId, logicalRevision, snapshotId, scope, sourceCoverage, items, nextCursor, complete]
+      properties:
+        sessionId: { type: string, format: uuid }
+        logicalRevision: { type: integer, format: int64, minimum: 0 }
+        snapshotId: { type: string }
+        scope: { const: JADX_VISIBLE }
+        sourceCoverage: { const: UNVERIFIED }
+        items:
+          type: array
+          maxItems: 100
+          items: { $ref: '#/components/schemas/ClassInfo' }
+        nextCursor: { type: [string, 'null'], maxLength: 4096 }
+        complete: { type: boolean }
+    SymbolResolveRequest:
+      type: object
+      additionalProperties: false
+      required: [ref]
+      properties:
+        ref: { $ref: '#/components/schemas/SymbolRef' }
+        expectedSessionId: { type: string, format: uuid }
+        expectedLogicalRevision: { type: integer, format: int64, minimum: 0 }
+      description: expectedSessionId and expectedLogicalRevision must occur together.
+    SymbolResolution:
+      type: object
+      additionalProperties: false
+      required: [outcome, queriedRef, sessionId, logicalRevision, snapshotId, candidates, diagnostics]
+      properties:
+        outcome: { type: string, enum: [RESOLVED, NOT_FOUND, AMBIGUOUS, PROVENANCE_UNAVAILABLE] }
+        queriedRef: { $ref: '#/components/schemas/SymbolRef' }
+        sessionId: { type: string, format: uuid }
+        logicalRevision: { type: integer, format: int64, minimum: 0 }
+        snapshotId: { type: string }
+        symbol:
+          oneOf:
+            - { $ref: '#/components/schemas/SymbolInfo' }
+            - { type: 'null' }
+        candidates:
+          type: array
+          maxItems: 16
+          items: { $ref: '#/components/schemas/SymbolInfo' }
+        diagnostics:
+          type: array
+          maxItems: 16
+          items: { type: string }
     ShutdownRequest:
       type: object
       additionalProperties: false

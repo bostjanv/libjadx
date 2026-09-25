@@ -610,6 +610,28 @@ public final class ProjectRuntime implements AutoCloseable {
 		}
 	}
 
+	/** Atomically captures the published engine and revision for one leased symbol operation. */
+	public <T> T withPrimarySymbolRead(String classKey, Function<PrimarySymbolRead, T> operation) {
+		OperationCoordinator.Lease lease;
+		ProjectEngine engine;
+		NativeProjectRepository current;
+		long epoch;
+		synchronized (lifecycleLock) {
+			requireReady();
+			lease = coordinator.tryAdmit(OperationRequest.classRead(classKey), publishedAdmission, this::operationCompleted);
+			engine = activeEngine;
+			current = repository;
+			epoch = publicationEpoch;
+		}
+		try (lease) {
+			return operation.apply(new PrimarySymbolRead(engine.decompiler(), current.snapshot().revisions(), epoch));
+		}
+	}
+
+	/** Borrowed Jadx reference: never return it or another live Jadx object from the callback. */
+	public record PrimarySymbolRead(JadxDecompiler decompiler, dev.libjadx.core.RevisionState revisions,
+			long publicationEpoch) { }
+
 	private void initialize(NativeProjectDocument nativeProject) {
 		ProjectEngine local = null;
 		NativeProjectRepository localRepository = null;

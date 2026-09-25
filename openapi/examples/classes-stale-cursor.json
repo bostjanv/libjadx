@@ -1,0 +1,9 @@
+{
+  "error": {
+    "code": "STALE_REVISION",
+    "message": "Class cursor belongs to a previous project snapshot",
+    "retryable": false,
+    "requestId": "ea4b0ac3-e022-439e-aeb0-29775d5fad5a",
+    "details": null
+  }
+}
