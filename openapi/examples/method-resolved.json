@@ -1,0 +1,18 @@
+{
+  "outcome": "RESOLVED",
+  "queriedRef": {"kind": "METHOD", "originalClassDescriptor": "Lprobe/SymbolFixture;", "inputIdentity": null, "originalName": "mix", "originalDescriptor": "(I)I"},
+  "sessionId": "d6123bea-790f-4732-8d8a-f87970589951",
+  "logicalRevision": 0,
+  "snapshotId": "d6123bea-790f-4732-8d8a-f87970589951:0:0",
+  "symbol": {
+    "ref": {"kind": "METHOD", "originalClassDescriptor": "Lprobe/SymbolFixture;", "inputIdentity": null, "originalName": "mix", "originalDescriptor": "(I)I"},
+    "originalName": "mix",
+    "originalDescriptor": "(I)I",
+    "displayName": "mix",
+    "displayQualifiedName": "probe.SymbolFixture.mix",
+    "containingClass": {"kind": "CLASS", "originalClassDescriptor": "Lprobe/SymbolFixture;", "inputIdentity": null, "originalName": null, "originalDescriptor": null},
+    "provenance": "UNAVAILABLE"
+  },
+  "candidates": [],
+  "diagnostics": ["Per-input origin and discarded definitions are not verified"]
+}

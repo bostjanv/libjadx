@@ -1,0 +1,29 @@
+{
+  "outcome": "AMBIGUOUS",
+  "queriedRef": {"kind": "CLASS", "originalClassDescriptor": "Lduplicate/Clash;", "inputIdentity": null, "originalName": null, "originalDescriptor": null},
+  "sessionId": "d6123bea-790f-4732-8d8a-f87970589951",
+  "logicalRevision": 0,
+  "snapshotId": "d6123bea-790f-4732-8d8a-f87970589951:0:0",
+  "symbol": null,
+  "candidates": [
+    {
+      "ref": {"kind": "CLASS", "originalClassDescriptor": "Lduplicate/Clash;", "inputIdentity": null, "originalName": null, "originalDescriptor": null},
+      "originalName": null,
+      "originalDescriptor": null,
+      "displayName": "Clash",
+      "displayQualifiedName": "duplicate.Clash",
+      "containingClass": null,
+      "provenance": "AMBIGUOUS"
+    },
+    {
+      "ref": {"kind": "CLASS", "originalClassDescriptor": "Lduplicate/Clash;", "inputIdentity": null, "originalName": null, "originalDescriptor": null},
+      "originalName": null,
+      "originalDescriptor": null,
+      "displayName": "Clash",
+      "displayQualifiedName": "duplicate.Clash",
+      "containingClass": null,
+      "provenance": "AMBIGUOUS"
+    }
+  ],
+  "diagnostics": ["Multiple Jadx-visible definitions share this original class descriptor"]
+}

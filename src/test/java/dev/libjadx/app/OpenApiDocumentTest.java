@@ -23,6 +23,16 @@ class OpenApiDocumentTest {
 		for (String path : List.of("/jobs/{jobId}", "/jobs/{jobId}/cancel", "/jobs/{jobId}/events")) {
 			assertTrue(yaml.path("paths").has(path), "Missing job route " + path);
 		}
+		assertEquals("#/components/schemas/ClassPage", yaml.path("paths").path("/classes").path("get")
+				.path("responses").path("200").path("content").path("application/json")
+				.path("schema").path("$ref").asText());
+		assertEquals("#/components/schemas/SymbolResolution", yaml.path("paths").path("/symbols/resolve")
+				.path("post").path("responses").path("200").path("content").path("application/json")
+				.path("schema").path("$ref").asText());
+		assertEquals(100, yaml.path("paths").path("/classes").path("get").path("parameters").get(0)
+				.path("schema").path("maximum").asInt());
+		for (String schema : List.of("SymbolRef", "SymbolInfo", "ClassInfo", "ClassPage", "SymbolResolveRequest", "SymbolResolution"))
+			assertTrue(yaml.path("components").path("schemas").has(schema));
 		assertTrue(yaml.path("components").path("schemas").path("Job").path("properties")
 				.path("progress").path("$ref").asText().endsWith("/JobProgress"));
 		assertTrue(yaml.path("components").path("schemas").path("JobProgress").path("properties")
@@ -58,7 +68,9 @@ class OpenApiDocumentTest {
 				"job-running-unknown-total.json", "job-cancelling.json", "job-succeeded.json",
 				"job-failed.json", "job-resource-limit.json", "shutdown-discard-request.json",
 				"shutdown-save-request.json", "shutdown-accepted.json", "shutdown-busy.json",
-				"shutdown-dirty-refused.json", "shutdown-raw-save-refused.json", "shutdown-save-failed.json")) {
+				"shutdown-dirty-refused.json", "shutdown-raw-save-refused.json", "shutdown-save-failed.json",
+				"classes-first-page.json", "class-resolved.json", "method-resolved.json", "field-resolved.json",
+				"symbol-ambiguous.json", "symbol-provenance-unavailable.json", "classes-stale-cursor.json")) {
 			assertTrue(json.readTree(Files.readString(Path.of("openapi/examples", file))).isObject());
 		}
 		assertEquals("INVALID_REQUEST", json.readTree(Files.readString(Path.of(
