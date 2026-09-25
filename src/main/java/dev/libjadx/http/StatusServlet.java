@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.NoSuchElementException;
 import java.net.URI;
 import java.nio.file.Path;
@@ -20,7 +21,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import dev.libjadx.app.ProjectRuntime;
 import dev.libjadx.app.RuntimeStatus;
+import dev.libjadx.app.ShutdownPolicy;
+import dev.libjadx.app.ShutdownRequester;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.AsyncContext;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -30,10 +34,13 @@ public final class StatusServlet extends HttpServlet {
 	private final ProjectRuntime runtime;
 	private final ObjectMapper json;
 	private final JobEventsHandler jobEvents;
+	private final ShutdownRequester shutdown;
+	private final AtomicBoolean shutdownRequestInProgress = new AtomicBoolean();
 
-	public StatusServlet(ProjectRuntime runtime, ObjectMapper json) {
+	public StatusServlet(ProjectRuntime runtime, ObjectMapper json, ShutdownRequester shutdown) {
 		this.runtime = runtime;
 		this.json = json;
+		this.shutdown = shutdown;
 		this.jobEvents = new JobEventsHandler(runtime.jobRegistry());
 	}
 
@@ -145,6 +152,47 @@ public final class StatusServlet extends HttpServlet {
 	@Override
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
 		String path = request.getRequestURI();
+		if ("/api/v1/shutdown".equals(path)) {
+			if (!sameOrigin(request)) {
+				writeError(response, 403, "INPUT_SECURITY_REJECTION", "Cross-origin shutdown is not allowed");
+				return;
+			}
+			try {
+				ShutdownPolicy policy = ShutdownPolicy.DISCARD;
+				if (request.getContentLengthLong() != 0) {
+					if (!isJsonContentType(request.getContentType())) throw new IllegalArgumentException("Content-Type must be application/json");
+					JsonNode body = readBody(request);
+					if (body.size() > (body.has("policy") ? 1 : 0)) throw new IllegalArgumentException("Unknown shutdown request field");
+					if (body.has("policy")) {
+						if (!body.get("policy").isTextual()) throw new IllegalArgumentException("policy must be a string");
+						policy = ShutdownPolicy.fromWireName(body.get("policy").asText());
+					}
+				}
+				if (!shutdownRequestInProgress.compareAndSet(false, true)) {
+					writeError(response, 409, "PROJECT_BUSY", "A shutdown request is already in progress");
+					return;
+				}
+				AsyncContext async;
+				try {
+					async = request.startAsync();
+					async.setTimeout(0);
+				} catch (RuntimeException failure) {
+					shutdownRequestInProgress.set(false);
+					throw failure;
+				}
+				ShutdownPolicy selected = policy;
+				try {
+					Thread.ofVirtual().name("libjadx-shutdown-policy").start(() -> handleShutdown(async, selected));
+				} catch (RuntimeException | Error failure) {
+					shutdownRequestInProgress.set(false);
+					async.complete();
+					throw failure;
+				}
+			} catch (IllegalArgumentException invalid) {
+				writeError(response, 400, "INVALID_REQUEST", invalid.getMessage());
+			}
+			return;
+		}
 		if (path.matches("/api/v1/jobs/[^/]+/cancel")) {
 			try {
 				if (!sameOrigin(request)) {
@@ -220,6 +268,41 @@ public final class StatusServlet extends HttpServlet {
 			return;
 		}
 		writeUnavailableOrUnimplemented(request, response);
+	}
+
+	private void handleShutdown(AsyncContext async, ShutdownPolicy policy) {
+		HttpServletResponse response = (HttpServletResponse) async.getResponse();
+		boolean accepted = false;
+		try {
+			shutdown.request(policy);
+			accepted = true;
+			write(response, 202, new ShutdownAccepted("SHUTTING_DOWN", policy.wireName()));
+			response.flushBuffer();
+		} catch (ProjectRuntime.ShutdownRejectedException rejected) {
+			writeShutdownError(response, rejected.statusCode(), rejected.code(), rejected.getMessage(),
+					rejected.retryable(), rejected.details());
+		} catch (ProjectRuntime.ProjectNotReadyException notReady) {
+			try { writeLifecycleError(response, notReady.status()); }
+			catch (IOException failure) { System.err.println("libjadx: shutdown response failed"); }
+		} catch (ServiceShuttingDownException stopping) {
+			writeShutdownError(response, 503, "SERVICE_SHUTTING_DOWN", stopping.getMessage(), false, null);
+		} catch (NativeProjectRepository.ExternalModificationException conflict) {
+			writeShutdownError(response, 409, "EXTERNAL_MODIFICATION_CONFLICT", conflict.getMessage(), false, null);
+		} catch (IOException failure) {
+			writeShutdownError(response, 500, "INTERNAL_ERROR", "Native save failed; the service remains available", false, null);
+		} catch (RuntimeException failure) {
+			writeShutdownError(response, 500, "INTERNAL_ERROR", "Shutdown request failed; inspect the local service log", false, null);
+		} finally {
+			shutdownRequestInProgress.set(false);
+			try { async.complete(); }
+			finally { if (accepted) shutdown.responseCommitted(); }
+		}
+	}
+
+	private void writeShutdownError(HttpServletResponse response, int status, String code, String message,
+			boolean retryable, Object details) {
+		try { writeError(response, status, code, message, retryable, details); }
+		catch (IOException failure) { System.err.println("libjadx: shutdown response failed"); }
 	}
 
 	private JsonNode readBody(HttpServletRequest request) throws IOException {
@@ -315,7 +398,12 @@ public final class StatusServlet extends HttpServlet {
 
 	private void writeError(HttpServletResponse response, int status, String code, String message,
 			boolean retryable) throws IOException {
-		write(response, status, new ErrorEnvelope(new ErrorBody(code, message, retryable, response.getHeader("X-Request-Id"), null)));
+		writeError(response, status, code, message, retryable, null);
+	}
+
+	private void writeError(HttpServletResponse response, int status, String code, String message,
+			boolean retryable, Object details) throws IOException {
+		write(response, status, new ErrorEnvelope(new ErrorBody(code, message, retryable, response.getHeader("X-Request-Id"), details)));
 	}
 
 	private void writeUnavailableOrUnimplemented(HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -391,4 +479,5 @@ public final class StatusServlet extends HttpServlet {
 			dev.libjadx.core.RevisionState revisions) { }
 	public record ProjectSettingsResponse(String mappingsPath, String decompilationMode,
 			dev.libjadx.core.RevisionState revisions) { }
+	public record ShutdownAccepted(String state, String policy) { }
 }

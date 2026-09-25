@@ -71,6 +71,7 @@ public final class JobRegistry implements AutoCloseable {
 	private int retainedResultBytes;
 	private long completionSequence;
 	private volatile boolean stopped;
+	private boolean submissionsReserved;
 	private boolean shutdownDone;
 
 	public JobRegistry(JobLimits limits, AdmissionGate gate, Consumer<Error> fatalHandler) {
@@ -88,6 +89,37 @@ public final class JobRegistry implements AutoCloseable {
 	}
 
 	public JobLimits limits() { return limits; }
+	/** Reversible short gate used while a public shutdown policy is evaluated. */
+	public void reserveSubmissions() {
+		synchronized (lock) {
+			if (stopped || submissionsReserved) throw new ServiceShuttingDownException();
+			submissionsReserved = true;
+		}
+	}
+
+	public void releaseSubmissionReservation() {
+		synchronized (lock) { submissionsReserved = false; }
+	}
+
+	/** Includes dispatch-in-progress records; terminal records do not block shutdown. */
+	public ActiveJobs activeJobs(int limit) {
+		synchronized (lock) {
+			List<ActiveJob> bounded = new ArrayList<>();
+			int count = 0;
+			for (Record<?> record : records.values()) {
+				if (record.snapshot().terminal()) continue;
+				count++;
+				if (bounded.size() < limit) {
+					String type = record.spec.type();
+					bounded.add(new ActiveJob(record.id, record.state, type.length() <= 128 ? type : type.substring(0, 128)));
+				}
+			}
+			return new ActiveJobs(count, List.copyOf(bounded));
+		}
+	}
+
+	public record ActiveJob(UUID jobId, JobSnapshot.State state, String type) { }
+	public record ActiveJobs(int count, List<ActiveJob> jobs) { }
 	/** Called under the runtime lifecycle monitor before engine ownership changes. */
 	public void stopSubmissions() {
 		synchronized (lock) { stopped = true; }
@@ -99,7 +131,7 @@ public final class JobRegistry implements AutoCloseable {
 		Record<S> record;
 		synchronized (lock) {
 			purgeExpiredLocked();
-			if (stopped) throw new ServiceShuttingDownException();
+			if (stopped || submissionsReserved) throw new ServiceShuttingDownException();
 			if (queue.size() >= limits.maxQueued()
 					|| records.size() >= limits.maxQueued() + limits.maxRunning() + limits.maxRetained()) {
 				throw new ResourceLimitException("The process-local job capacity is exhausted");

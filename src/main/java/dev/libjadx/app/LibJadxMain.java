@@ -18,9 +18,12 @@ public final class LibJadxMain {
 		if (config == null) return;
 
 		ProjectRuntime runtime = new ProjectRuntime(config.projectPath(), config.inputPaths(), config.allowedRoots());
-		HttpApiServer server = new HttpApiServer(config.bindAddress(), config.port(), runtime);
+		final StartupSupervisor[] supervisorRef = new StartupSupervisor[1];
+		HttpApiServer server = new HttpApiServer(config.bindAddress(), config.port(), runtime,
+				new ShutdownService(runtime, () -> supervisorRef[0].close()));
 		StartupSupervisor supervisor = new StartupSupervisor(server, runtime, LibJadxMain::startFatalWatchdog,
 				System::exit);
+		supervisorRef[0] = supervisor;
 		Thread shutdownHook = new Thread(supervisor::close, "libjadx-shutdown");
 		Runtime.getRuntime().addShutdownHook(shutdownHook);
 		try {
