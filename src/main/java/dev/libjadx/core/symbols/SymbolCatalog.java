@@ -122,6 +122,10 @@ public final class SymbolCatalog {
 			if (parts.length != 2) throw new IllegalArgumentException("Malformed cursor");
 			byte[] raw = Base64.getUrlDecoder().decode(parts[0]);
 			byte[] signature = Base64.getUrlDecoder().decode(parts[1]);
+			// The fields below are untrusted until the complete payload is authenticated.
+			if (signature.length != 32 || !MessageDigest.isEqual(signature, mac(raw))) {
+				throw new IllegalArgumentException("Invalid cursor signature");
+			}
 			String[] fields = new String(raw, StandardCharsets.UTF_8).split("\0", -1);
 			if (fields.length != 7 || !"1".equals(fields[0])) throw new IllegalArgumentException("Malformed cursor");
 			long revision = Long.parseLong(fields[2]);
@@ -130,7 +134,7 @@ public final class SymbolCatalog {
 			if (!fields[1].equals(sessionId) || revision != logicalRevision || epoch != publicationEpoch) {
 				throw new StaleCursorException();
 			}
-			if (!MessageDigest.isEqual(signature, mac(raw)) || !fields[4].equals(filterHash(query))
+			if (!fields[4].equals(filterHash(query))
 					|| occurrence < 0 || occurrence > 100_000) throw new IllegalArgumentException("Invalid cursor");
 			SymbolRef.validateClassDescriptor(fields[5]);
 			return new Cursor(fields[5], occurrence);

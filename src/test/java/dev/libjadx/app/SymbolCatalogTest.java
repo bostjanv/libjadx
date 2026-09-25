@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import dev.libjadx.core.symbols.ClassInfo;
@@ -41,12 +43,26 @@ class SymbolCatalogTest {
 		assertEquals(true, fourth.complete());
 		assertThrows(IllegalArgumentException.class, () -> catalog.page(new ClassQuery(1, first.nextCursor(),
 				"a", null, ClassQuery.NameDomain.original, true)));
+		for (int field : new int[] {1, 2, 3}) {
+			String tampered = tamper(first.nextCursor(), field);
+			assertThrows(IllegalArgumentException.class, () -> catalog.page(new ClassQuery(1, tampered,
+					null, null, ClassQuery.NameDomain.original, true)));
+		}
 		assertThrows(SymbolCatalog.StaleCursorException.class, () -> new SymbolCatalog(List.of(),
-				"new-session", 4, 7, SymbolCatalog.newCursorKey()).page(new ClassQuery(1, first.nextCursor(),
+				"new-session", 4, 7, key).page(new ClassQuery(1, first.nextCursor(),
 						null, null, ClassQuery.NameDomain.original, true)));
 		assertThrows(SymbolCatalog.StaleCursorException.class, () -> new SymbolCatalog(List.of(),
 				"session", 5, 7, key).page(new ClassQuery(1, first.nextCursor(),
 						null, null, ClassQuery.NameDomain.original, true)));
+	}
+
+	private static String tamper(String cursor, int field) {
+		String[] parts = cursor.split("\\.", -1);
+		String[] fields = new String(Base64.getUrlDecoder().decode(parts[0]), StandardCharsets.UTF_8).split("\0", -1);
+		fields[field] = field == 1 ? "other-session" : "999";
+		String payload = Base64.getUrlEncoder().withoutPadding().encodeToString(
+				String.join("\0", fields).getBytes(StandardCharsets.UTF_8));
+		return payload + "." + parts[1];
 	}
 
 	@Test

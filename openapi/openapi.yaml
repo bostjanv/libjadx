@@ -237,7 +237,10 @@ paths:
         exhausted, while sourceCoverage=UNVERIFIED means discarded or merged
         input definitions cannot be ruled out. Cursors bind session, logical
         revision, engine publication and normalized filters. Busy work returns
-        retryable PROJECT_BUSY; loading/reloading/shutdown returns 503.
+        retryable PROJECT_BUSY; loading/reloading/shutdown returns 503. The
+        signature is checked before cursor payload fields. A tampered cursor
+        returns 400 INVALID_REQUEST; an authentic cursor from an older
+        session/revision/publication returns 409 STALE_REVISION.
       parameters:
         - in: query
           name: pageSize

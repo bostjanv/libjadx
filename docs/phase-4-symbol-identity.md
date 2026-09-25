@@ -45,8 +45,16 @@ binds the session UUID, logical revision, engine publication epoch, normalized
 filters, and last raw ordering key. It is signed, bounded to 4096 characters,
 and expires on edits, mapping rebuilds, native reload, save publication, or
 server restart. A stale token returns 409 `STALE_REVISION`; malformed or
-filter-incompatible tokens return 400 `INVALID_REQUEST`. The in-memory catalog
-is limited to 100,000 entries and 8 million copied characters; exceeding it
+filter-incompatible tokens return 400 `INVALID_REQUEST`. The HMAC is verified
+before any payload field is used to classify the cursor; altered payloads
+with an old signature return 400. A private 32-byte signing key is generated
+once under `$XDG_STATE_HOME/libjadx/cursor-signing.key` (or
+`~/.local/state/libjadx/cursor-signing.key`) so an authentic cursor from a
+previous process can still be recognized as stale. This key is server
+operational state: it contains no project data and is never written to a
+`.jadx` file. On POSIX, the key must be owner-only; an unreadable or invalid
+existing key prevents listener startup rather than silently changing cursor
+semantics. The in-memory catalog is limited to 100,000 entries and 8 million copied characters; exceeding it
 returns 429 `RESOURCE_LIMIT` rather than allocating indefinitely.
 
 Both endpoints take a fail-fast conservative `CLASS_READ` lease. A conflicting

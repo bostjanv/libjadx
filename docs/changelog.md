@@ -9,6 +9,12 @@
   resolved, missing, ambiguous, and unavailable input provenance.
 - Class listings explicitly cover Jadx-visible declarations only. A two-JAR
   duplicate probe showed one surviving definition in pinned Jadx 1.5.6.
+- Cursor signatures are verified before stale-revision classification. The
+  private operational signing key persists outside the native project so
+  authentic cursors from a prior process still return `STALE_REVISION`.
+- The standalone distribution now includes the pinned Jadx input plugins;
+  installed-service tests load a real native project and verify cursors after
+  a process restart.
 
 
 ## 2026-09-25 — Phase 3.3 shutdown policies

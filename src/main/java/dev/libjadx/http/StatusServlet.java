@@ -43,7 +43,7 @@ public final class StatusServlet extends HttpServlet {
 	private final JobEventsHandler jobEvents;
 	private final ShutdownRequester shutdown;
 	private final AtomicBoolean shutdownRequestInProgress = new AtomicBoolean();
-	private final byte[] cursorKey = SymbolCatalog.newCursorKey();
+	private final byte[] cursorKey = CursorSigningKey.loadDefault();
 	private volatile SymbolCatalog symbolCatalog;
 
 	public StatusServlet(ProjectRuntime runtime, ObjectMapper json, ShutdownRequester shutdown) {

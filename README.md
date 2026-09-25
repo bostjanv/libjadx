@@ -109,6 +109,8 @@ Supported environment variables are `LIBJADX_PROJECT`, `LIBJADX_INPUT`, `LIBJADX
 
 LibJadx currently accepts only `127.0.0.1` as the bind address and provides no authentication. It is designed for trusted local use; do not expose the listener to untrusted networks or forward it through a public proxy. Paths are canonicalized, including symlinks, before allowed-root checks.
 
+Class pagination uses an owner-only cursor signing key in `$XDG_STATE_HOME/libjadx/cursor-signing.key` (default `~/.local/state/libjadx/cursor-signing.key`). This is operational state outside native `.jadx` project persistence. See [Phase 4.1 notes](docs/phase-4-symbol-identity.md) for cursor behavior.
+
 See [`docs/configuration.md`](docs/configuration.md) for startup, path handling, response-state, and shutdown details.
 
 ## Development and tests

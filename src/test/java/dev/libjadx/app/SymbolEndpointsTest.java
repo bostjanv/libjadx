@@ -15,6 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
@@ -200,6 +201,9 @@ class SymbolEndpointsTest {
 			assertError(get(server, "/api/v1/classes?pageSize=1&pageSize=2"), 400, "INVALID_REQUEST");
 			assertError(get(server, "/api/v1/classes?includeInner=maybe"), 400, "INVALID_REQUEST");
 			assertError(get(server, "/api/v1/classes?cursor=garbage"), 400, "INVALID_REQUEST");
+			String authentic = body(get(server, "/api/v1/classes?pageSize=1")).path("nextCursor").asText();
+			assertError(get(server, "/api/v1/classes?pageSize=1&cursor=" + encode(tamperRevision(authentic))),
+					400, "INVALID_REQUEST");
 			assertError(post(server, "/api/v1/symbols/resolve", "{\"ref\":{\"kind\":\"METHOD\","
 					+ "\"originalClassDescriptor\":\"Lprobe/SymbolFixture;\",\"originalName\":\"mix\","
 					+ "\"originalDescriptor\":\"(V)V\"}}"), 400, "INVALID_REQUEST");
@@ -252,6 +256,13 @@ class SymbolEndpointsTest {
 	}
 
 	private static JsonNode body(HttpResponse<String> response) throws Exception { return JSON.readTree(response.body()); }
+	private static String tamperRevision(String cursor) {
+		String[] parts = cursor.split("\\.", -1);
+		String[] fields = new String(Base64.getUrlDecoder().decode(parts[0]), StandardCharsets.UTF_8).split("\0", -1);
+		fields[2] = "999";
+		return Base64.getUrlEncoder().withoutPadding().encodeToString(
+				String.join("\0", fields).getBytes(StandardCharsets.UTF_8)) + "." + parts[1];
+	}
 	private static String encode(String value) { return URLEncoder.encode(value, StandardCharsets.UTF_8); }
 	private static URI uri(HttpApiServer server, String path) { return URI.create("http://127.0.0.1:" + server.localPort() + path); }
 	private static HttpResponse<String> get(HttpApiServer server, String path) throws Exception {

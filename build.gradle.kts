@@ -18,6 +18,20 @@ java {
 
 dependencies {
     implementation("io.github.skylot:jadx-core:1.5.6")
+    // jadx-core alone has no input loaders in the standalone distribution.
+    // Match the pinned CLI's headless runtime plugin set, without jadx-gui.
+    runtimeOnly("io.github.skylot:jadx-analysis:1.5.6")
+    runtimeOnly("io.github.skylot:jadx-dex-input:1.5.6")
+    runtimeOnly("io.github.skylot:jadx-java-input:1.5.6")
+    runtimeOnly("io.github.skylot:jadx-java-convert:1.5.6")
+    runtimeOnly("io.github.skylot:jadx-smali-input:1.5.6")
+    runtimeOnly("io.github.skylot:jadx-rename-mappings:1.5.6")
+    runtimeOnly("io.github.skylot:jadx-kotlin-metadata:1.5.6")
+    runtimeOnly("io.github.skylot:jadx-kotlin-source-debug-extension:1.5.6")
+    runtimeOnly("io.github.skylot:jadx-xapk-input:1.5.6")
+    runtimeOnly("io.github.skylot:jadx-aab-input:1.5.6")
+    runtimeOnly("io.github.skylot:jadx-apkm-input:1.5.6")
+    runtimeOnly("io.github.skylot:jadx-apks-input:1.5.6")
     implementation("com.google.code.gson:gson:2.14.0")
     implementation(platform("com.fasterxml.jackson:jackson-bom:2.21.7"))
     implementation("com.fasterxml.jackson.core:jackson-databind")
@@ -37,6 +51,8 @@ dependencyLocking {
 
 tasks.test {
     useJUnitPlatform()
+    dependsOn(tasks.installDist)
+    systemProperty("libjadx.distributionScript", layout.buildDirectory.file("install/libjadx/bin/libjadx").get().asFile.absolutePath)
 }
 
 application {
