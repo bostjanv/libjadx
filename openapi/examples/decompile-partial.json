@@ -1,0 +1,21 @@
+{
+  "outcome": "RESOLVED",
+  "queriedRef": {"kind":"CLASS","originalClassDescriptor":"Lprobe/SymbolFixture;","inputIdentity":null,"originalName":null,"originalDescriptor":null},
+  "sourceOwnerRef": {"kind":"CLASS","originalClassDescriptor":"Lprobe/SymbolFixture;","inputIdentity":null,"originalName":null,"originalDescriptor":null},
+  "candidates": [],
+  "sessionId": "00000000-0000-4000-8000-000000000000",
+  "logicalRevision": 0,
+  "sourceSnapshotId": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "effectiveSettings": {"decompilationMode":"AUTO","fingerprint":"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},
+  "status": "PARTIAL",
+  "representation": "JAVA",
+  "source": "package probe;\npublic class SymbolFixture {}\n",
+  "methodRangeAvailable": null,
+  "methodRange": null,
+  "methodSource": null,
+  "annotations": [],
+  "rawDebugLines": null,
+  "classErrorCount": null,
+  "diagnostics": ["Jadx error: simulated code generation failure", "Jadx does not certify complete declaration or reference coverage"],
+  "capabilities": {"source":"EXACT","declarationPositions":"UNKNOWN","referenceTargets":"UNKNOWN","methodRange":"UNAVAILABLE","rawDebugLines":"UNAVAILABLE","originalBytecodeOffsets":"UNAVAILABLE","classErrors":"UNKNOWN"}
+}

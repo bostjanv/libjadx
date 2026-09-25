@@ -15,6 +15,10 @@ final class SymbolFixtureSupport {
 		return compile(root, Path.of("tests/fixtures/symbols/SymbolFixture.java"), "symbols.jar");
 	}
 
+	static Path compileSourceFixture(Path root) throws IOException {
+		return compile(root, Path.of("tests/fixtures/source/SourceFixture.java"), "source.jar");
+	}
+
 	static Path duplicateJar(Path root, String folder, int value) throws IOException {
 		Path source = root.resolve(folder + "/src/duplicate/Clash.java");
 		Files.createDirectories(source.getParent());

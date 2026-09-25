@@ -309,6 +309,48 @@ paths:
         '429': { $ref: '#/components/responses/ApiErrorResponse' }
         '503': { $ref: '#/components/responses/ApiErrorResponse' }
         '500': { $ref: '#/components/responses/ApiErrorResponse' }
+  /decompile:
+    post:
+      tags: [Analysis]
+      operationId: decompileJava
+      summary: Get Jadx Java for one original class or method identity
+      description: >-
+        A method request returns its containing class source. A method excerpt
+        is present only when its original declaration and complete boundary
+        are independently verified. Source offsets index UTF-16 code units in
+        the exact returned Java string; ranges are half-open. Lines are 1-based
+        and columns are 0-based Unicode code points. Source coordinates are not
+        bytecode offsets or original debug-source line numbers. Strict mode
+        returns INCOMPLETE_ANALYSIS when requested coverage is unavailable.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DecompileRequest' }
+      responses:
+        '200':
+          description: Original-symbol outcome and bounded Java source, if available.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DecompileResult' }
+              examples:
+                class: { externalValue: ./examples/decompile-class.json }
+                method: { externalValue: ./examples/decompile-method.json }
+                methodFallback: { externalValue: ./examples/decompile-method-fallback.json }
+                partial:
+                  description: Simulated pinned-node error renderer; no naturally failing Jadx fixture is claimed.
+                  externalValue: ./examples/decompile-partial.json
+                ambiguous:
+                  description: Schema example for multiple Jadx-visible definitions; the owned two-JAR fixture collapses to one.
+                  externalValue: ./examples/decompile-ambiguous.json
+                unavailable: { externalValue: ./examples/decompile-unavailable.json }
+        '400': { $ref: '#/components/responses/ApiErrorResponse' }
+        '409': { $ref: '#/components/responses/ApiErrorResponse' }
+        '415': { $ref: '#/components/responses/ApiErrorResponse' }
+        '422': { $ref: '#/components/responses/ApiErrorResponse' }
+        '429': { $ref: '#/components/responses/ApiErrorResponse' }
+        '503': { $ref: '#/components/responses/ApiErrorResponse' }
+        '500': { $ref: '#/components/responses/ApiErrorResponse' }
   /jobs/{jobId}:
     parameters:
       - $ref: '#/components/parameters/JobId'
@@ -562,6 +604,113 @@ components:
           type: array
           maxItems: 16
           items: { type: string }
+    DecompileRequest:
+      type: object
+      additionalProperties: false
+      required: [ref]
+      properties:
+        ref: { $ref: '#/components/schemas/SymbolRef' }
+        representation: { type: string, default: JAVA }
+        decompilationMode: { type: string, enum: [AUTO, RESTRUCTURE, SIMPLE, FALLBACK] }
+        includeAnnotations: { type: boolean, default: true }
+        includeRawDebugLines: { type: boolean, default: false }
+        strict: { type: boolean, default: false }
+        expectedSessionId: { type: string, format: uuid }
+        expectedLogicalRevision: { type: integer, format: int64, minimum: 0 }
+        expectedSourceSnapshotId: { type: string, pattern: '^sha256:[0-9a-f]{64}$' }
+      description: >-
+        Only CLASS and METHOD refs are accepted. Revision preconditions must
+        occur together. Only JAVA is currently supported; other representations
+        return 422 UNSUPPORTED_CAPABILITY. Requests are limited to 64 KiB.
+    SourcePoint:
+      type: object
+      additionalProperties: false
+      required: [offsetUtf16, line, columnCodePoints]
+      properties:
+        offsetUtf16: { type: integer, minimum: 0, description: Zero-based UTF-16 code-unit boundary. }
+        line: { type: integer, minimum: 1 }
+        columnCodePoints: { type: integer, minimum: 0 }
+      description: >-
+        On CRLF, the CR boundary belongs to the preceding line and the LF
+        boundary belongs to the same line; the boundary after LF starts the next line.
+    SourceRange:
+      type: object
+      additionalProperties: false
+      required: [startOffsetUtf16, endOffsetUtf16, start, end, sourceSnapshotId]
+      properties:
+        startOffsetUtf16: { type: integer, minimum: 0 }
+        endOffsetUtf16: { type: integer, minimum: 0 }
+        start: { $ref: '#/components/schemas/SourcePoint' }
+        end: { $ref: '#/components/schemas/SourcePoint' }
+        sourceSnapshotId: { type: string, pattern: '^sha256:[0-9a-f]{64}$' }
+      description: Half-open range in the exact returned Java string.
+    SourceAnnotation:
+      type: object
+      additionalProperties: false
+      required: [kind, position, targetRef, precision, sourceSnapshotId]
+      properties:
+        kind: { type: string, enum: [DECLARATION, REFERENCE] }
+        position: { $ref: '#/components/schemas/SourcePoint' }
+        targetRef: { $ref: '#/components/schemas/SymbolRef' }
+        precision: { const: EXACT }
+        sourceSnapshotId: { type: string, pattern: '^sha256:[0-9a-f]{64}$' }
+      description: Validated token-start location, never a complete declaration range.
+    SourceCapabilities:
+      type: object
+      additionalProperties: false
+      required: [source, declarationPositions, referenceTargets, methodRange, rawDebugLines, originalBytecodeOffsets, classErrors]
+      properties:
+        source:
+          $ref: '#/components/schemas/SourceAvailability'
+          description: EXACT means the returned text is Jadx's exact generated string; status separately reports known partial output.
+        declarationPositions: { $ref: '#/components/schemas/SourceAvailability' }
+        referenceTargets: { $ref: '#/components/schemas/SourceAvailability' }
+        methodRange: { $ref: '#/components/schemas/SourceAvailability' }
+        rawDebugLines: { $ref: '#/components/schemas/SourceAvailability' }
+        originalBytecodeOffsets: { $ref: '#/components/schemas/SourceAvailability' }
+        classErrors: { $ref: '#/components/schemas/SourceAvailability' }
+    SourceAvailability:
+      type: string
+      enum: [EXACT, PARTIAL, UNKNOWN, UNAVAILABLE]
+    EffectiveSourceSettings:
+      type: object
+      additionalProperties: false
+      required: [decompilationMode, fingerprint]
+      properties:
+        decompilationMode: { type: string, enum: [AUTO, RESTRUCTURE, SIMPLE, FALLBACK] }
+        fingerprint: { type: string, pattern: '^sha256:[0-9a-f]{64}$' }
+    DecompileResult:
+      type: object
+      additionalProperties: false
+      required: [outcome, queriedRef, sourceOwnerRef, candidates, sessionId, logicalRevision, sourceSnapshotId,
+        effectiveSettings, status, representation, source, methodRangeAvailable, methodRange, methodSource,
+        annotations, rawDebugLines, classErrorCount, diagnostics, capabilities]
+      properties:
+        outcome: { type: string, enum: [RESOLVED, NOT_FOUND, AMBIGUOUS, PROVENANCE_UNAVAILABLE] }
+        queriedRef: { $ref: '#/components/schemas/SymbolRef' }
+        sourceOwnerRef:
+          oneOf:
+            - { $ref: '#/components/schemas/SymbolRef' }
+            - { type: 'null' }
+        candidates: { type: array, maxItems: 16, items: { $ref: '#/components/schemas/SymbolInfo' } }
+        sessionId: { type: string, format: uuid }
+        logicalRevision: { type: integer, format: int64, minimum: 0 }
+        sourceSnapshotId: { type: [string, 'null'], pattern: '^sha256:[0-9a-f]{64}$' }
+        effectiveSettings: { $ref: '#/components/schemas/EffectiveSourceSettings' }
+        status: { type: string, enum: [COMPLETE, PARTIAL, UNAVAILABLE] }
+        representation: { const: JAVA }
+        source: { type: [string, 'null'], description: Exact Jadx getCodeStr text, capped at 4 MiB UTF-8. }
+        methodRangeAvailable: { type: [boolean, 'null'] }
+        methodRange:
+          oneOf:
+            - { $ref: '#/components/schemas/SourceRange' }
+            - { type: 'null' }
+        methodSource: { type: [string, 'null'] }
+        annotations: { type: array, maxItems: 20000, items: { $ref: '#/components/schemas/SourceAnnotation' } }
+        rawDebugLines: { type: 'null', description: Original debug line mapping is unproved in Jadx 1.5.6. }
+        classErrorCount: { type: 'null', description: A class-local error count is not available from verified public APIs. }
+        diagnostics: { type: array, maxItems: 16, items: { type: string, maxLength: 512 } }
+        capabilities: { $ref: '#/components/schemas/SourceCapabilities' }
     ShutdownRequest:
       type: object
       additionalProperties: false

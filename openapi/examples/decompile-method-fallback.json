@@ -1,0 +1,21 @@
+{
+  "outcome": "RESOLVED",
+  "queriedRef": {"kind":"METHOD","originalClassDescriptor":"Lprobe/SymbolFixture;","inputIdentity":null,"originalName":"<clinit>","originalDescriptor":"()V"},
+  "sourceOwnerRef": {"kind":"CLASS","originalClassDescriptor":"Lprobe/SymbolFixture;","inputIdentity":null,"originalName":null,"originalDescriptor":null},
+  "candidates": [],
+  "sessionId": "00000000-0000-4000-8000-000000000000",
+  "logicalRevision": 0,
+  "sourceSnapshotId": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "effectiveSettings": {"decompilationMode":"AUTO","fingerprint":"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},
+  "status": "COMPLETE",
+  "representation": "JAVA",
+  "source": "package probe;\npublic class SymbolFixture {\n    static { int x = 1; }\n}\n",
+  "methodRangeAvailable": false,
+  "methodRange": null,
+  "methodSource": null,
+  "annotations": [],
+  "rawDebugLines": null,
+  "classErrorCount": null,
+  "diagnostics": ["Method declaration or complete boundary could not be verified in emitted class source", "Jadx does not certify complete declaration or reference coverage"],
+  "capabilities": {"source":"EXACT","declarationPositions":"UNKNOWN","referenceTargets":"UNKNOWN","methodRange":"UNAVAILABLE","rawDebugLines":"UNAVAILABLE","originalBytecodeOffsets":"UNAVAILABLE","classErrors":"UNKNOWN"}
+}

@@ -1,0 +1,21 @@
+{
+  "outcome": "AMBIGUOUS",
+  "queriedRef": {"kind":"CLASS","originalClassDescriptor":"Lprobe/Clash;","inputIdentity":null,"originalName":null,"originalDescriptor":null},
+  "sourceOwnerRef": null,
+  "candidates": [],
+  "sessionId": "00000000-0000-4000-8000-000000000000",
+  "logicalRevision": 0,
+  "sourceSnapshotId": null,
+  "effectiveSettings": {"decompilationMode":"AUTO","fingerprint":"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},
+  "status": "UNAVAILABLE",
+  "representation": "JAVA",
+  "source": null,
+  "methodRangeAvailable": null,
+  "methodRange": null,
+  "methodSource": null,
+  "annotations": [],
+  "rawDebugLines": null,
+  "classErrorCount": null,
+  "diagnostics": ["Multiple Jadx-visible definitions share this original class descriptor"],
+  "capabilities": {"source":"UNAVAILABLE","declarationPositions":"UNAVAILABLE","referenceTargets":"UNAVAILABLE","methodRange":"UNAVAILABLE","rawDebugLines":"UNAVAILABLE","originalBytecodeOffsets":"UNAVAILABLE","classErrors":"UNKNOWN"}
+}

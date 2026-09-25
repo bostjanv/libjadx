@@ -1,0 +1,21 @@
+{
+  "outcome": "RESOLVED",
+  "queriedRef": {"kind":"CLASS","originalClassDescriptor":"Lprobe/SymbolFixture;","inputIdentity":null,"originalName":null,"originalDescriptor":null},
+  "sourceOwnerRef": {"kind":"CLASS","originalClassDescriptor":"Lprobe/SymbolFixture;","inputIdentity":null,"originalName":null,"originalDescriptor":null},
+  "candidates": [],
+  "sessionId": "00000000-0000-4000-8000-000000000000",
+  "logicalRevision": 0,
+  "sourceSnapshotId": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "effectiveSettings": {"decompilationMode":"AUTO","fingerprint":"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},
+  "status": "COMPLETE",
+  "representation": "JAVA",
+  "source": "package probe;\npublic class SymbolFixture {}\n",
+  "methodRangeAvailable": null,
+  "methodRange": null,
+  "methodSource": null,
+  "annotations": [{"kind":"DECLARATION","position":{"offsetUtf16":28,"line":2,"columnCodePoints":13},"targetRef":{"kind":"CLASS","originalClassDescriptor":"Lprobe/SymbolFixture;","inputIdentity":null,"originalName":null,"originalDescriptor":null},"precision":"EXACT","sourceSnapshotId":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}],
+  "rawDebugLines": null,
+  "classErrorCount": null,
+  "diagnostics": ["Per-input origin and discarded definitions are not verified", "Jadx does not certify complete declaration or reference coverage"],
+  "capabilities": {"source":"EXACT","declarationPositions":"PARTIAL","referenceTargets":"PARTIAL","methodRange":"UNAVAILABLE","rawDebugLines":"UNAVAILABLE","originalBytecodeOffsets":"UNAVAILABLE","classErrors":"UNKNOWN"}
+}
