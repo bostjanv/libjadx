@@ -55,7 +55,9 @@ class ShutdownLifecycleTest {
 			assertThrows(ServiceShuttingDownException.class, () -> runtime.submitJob(queued));
 			assertThrows(ServiceShuttingDownException.class, () -> runtime.jobRegistry().submit(queued));
 			releaseSave.countDown();
-			assertEquals(500, pending.get(10, TimeUnit.SECONDS).statusCode());
+			HttpResponse<String> failed = pending.get(10, TimeUnit.SECONDS);
+			assertEquals(500, failed.statusCode());
+			assertEquals("INTERNAL_ERROR", JSON.readTree(failed.body()).path("error").path("code").asText());
 			assertEquals("READY", runtime.status().state());
 			assertDoesNotThrow(() -> runtime.withPrimaryClassRead("admitted", jadx -> null));
 			var reopened = runtime.jobRegistry().submit(queued);

@@ -34,7 +34,10 @@ are set only after policy success. Accepted requests hand off to the ordinary
 supervisor teardown after the HTTP response completes.
 
 Raw input must first establish a native `.jadx` target through
-`/project/save`; shutdown has no target-path field and never invents one.
+`/project/save`; shutdown has no target-path field and never invents one. A
+`save` request without that target returns 409 `INVALID_REQUEST`. Native save
+I/O failure returns 500 `INTERNAL_ERROR` and reopens admissions when safely
+possible.
 An external project or mappings change returns `EXTERNAL_MODIFICATION_CONFLICT`
 and keeps pending edits in memory. The caller can use pending-edit export and
 explicit reload. The native writer has no extra backup or transactional layer;

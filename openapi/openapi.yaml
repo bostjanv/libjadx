@@ -89,7 +89,18 @@ paths:
           description: >-
             PROJECT_BUSY for active work or dirty refuse_if_dirty; active work
             includes bounded ShutdownBusyDetails in error.details. A native
-            save conflict returns EXTERNAL_MODIFICATION_CONFLICT.
+            save conflict returns EXTERNAL_MODIFICATION_CONFLICT. For raw-input
+            startup without an established native .jadx target, policy=save
+            returns INVALID_REQUEST; first call /project/save with a targetPath.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          description: >-
+            INTERNAL_ERROR if shutdown-save native I/O or runtime processing
+            fails. When safely possible, the service remains READY with
+            admissions reopened and pending edits retained.
           content:
             application/json:
               schema:
