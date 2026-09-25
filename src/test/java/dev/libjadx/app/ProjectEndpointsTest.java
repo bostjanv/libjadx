@@ -82,8 +82,10 @@ class ProjectEndpointsTest {
 			assertTrue(body(get(server, "/api/v1/project")).path("dirty").asBoolean());
 			assertTrue(body(post(server, "/api/v1/project/pending-edits/export", "{}"))
 					.path("codeData").toString().contains("second pending edit"));
-			assertEquals(409, post(server, "/api/v1/project/reload", "{\"discardUnsaved\":false,"
-					+ "\"expectedSessionId\":\"" + session + "\",\"expectedLogicalRevision\":2}").statusCode());
+			HttpResponse<String> refusedDiscard = post(server, "/api/v1/project/reload", "{\"discardUnsaved\":false,"
+					+ "\"expectedSessionId\":\"" + session + "\",\"expectedLogicalRevision\":2}");
+			assertEquals(409, refusedDiscard.statusCode());
+			assertFalse(body(refusedDiscard).path("error").path("retryable").asBoolean());
 			assertEquals(200, post(server, "/api/v1/project/reload", "{\"discardUnsaved\":true,"
 					+ "\"expectedSessionId\":\"" + session + "\",\"expectedLogicalRevision\":2}").statusCode());
 			assertFalse(body(get(server, "/api/v1/project")).path("dirty").asBoolean());

@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import dev.libjadx.core.EffectiveAnalysisConfig;
 import dev.libjadx.project.NativeProjectDocument;
+import dev.libjadx.scheduler.ProjectBusyException;
 import jadx.api.data.impl.JadxCodeComment;
 import jadx.api.data.impl.JadxCodeRename;
 import jadx.api.data.impl.JadxNodeRef;
@@ -59,6 +60,8 @@ class TemporaryAnalysisTest {
 				} catch (Exception failure) { throw new RuntimeException(failure); }
 			});
 			assertTrue(admitted.await(20, TimeUnit.SECONDS));
+			assertThrows(ProjectBusyException.class, () -> runtime.withTemporaryAnalysis(
+					new EffectiveAnalysisConfig("SIMPLE"), jadx -> "second"));
 			var changed = runtime.projectSnapshot();
 			var latest = NativeProjectDocument.open(path).getCodeData();
 			latest.setRenames(List.of(new JadxCodeRename(JadxNodeRef.forCls("probe.Sample"), "NewAlias")));
