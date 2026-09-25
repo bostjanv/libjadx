@@ -1,0 +1,1 @@
+{"error":{"code":"PROJECT_BUSY","message":"Wait for or cancel active work before shutting down","retryable":true,"requestId":"00000000-0000-0000-0000-000000000001","details":{"activeOperationCount":1,"operations":[{"id":"00000000-0000-0000-0000-000000000002","category":"CLASS_READ","key":"probe.Sample"}],"activeJobCount":0,"jobs":[]}}}

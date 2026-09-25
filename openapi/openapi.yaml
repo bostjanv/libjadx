@@ -55,6 +55,47 @@ paths:
                 $ref: '#/components/schemas/Capabilities'
         'default':
           $ref: '#/components/responses/ApiErrorResponse'
+  /shutdown:
+    post:
+      tags: [Service]
+      operationId: shutdownService
+      summary: Request graceful shutdown of this fixed-project process
+      description: >-
+        Omitted policy means discard. Active operations and nonterminal jobs
+        return retryable PROJECT_BUSY without cancellation. refuse_if_dirty
+        rejects unsaved edits without changing admission. save uses the native
+        project path already established by startup or an explicit save and
+        checks external changes before shutdown. The acknowledgment is sent
+        before listener teardown; SIGKILL cannot guarantee persistence.
+        A clearly cross-origin Origin returns INPUT_SECURITY_REJECTION.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShutdownRequest'
+      responses:
+        '202':
+          description: Shutdown accepted; listener teardown follows the complete response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShutdownAccepted'
+        '400':
+          $ref: '#/components/responses/ApiErrorResponse'
+        '403':
+          $ref: '#/components/responses/ApiErrorResponse'
+        '409':
+          description: >-
+            PROJECT_BUSY for active work or dirty refuse_if_dirty; active work
+            includes bounded ShutdownBusyDetails in error.details. A native
+            save conflict returns EXTERNAL_MODIFICATION_CONFLICT.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          $ref: '#/components/responses/ApiErrorResponse'
   /project:
     get:
       tags: [Project]
@@ -310,6 +351,65 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorEnvelope'
   schemas:
+    ShutdownRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        policy:
+          type: string
+          enum: [discard, save, refuse_if_dirty]
+          default: discard
+    ShutdownAccepted:
+      type: object
+      required: [state, policy]
+      additionalProperties: false
+      properties:
+        state:
+          const: SHUTTING_DOWN
+        policy:
+          type: string
+          enum: [discard, save, refuse_if_dirty]
+    ShutdownBusyDetails:
+      type: object
+      required: [activeOperationCount, operations, activeJobCount, jobs]
+      properties:
+        activeOperationCount:
+          type: integer
+          minimum: 0
+        operations:
+          type: array
+          maxItems: 16
+          items:
+            type: object
+            required: [id, category, key]
+            properties:
+              id:
+                type: string
+                format: uuid
+              category:
+                type: string
+              key:
+                type: string
+                maxLength: 128
+        activeJobCount:
+          type: integer
+          minimum: 0
+        jobs:
+          type: array
+          maxItems: 16
+          items:
+            type: object
+            required: [jobId, state, type]
+            properties:
+              jobId:
+                type: string
+                format: uuid
+              state:
+                type: string
+                enum: [QUEUED, RUNNING, CANCELLING]
+              type:
+                type: string
+                maxLength: 128
     Liveness:
       type: object
       required: [status]

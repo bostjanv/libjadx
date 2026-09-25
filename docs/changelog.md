@@ -1,5 +1,12 @@
 # Experimental API changelog
 
+## 2026-09-25 — Phase 3.3 shutdown policies
+
+- Added `POST /api/v1/shutdown` with `discard`, `save`, and `refuse_if_dirty`.
+  Active jobs or operations reject the request without implicit cancellation.
+  Native save conflicts and failures keep the service available; accepted
+  responses complete before the listener stops.
+
 ## 2026-09-25 — Phase 3.2 process-local jobs
 
 - Added `GET /api/v1/jobs/{jobId}`, `POST /api/v1/jobs/{jobId}/cancel`, and

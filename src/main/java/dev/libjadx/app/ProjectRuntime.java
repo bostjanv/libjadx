@@ -59,6 +59,7 @@ public final class ProjectRuntime implements AutoCloseable {
 	private boolean initializationStarted;
 	private InitializationTask initializationTask;
 	private int cleanupInProgress;
+	private boolean shutdownReserved;
 
 	public ProjectRuntime(Path projectPath, List<Path> inputPaths) {
 		this(projectPath, inputPaths, defaultRoots(projectPath, inputPaths));
@@ -381,6 +382,7 @@ public final class ProjectRuntime implements AutoCloseable {
 	}
 
 	private void requireReady() {
+		if (shutdownReserved) throw new ServiceShuttingDownException();
 		if (lifecycle != Lifecycle.READY || repository == null) throw unavailable();
 	}
 
@@ -414,8 +416,100 @@ public final class ProjectRuntime implements AutoCloseable {
 
 	/** Internal submission seam for future typed analysis operations and deterministic tests. */
 	JobSnapshot submitJob(JobSpec<?> spec) {
-		assertReady();
-		return jobs.submit(spec);
+		synchronized (lifecycleLock) {
+			requireReady();
+			return jobs.submit(spec);
+		}
+	}
+
+	/** Reversible reservation blocks all runtime admissions while native save runs. */
+	public void requestShutdown(ShutdownPolicy policy) throws IOException {
+		Objects.requireNonNull(policy, "policy");
+		OperationCoordinator.Lease saveLease = null;
+		boolean runtimeReserved = false;
+		boolean registryReserved = false;
+		boolean accepted = false;
+		try {
+			synchronized (lifecycleLock) {
+				requireReady();
+				shutdownReserved = true;
+				runtimeReserved = true;
+				jobs.reserveSubmissions();
+				registryReserved = true;
+				var activeJobs = jobs.activeJobs(16);
+				int activeOperations = coordinator.inFlightCount();
+				if (activeOperations != 0 || activeJobs.count() != 0) {
+					throw new ShutdownRejectedException(409, "PROJECT_BUSY",
+							"Wait for or cancel active work before shutting down", true,
+							new ShutdownBusyDetails(activeOperations, coordinator.activeOperations(16), activeJobs.count(), activeJobs.jobs()));
+				}
+				if (policy == ShutdownPolicy.SAVE) {
+					saveLease = coordinator.tryAdmit(OperationRequest.projectExclusive("shutdown-save"),
+							publishedAdmission, this::operationCompleted);
+				}
+			}
+			ProjectSnapshot snapshot = repository.snapshot();
+			if (policy == ShutdownPolicy.REFUSE_IF_DIRTY && snapshot.dirty()) {
+				throw new ShutdownRejectedException(409, "PROJECT_BUSY", "Unsaved native edits exist; save or choose discard", false, null);
+			}
+			if (policy == ShutdownPolicy.SAVE) {
+				if (snapshot.projectPath() == null) {
+					throw new ShutdownRejectedException(409, "INVALID_REQUEST",
+							"Save the raw input through /api/v1/project/save with a targetPath first", false, null);
+				}
+				ProjectSnapshot saved = saveAction.save(repository, null, null, null).project();
+				synchronized (lifecycleLock) {
+					publicationEpoch++;
+					publishedAdmission = admission(saved);
+				}
+			}
+			if (saveLease != null) {
+				saveLease.close();
+				saveLease = null;
+			}
+			synchronized (lifecycleLock) {
+				if (lifecycle != Lifecycle.READY) throw unavailable();
+				lifecycle = Lifecycle.SHUTTING_DOWN;
+				status = status("SHUTTING_DOWN", "SHUTTING_DOWN", status.progress(), null);
+				coordinator.stopAdmissions();
+				jobs.stopSubmissions();
+				shutdownReserved = false;
+				jobs.releaseSubmissionReservation();
+				accepted = true;
+			}
+		} finally {
+			if (saveLease != null) saveLease.close();
+			if (!accepted && runtimeReserved) {
+				synchronized (lifecycleLock) {
+					shutdownReserved = false;
+					if (registryReserved) jobs.releaseSubmissionReservation();
+				}
+				jobs.signal();
+			}
+		}
+	}
+
+	public record ShutdownBusyDetails(int activeOperationCount,
+			List<OperationCoordinator.ActiveOperation> operations, int activeJobCount,
+			List<JobRegistry.ActiveJob> jobs) { }
+
+	public static final class ShutdownRejectedException extends IllegalStateException {
+		private final int statusCode;
+		private final String code;
+		private final boolean retryable;
+		private final Object details;
+		private ShutdownRejectedException(int statusCode, String code, String message,
+				boolean retryable, Object details) {
+			super(message);
+			this.statusCode = statusCode;
+			this.code = code;
+			this.retryable = retryable;
+			this.details = details;
+		}
+		public int statusCode() { return statusCode; }
+		public String code() { return code; }
+		public boolean retryable() { return retryable; }
+		public Object details() { return details; }
 	}
 
 	/** Read-only HTTP access to polling, cancellation and SSE; no HTTP submission route exists. */
@@ -459,7 +553,7 @@ public final class ProjectRuntime implements AutoCloseable {
 
 	public boolean isReady() {
 		synchronized (lifecycleLock) {
-			return lifecycle == Lifecycle.READY;
+			return lifecycle == Lifecycle.READY && !shutdownReserved;
 		}
 	}
 

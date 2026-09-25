@@ -7,11 +7,17 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 
 import dev.libjadx.app.ProjectRuntime;
+import dev.libjadx.app.ShutdownRequester;
+import dev.libjadx.app.ShutdownService;
 
 public final class HttpApiServer implements AutoCloseable {
 	private final Server server;
 
 	public HttpApiServer(String host, int port, ProjectRuntime runtime) {
+		this(host, port, runtime, null);
+	}
+
+	public HttpApiServer(String host, int port, ProjectRuntime runtime, ShutdownRequester requester) {
 		this.server = new Server();
 		this.server.setStopTimeout(5_000);
 		ServerConnector connector = new ServerConnector(server);
@@ -20,7 +26,12 @@ public final class HttpApiServer implements AutoCloseable {
 		server.addConnector(connector);
 		ServletContextHandler context = new ServletContextHandler(ServletContextHandler.NO_SESSIONS);
 		context.setContextPath("/");
-		ServletHolder api = new ServletHolder(new StatusServlet(runtime, JsonMapper.builder().build()));
+		ShutdownRequester shutdown = requester == null ? new ShutdownService(runtime, () -> {
+			try { close(); }
+			catch (Exception failure) { System.err.println("libjadx: listener shutdown failed"); }
+			finally { runtime.close(); }
+		}) : requester;
+		ServletHolder api = new ServletHolder(new StatusServlet(runtime, JsonMapper.builder().build(), shutdown));
 		api.setAsyncSupported(true);
 		context.addServlet(api, "/api/v1/*");
 		server.setHandler(context);

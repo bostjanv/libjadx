@@ -2,6 +2,7 @@ package dev.libjadx.scheduler;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -65,6 +66,19 @@ public final class OperationCoordinator {
 			return active.size();
 		}
 	}
+
+	/** Bounded, immutable metadata for a shutdown conflict response. */
+	public List<ActiveOperation> activeOperations(int limit) {
+		synchronized (monitor) {
+			return active.values().stream().limit(limit)
+					.map(lease -> new ActiveOperation(lease.id, lease.request.category(), bounded(lease.request.key())))
+					.toList();
+		}
+	}
+
+	private static String bounded(String value) { return value.length() <= 128 ? value : value.substring(0, 128); }
+
+	public record ActiveOperation(UUID id, OperationRequest.Category category, String key) { }
 
 	/** Temporary work does not use the primary engine after its snapshot gate is released. */
 	public boolean primaryEngineInUse() {

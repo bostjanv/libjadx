@@ -35,6 +35,13 @@ class OpenApiDocumentTest {
 				.path("responses").has("409"));
 		assertTrue(yaml.path("paths").path("/jobs/{jobId}/events").path("get")
 				.path("responses").has("429"));
+		var shutdown = yaml.path("paths").path("/shutdown").path("post");
+		assertTrue(shutdown.path("requestBody").path("content").path("application/json")
+				.path("schema").path("$ref").asText().endsWith("/ShutdownRequest"));
+		var policy = yaml.path("components").path("schemas").path("ShutdownRequest").path("properties").path("policy");
+		assertEquals("discard", policy.path("default").asText());
+		assertEquals("[\"discard\",\"save\",\"refuse_if_dirty\"]", policy.path("enum").toString());
+		for (String code : List.of("202", "400", "403", "409", "503")) assertTrue(shutdown.path("responses").has(code));
 		assertTrue(yaml.path("components").path("schemas").path("JobEvent").path("properties")
 				.path("type").path("enum").toString().contains("job.cancel_requested"));
 		assertTrue(yaml.path("components").path("schemas").path("RevisionSet")
@@ -43,7 +50,9 @@ class OpenApiDocumentTest {
 		for (String file : List.of("project.json", "save-request.json", "reload-request.json", "settings-update-request.json",
 				"external-conflict.json", "project-busy.json", "job-queued.json",
 				"job-running-unknown-total.json", "job-cancelling.json", "job-succeeded.json",
-				"job-failed.json", "job-resource-limit.json")) {
+				"job-failed.json", "job-resource-limit.json", "shutdown-discard-request.json",
+				"shutdown-save-request.json", "shutdown-accepted.json", "shutdown-busy.json",
+				"shutdown-dirty-refused.json")) {
 			assertTrue(json.readTree(Files.readString(Path.of("openapi/examples", file))).isObject());
 		}
 		assertTrue(Files.readString(Path.of("openapi/examples/job-events.sse")).contains("event: job.completed"));
