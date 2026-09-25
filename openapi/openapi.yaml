@@ -171,8 +171,129 @@ paths:
                 $ref: '#/components/schemas/PendingEdits'
         'default':
           $ref: '#/components/responses/ApiErrorResponse'
+  /jobs/{jobId}:
+    parameters:
+      - $ref: '#/components/parameters/JobId'
+    get:
+      tags: [Service]
+      operationId: getJob
+      summary: Poll a retained process-local job
+      description: Unknown, evicted, and expired IDs return 404; malformed UUIDs return 400. Polling never requires an SSE connection.
+      responses:
+        '200':
+          description: Immutable current job snapshot.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '400':
+          $ref: '#/components/responses/ApiErrorResponse'
+        '404':
+          $ref: '#/components/responses/ApiErrorResponse'
+  /jobs/{jobId}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/JobId'
+    post:
+      tags: [Service]
+      operationId: cancelJob
+      summary: Request cooperative cancellation
+      description: >-
+        Idempotent. A queued job can become CANCELLED immediately. A running job
+        remains CANCELLING until its work and owned cleanup actually cease. A
+        clearly cross-origin request returns 403 INPUT_SECURITY_REJECTION.
+      responses:
+        '200':
+          description: Current job snapshot after the request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '400':
+          $ref: '#/components/responses/ApiErrorResponse'
+        '403':
+          $ref: '#/components/responses/ApiErrorResponse'
+        '404':
+          $ref: '#/components/responses/ApiErrorResponse'
+  /jobs/{jobId}/events:
+    parameters:
+      - $ref: '#/components/parameters/JobId'
+    get:
+      tags: [Service]
+      operationId: getJobEvents
+      summary: Replay and follow bounded job events
+      description: >-
+        text/event-stream with numeric per-job IDs starting at 1. Events are
+        job.queued, job.started, job.progress, job.cancel_requested,
+        job.completed, job.failed, and job.cancelled. Omit Last-Event-ID to
+        replay all retained events. A header older than retained history returns
+        409 EVENT_HISTORY_EXPIRED before streaming; a future or malformed ID
+        returns 400 INVALID_REQUEST. Clients may poll and reconnect without the
+        stale ID. Comment heartbeats have no ID. Overflow disconnects the slow
+        subscriber without cancelling the job. Terminal events close the stream.
+        Unknown, evicted, or expired jobs return 404.
+      parameters:
+        - in: header
+          name: Last-Event-ID
+          required: false
+          schema:
+            type: string
+            pattern: '^[0-9]+$'
+      responses:
+        '200':
+          description: SSE frames; each data line is a bounded JobEvent JSON object.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/ApiErrorResponse'
+        '404':
+          $ref: '#/components/responses/ApiErrorResponse'
+        '409':
+          $ref: '#/components/responses/ApiErrorResponse'
+        '429':
+          $ref: '#/components/responses/JobResourceLimit'
 components:
+  parameters:
+    JobId:
+      name: jobId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
   responses:
+    AcceptedJob:
+      description: HTTP 202 contract for future asynchronous job-producing operations.
+      headers:
+        Location:
+          required: true
+          schema:
+            type: string
+            pattern: '^/api/v1/jobs/'
+        X-Request-Id:
+          schema:
+            type: string
+        Cache-Control:
+          schema:
+            const: no-store
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Job'
+    JobResourceLimit:
+      description: HTTP 429 RESOURCE_LIMIT when the process-local queue or retention budget is exhausted.
+      headers:
+        X-Request-Id:
+          schema:
+            type: string
+        Cache-Control:
+          schema:
+            const: no-store
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
     ApiErrorResponse:
       description: Structured API error.
       headers:
@@ -271,6 +392,7 @@ components:
             - PROJECT_LOAD_FAILED
             - METHOD_NOT_ALLOWED
             - PROJECT_BUSY
+            - EVENT_HISTORY_EXPIRED
             - INVALID_REQUEST
             - INVALID_ENTITY_ID
             - NOT_FOUND
@@ -356,25 +478,98 @@ components:
             type: string
     Job:
       type: object
-      required: [jobId, state, createdAt]
+      required: [jobId, type, state, createdAt, startedAt, completedAt, deadlineAt, progress, sessionId, logicalRevision, sourceSnapshotId, diagnostics, result, completeness, error, cancellationReason]
       properties:
         jobId:
           type: string
+          format: uuid
+        type:
+          type: string
+          description: Internal typed operation name; no generic HTTP submission route exists.
         state:
           type: string
           enum: [QUEUED, RUNNING, CANCELLING, SUCCEEDED, FAILED, CANCELLED]
         createdAt:
           type: string
           format: date-time
+        startedAt:
+          type: [string, 'null']
+          format: date-time
+        completedAt:
+          type: [string, 'null']
+          format: date-time
+        deadlineAt:
+          type: [string, 'null']
+          format: date-time
+        sessionId:
+          type: string
+        logicalRevision:
+          type: integer
+          format: int64
+          minimum: 0
+        sourceSnapshotId:
+          type: string
         progress:
-          $ref: '#/components/schemas/Progress'
+          $ref: '#/components/schemas/JobProgress'
         result:
           type: [object, 'null']
           additionalProperties: true
+          description: Bounded inline JSON result, present only after successful execution.
+        completeness:
+          type: [string, 'null']
+          enum: [COMPLETE, PARTIAL, null]
+          description: Analysis result completeness, independent of execution state.
         error:
           oneOf:
             - $ref: '#/components/schemas/ApiError'
             - type: 'null'
+        diagnostics:
+          type: array
+          items:
+            type: string
+        cancellationReason:
+          type: [string, 'null']
+          enum: [USER, DEADLINE, SHUTDOWN, null]
+    JobProgress:
+      type: object
+      required: [completed, total, stage]
+      properties:
+        completed:
+          type: integer
+          format: int64
+          minimum: 0
+        total:
+          type: [integer, 'null']
+          format: int64
+          minimum: 0
+          description: Null when the amount of work is unknown.
+        stage:
+          type: string
+    JobEvent:
+      type: object
+      required: [jobId, sequence, type, at, state, progress, resultUrl]
+      properties:
+        jobId:
+          type: string
+          format: uuid
+        sequence:
+          type: integer
+          format: int64
+          minimum: 1
+        type:
+          type: string
+          enum: [job.queued, job.started, job.progress, job.cancel_requested, job.completed, job.failed, job.cancelled]
+        at:
+          type: string
+          format: date-time
+        state:
+          type: string
+          enum: [QUEUED, RUNNING, CANCELLING, SUCCEEDED, FAILED, CANCELLED]
+        progress:
+          $ref: '#/components/schemas/JobProgress'
+        resultUrl:
+          type: string
+          description: Poll this URL for the authoritative terminal result or error.
     FixedProject:
       type: object
       required: [inputs, dirty, revisions]

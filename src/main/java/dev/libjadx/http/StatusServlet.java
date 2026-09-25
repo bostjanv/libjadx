@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.NoSuchElementException;
+import java.net.URI;
 import java.nio.file.Path;
 import java.nio.charset.StandardCharsets;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -12,6 +14,7 @@ import dev.libjadx.core.ProjectSnapshot;
 import dev.libjadx.project.NativeProjectRepository;
 import dev.libjadx.scheduler.ProjectBusyException;
 import dev.libjadx.scheduler.ServiceShuttingDownException;
+import dev.libjadx.scheduler.JobRegistry;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -22,14 +25,16 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-/** Initial read-only API surface; the OpenAPI document is the public contract. */
+/** Fixed-project API surface; the OpenAPI document is the public contract. */
 public final class StatusServlet extends HttpServlet {
 	private final ProjectRuntime runtime;
 	private final ObjectMapper json;
+	private final JobEventsHandler jobEvents;
 
 	public StatusServlet(ProjectRuntime runtime, ObjectMapper json) {
 		this.runtime = runtime;
 		this.json = json;
+		this.jobEvents = new JobEventsHandler(runtime.jobRegistry());
 	}
 
 	@Override
@@ -67,6 +72,23 @@ public final class StatusServlet extends HttpServlet {
 		}
 		if ("/api/v1/project/settings".equals(path)) {
 			write(response, 200, settingsResponse(runtime.settingsSnapshot()));
+			return;
+		}
+		if (path.matches("/api/v1/jobs/[^/]+") || path.matches("/api/v1/jobs/[^/]+/events")) {
+			try {
+				String raw = path.substring("/api/v1/jobs/".length()).split("/", 2)[0];
+				UUID id = jobId(raw);
+				if (path.endsWith("/events")) jobEvents.start(request, response, id);
+				else write(response, 200, JobHttpResponses.map(runtime.jobRegistry().snapshot(id), json));
+			} catch (JobRegistry.EventHistoryExpiredException expired) {
+				writeError(response, 409, "EVENT_HISTORY_EXPIRED", expired.getMessage());
+			} catch (JobRegistry.ResourceLimitException limit) {
+				writeError(response, 429, "RESOURCE_LIMIT", limit.getMessage(), true);
+			} catch (NoSuchElementException missing) {
+				writeError(response, 404, "NOT_FOUND", "Job not found or expired");
+			} catch (IllegalArgumentException invalid) {
+				writeError(response, 400, "INVALID_REQUEST", invalid.getMessage());
+			}
 			return;
 		}
 		writeUnavailableOrUnimplemented(request, response);
@@ -123,6 +145,21 @@ public final class StatusServlet extends HttpServlet {
 	@Override
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
 		String path = request.getRequestURI();
+		if (path.matches("/api/v1/jobs/[^/]+/cancel")) {
+			try {
+				if (!sameOrigin(request)) {
+					writeError(response, 403, "INPUT_SECURITY_REJECTION", "Cross-origin job cancellation is not allowed");
+					return;
+				}
+				String raw = path.substring("/api/v1/jobs/".length(), path.length() - "/cancel".length());
+				write(response, 200, JobHttpResponses.map(runtime.jobRegistry().cancel(jobId(raw)), json));
+			} catch (NoSuchElementException missing) {
+				writeError(response, 404, "NOT_FOUND", "Job not found or expired");
+			} catch (IllegalArgumentException invalid) {
+				writeError(response, 400, "INVALID_REQUEST", invalid.getMessage());
+			}
+			return;
+		}
 		if ("/api/v1/project/save".equals(path) || "/api/v1/project/reload".equals(path)
 				|| "/api/v1/project/pending-edits/export".equals(path)) {
 			try {
@@ -200,6 +237,26 @@ public final class StatusServlet extends HttpServlet {
 
 	private static boolean isJsonContentType(String contentType) {
 		return contentType != null && "application/json".equalsIgnoreCase(contentType.split(";", 2)[0].trim());
+	}
+
+	private static UUID jobId(String raw) {
+		UUID parsed = UUID.fromString(raw);
+		if (!parsed.toString().equalsIgnoreCase(raw)) throw new IllegalArgumentException("Job ID must be a UUID");
+		return parsed;
+	}
+
+	private static boolean sameOrigin(HttpServletRequest request) {
+		String origin = request.getHeader("Origin");
+		if (origin == null) return true;
+		try {
+			URI parsed = URI.create(origin);
+			return parsed.getScheme().equalsIgnoreCase(request.getScheme())
+					&& parsed.getRawAuthority().equalsIgnoreCase(request.getHeader("Host"))
+					&& (parsed.getRawPath() == null || parsed.getRawPath().isEmpty())
+					&& parsed.getRawQuery() == null;
+		} catch (RuntimeException invalid) {
+			return false;
+		}
 	}
 
 	private static FixedProjectResponse projectResponse(ProjectSnapshot snapshot) {
