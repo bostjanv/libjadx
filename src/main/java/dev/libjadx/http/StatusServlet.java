@@ -10,6 +10,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import dev.libjadx.core.ProjectSnapshot;
 import dev.libjadx.project.NativeProjectRepository;
+import dev.libjadx.scheduler.ProjectBusyException;
+import dev.libjadx.scheduler.ServiceShuttingDownException;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -76,7 +78,7 @@ public final class StatusServlet extends HttpServlet {
 			return;
 		}
 		try {
-			runtime.projectSnapshot();
+			runtime.assertReady();
 			if (!isJsonContentType(request.getContentType())) {
 				writeError(response, 415, "INVALID_REQUEST", "Content-Type must be application/json");
 				return;
@@ -99,6 +101,10 @@ public final class StatusServlet extends HttpServlet {
 			write(response, 200, settingsResponse(runtime.settingsSnapshot()));
 		} catch (ProjectRuntime.ProjectNotReadyException notReady) {
 			writeLifecycleError(response, notReady.status());
+		} catch (ServiceShuttingDownException shuttingDown) {
+			writeError(response, 503, "SERVICE_SHUTTING_DOWN", shuttingDown.getMessage());
+		} catch (ProjectBusyException busy) {
+			writeError(response, 409, "PROJECT_BUSY", busy.getMessage());
 		} catch (NativeProjectRepository.StaleRevisionException stale) {
 			writeError(response, 409, "STALE_REVISION", stale.getMessage());
 		} catch (NativeProjectRepository.ExternalModificationException conflict) {
@@ -120,7 +126,7 @@ public final class StatusServlet extends HttpServlet {
 		if ("/api/v1/project/save".equals(path) || "/api/v1/project/reload".equals(path)
 				|| "/api/v1/project/pending-edits/export".equals(path)) {
 			try {
-				runtime.projectSnapshot();
+				runtime.assertReady();
 				if ("/api/v1/project/pending-edits/export".equals(path)) {
 					write(response, 200, json.readValue(runtime.pendingEdits().toString(), Object.class));
 					return;
@@ -157,12 +163,16 @@ public final class StatusServlet extends HttpServlet {
 				}
 			} catch (ProjectRuntime.ProjectNotReadyException notReady) {
 				writeLifecycleError(response, notReady.status());
+			} catch (ServiceShuttingDownException shuttingDown) {
+				writeError(response, 503, "SERVICE_SHUTTING_DOWN", shuttingDown.getMessage());
+			} catch (ProjectBusyException busy) {
+				writeError(response, 409, "PROJECT_BUSY", busy.getMessage());
 			} catch (NativeProjectRepository.ExternalModificationException conflict) {
 				writeError(response, 409, "EXTERNAL_MODIFICATION_CONFLICT", conflict.getMessage());
 			} catch (NativeProjectRepository.StaleRevisionException stale) {
 				writeError(response, 409, "STALE_REVISION", stale.getMessage());
 			} catch (NativeProjectRepository.UnsavedChangesException unsaved) {
-				writeError(response, 409, "PROJECT_BUSY", unsaved.getMessage());
+				writeError(response, 409, "PROJECT_BUSY", unsaved.getMessage(), false);
 			} catch (SecurityException denied) {
 				writeError(response, 403, "INVALID_REQUEST", denied.getMessage());
 			} catch (IllegalArgumentException invalid) {
@@ -229,6 +239,8 @@ public final class StatusServlet extends HttpServlet {
 			super.service(request, response);
 		} catch (ProjectRuntime.ProjectNotReadyException notReady) {
 			writeLifecycleError(response, notReady.status());
+		} catch (ServiceShuttingDownException shuttingDown) {
+			writeError(response, 503, "SERVICE_SHUTTING_DOWN", shuttingDown.getMessage());
 		}
 	}
 
@@ -240,7 +252,12 @@ public final class StatusServlet extends HttpServlet {
 	}
 
 	private void writeError(HttpServletResponse response, int status, String code, String message) throws IOException {
-		boolean retryable = "PROJECT_NOT_READY".equals(code);
+		boolean retryable = "PROJECT_NOT_READY".equals(code) || "PROJECT_BUSY".equals(code);
+		writeError(response, status, code, message, retryable);
+	}
+
+	private void writeError(HttpServletResponse response, int status, String code, String message,
+			boolean retryable) throws IOException {
 		write(response, status, new ErrorEnvelope(new ErrorBody(code, message, retryable, response.getHeader("X-Request-Id"), null)));
 	}
 

@@ -77,7 +77,9 @@ paths:
       description: >-
         The targetPath is required for the first save after raw-input startup.
         The service checks the native project and mappings against their on-disk
-        baselines before writing. Interrupted native writes may require a user backup.
+        baselines before writing. Conflicting in-flight project operations fail
+        promptly with HTTP 409 PROJECT_BUSY (retryable); they are not queued.
+        Interrupted native writes may require a user backup.
       requestBody:
         required: true
         content:
@@ -111,7 +113,10 @@ paths:
       tags: [Project]
       operationId: updateProjectSettings
       summary: Stage a native mapping path and rebuild Jadx analysis
-      description: The decompilation mode is temporary-only and cannot be persisted here.
+      description: >-
+        The decompilation mode is temporary-only and cannot be persisted here.
+        Conflicting in-flight project operations fail promptly with HTTP 409
+        PROJECT_BUSY (retryable); they are not queued.
       requestBody:
         required: true
         content:
@@ -135,6 +140,8 @@ paths:
       description: >-
         The caller must provide the session and logical revision it observed.
         A stale precondition is rejected before any unsaved edit is discarded.
+        Conflicting in-flight project operations fail promptly with HTTP 409
+        PROJECT_BUSY (retryable); they are not queued.
       requestBody:
         required: true
         content:

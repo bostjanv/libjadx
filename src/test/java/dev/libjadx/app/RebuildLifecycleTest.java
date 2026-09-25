@@ -27,6 +27,8 @@ import dev.libjadx.core.ProjectSnapshot;
 import dev.libjadx.http.HttpApiServer;
 import dev.libjadx.project.NativeProjectDocument;
 import dev.libjadx.project.NativeProjectRepository;
+import dev.libjadx.scheduler.ProjectBusyException;
+import dev.libjadx.scheduler.ServiceShuttingDownException;
 import jadx.api.JadxDecompiler;
 import jadx.api.data.impl.JadxCodeData;
 import jadx.api.data.impl.JadxCodeRename;
@@ -38,6 +40,91 @@ class RebuildLifecycleTest {
 	@TempDir Path dir;
 	private static final HttpClient HTTP = HttpClient.newHttpClient();
 	private static final ObjectMapper JSON = new ObjectMapper();
+
+	@Test
+	void twoHttpClientsReceivePromptBusyConflictDuringNativeSave() throws Exception {
+		NativeProjectDocument project = fixture();
+		CountDownLatch entered = new CountDownLatch(1);
+		CountDownLatch release = new CountDownLatch(1);
+		ProjectRuntime runtime = runtime(project, new AtomicInteger(), () -> { }, (repository, target, session, revision) -> {
+			entered.countDown();
+			awaitIgnoringInterrupt(release);
+			return repository.save(target, session, revision);
+		});
+		try (HttpApiServer server = new HttpApiServer("127.0.0.1", 0, runtime)) {
+			server.start();
+			runtime.initializeAsync(project).get(20, TimeUnit.SECONDS);
+			String session = runtime.projectSnapshot().revisions().sessionId();
+			HttpRequest saveRequest = HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + server.localPort()
+					+ "/api/v1/project/save"))
+					.header("Content-Type", "application/json")
+					.POST(HttpRequest.BodyPublishers.ofString("{}"))
+					.build();
+			CompletableFuture<HttpResponse<String>> save = HTTP.sendAsync(saveRequest, HttpResponse.BodyHandlers.ofString());
+			try {
+				assertTrue(entered.await(10, TimeUnit.SECONDS));
+				String reloadBody = "{\"discardUnsaved\":false,\"expectedSessionId\":\"" + session
+						+ "\",\"expectedLogicalRevision\":0}";
+				HttpRequest reload = HttpRequest.newBuilder(URI.create("http://127.0.0.1:"
+						+ server.localPort() + "/api/v1/project/reload"))
+						.header("Content-Type", "application/json")
+						.POST(HttpRequest.BodyPublishers.ofString(reloadBody)).build();
+				HttpResponse<String> busy = HTTP.sendAsync(reload, HttpResponse.BodyHandlers.ofString())
+						.get(3, TimeUnit.SECONDS);
+				assertEquals(409, busy.statusCode());
+				assertEquals("PROJECT_BUSY", JSON.readTree(busy.body()).path("error").path("code").asText());
+				assertTrue(JSON.readTree(busy.body()).path("error").path("retryable").asBoolean());
+				assertEquals(200, get(server, "/api/v1/status").statusCode());
+				assertThrows(ProjectBusyException.class, () -> runtime.withPrimaryClassRead("probe.Sample", jadx -> 1));
+				assertThrows(ProjectBusyException.class, () -> runtime.saveProject(null, session, 0L));
+				assertThrows(ProjectBusyException.class, () -> runtime.updateMappingsPath(project.getMappingsPath(), session, 0));
+				assertThrows(ProjectBusyException.class, () -> runtime.replaceCodeData(project.getCodeData(), 0));
+			} finally {
+				release.countDown();
+			}
+			assertEquals(200, save.get(10, TimeUnit.SECONDS).statusCode());
+			HttpRequest retry = HttpRequest.newBuilder(URI.create("http://127.0.0.1:"
+					+ server.localPort() + "/api/v1/project/reload"))
+					.header("Content-Type", "application/json")
+					.POST(HttpRequest.BodyPublishers.ofString("{\"discardUnsaved\":false,\"expectedSessionId\":\""
+							+ session + "\",\"expectedLogicalRevision\":0}"))
+					.build();
+			assertEquals(200, HTTP.send(retry, HttpResponse.BodyHandlers.ofString()).statusCode());
+		} finally {
+			release.countDown();
+			runtime.close();
+		}
+	}
+
+	@Test
+	void scopedClassReadDefersPrimaryEngineCloseAndSerializesDifferentClasses() throws Exception {
+		NativeProjectDocument project = fixture();
+		AtomicInteger closes = new AtomicInteger();
+		ProjectRuntime runtime = runtime(project, closes, () -> { });
+		CountDownLatch entered = new CountDownLatch(1);
+		CountDownLatch release = new CountDownLatch(1);
+		try {
+			runtime.initializeAsync(project).get(20, TimeUnit.SECONDS);
+			CompletableFuture<Integer> read = CompletableFuture.supplyAsync(() -> runtime.withPrimaryClassRead(
+					"probe.Sample", jadx -> {
+						entered.countDown();
+						awaitIgnoringInterrupt(release);
+						return jadx.getClasses().size();
+					}));
+			assertTrue(entered.await(10, TimeUnit.SECONDS));
+			assertThrows(ProjectBusyException.class, () -> runtime.withPrimaryClassRead("probe.Second", jadx -> 0));
+			CompletableFuture.runAsync(runtime::close).get(2, TimeUnit.SECONDS);
+			assertEquals("SHUTTING_DOWN", runtime.status().state());
+			assertEquals(0, closes.get());
+			release.countDown();
+			assertTrue(read.get(10, TimeUnit.SECONDS) > 0);
+			assertTrue(runtime.awaitStopped(2, TimeUnit.SECONDS));
+			assertEquals(1, closes.get());
+		} finally {
+			release.countDown();
+			runtime.close();
+		}
+	}
 
 	@Test
 	void shutdownIsBoundedWhileAnAdmittedNativeSaveIsBlocked() throws Exception {
@@ -80,7 +167,7 @@ class RebuildLifecycleTest {
 			assertFalse(save.get(10, TimeUnit.SECONDS).dirty());
 			ExecutionException readFailure = assertThrows(ExecutionException.class,
 					() -> concurrentRead.get(10, TimeUnit.SECONDS));
-			assertTrue(readFailure.getCause() instanceof ProjectRuntime.ProjectNotReadyException);
+			assertTrue(readFailure.getCause() instanceof ServiceShuttingDownException);
 			assertTrue(runtime.awaitStopped(2, TimeUnit.SECONDS));
 			assertEquals(1, closes.get());
 			assertTrue(Files.readString(project.getProjectPath()).contains("SavedAfterShutdown"));
@@ -280,6 +367,38 @@ class RebuildLifecycleTest {
 	@Test
 	void fatalProjectReloadRequestsNonzeroSupervisedShutdown() throws Exception {
 		assertFatalRebuild(false);
+	}
+
+	@Test
+	void fatalCodeDataReloadRequestsNonzeroSupervisedShutdown() throws Exception {
+		NativeProjectDocument project = fixture();
+		AtomicInteger closes = new AtomicInteger();
+		ProjectRuntime runtime = new ProjectRuntime(project.getProjectPath(), project.getInputFiles(), args ->
+				new ProjectRuntime.ProjectEngine() {
+					private final JadxDecompiler jadx = new JadxDecompiler(args);
+					@Override public void load() { jadx.load(); }
+					@Override public JadxDecompiler decompiler() { return jadx; }
+					@Override public void reloadCodeData(JadxCodeData data) {
+						throw new LinkageError("controlled fatal edit");
+					}
+					@Override public void close() { closes.incrementAndGet(); jadx.close(); }
+				});
+		CountDownLatch exitRequested = new CountDownLatch(1);
+		AtomicInteger exitCode = new AtomicInteger();
+		StartupSupervisor supervisor = new StartupSupervisor(() -> { }, runtime, () -> { }, code -> {
+			exitCode.set(code);
+			exitRequested.countDown();
+		});
+		try {
+			runtime.initializeAsync(project).get(20, TimeUnit.SECONDS);
+			assertThrows(LinkageError.class, () -> runtime.replaceCodeData(project.getCodeData(), 0));
+			assertTrue(exitRequested.await(10, TimeUnit.SECONDS));
+			assertEquals(1, exitCode.get());
+			assertEquals(1, closes.get());
+			assertEquals("STOPPED", runtime.status().state());
+		} finally {
+			supervisor.close();
+		}
 	}
 
 	private void assertFatalRebuild(boolean mapping) throws Exception {
