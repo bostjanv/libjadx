@@ -331,6 +331,47 @@ class JobRegistryTest {
 		}
 	}
 
+	@Test void outOfOrderCompletionEvictsOldestFinishedJobForCountAndBytes() throws Exception {
+		assertCompletionAgeRetention(1, 100, true);
+		assertCompletionAgeRetention(4, 20, false);
+	}
+
+	private static void assertCompletionAgeRetention(int maxRetained, int maxTotalBytes,
+			boolean advanceCompletionClock) throws Exception {
+		AtomicLong nanos = new AtomicLong(10);
+		CountDownLatch slowStarted = new CountDownLatch(1);
+		CountDownLatch releaseSlow = new CountDownLatch(1);
+		OperationCoordinator coordinator = new OperationCoordinator();
+		AtomicReference<JobRegistry> owner = new AtomicReference<>();
+		JobLimits small = new JobLimits(2, 2, maxRetained, 16, maxTotalBytes, 2, 128,
+				8, 1024, 2, 4, 4, Duration.ofSeconds(10), Duration.ofMillis(20));
+		try (JobRegistry jobs = new JobRegistry(small,
+				(req, admission) -> coordinator.tryAdmit(req, admission, () -> owner.get().signal()),
+				fatal -> fail("Unexpected fatal error"), nanos::get, WALL, false)) {
+			owner.set(jobs);
+			UUID slow = jobs.submit(new JobSpec<>("slow", OperationRequest.indexRead("shared-snapshot"),
+					ADMISSION, "shared-snapshot", null, null, (ctx, ignored) -> {
+						slowStarted.countDown();
+						assertTrue(releaseSlow.await(5, TimeUnit.SECONDS));
+						return new JobSpec.JobResult("{\"count\":111}", JobSpec.Completeness.COMPLETE);
+					})).jobId();
+			assertTrue(slowStarted.await(5, TimeUnit.SECONDS));
+			UUID fast = jobs.submit(new JobSpec<>("fast", OperationRequest.queryRead("shared-snapshot"),
+					ADMISSION, "shared-snapshot", null, null,
+					(ctx, ignored) -> new JobSpec.JobResult("{\"count\":222}", JobSpec.Completeness.COMPLETE))).jobId();
+			assertEquals(JobSnapshot.State.SUCCEEDED,
+					jobs.awaitTerminal(fast, Duration.ofSeconds(5)).state());
+			assertEquals(JobSnapshot.State.RUNNING, jobs.snapshot(slow).state());
+			if (advanceCompletionClock) nanos.set(20);
+			releaseSlow.countDown();
+			assertEquals(JobSnapshot.State.SUCCEEDED,
+					jobs.awaitTerminal(slow, Duration.ofSeconds(5)).state());
+			assertEquals("{\"count\":111}", jobs.snapshot(slow).resultJson());
+			assertThrows(java.util.NoSuchElementException.class, () -> jobs.snapshot(fast));
+			assertEquals(0, coordinator.inFlightCount());
+		} finally { releaseSlow.countDown(); }
+	}
+
 	@Test void oversizedInlineResultFailsWithoutPublishingItsPayload() throws Exception {
 		OperationCoordinator coordinator = new OperationCoordinator();
 		AtomicReference<JobRegistry> owner = new AtomicReference<>();

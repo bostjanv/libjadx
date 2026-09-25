@@ -69,6 +69,7 @@ public final class JobRegistry implements AutoCloseable {
 	private int runningSlots;
 	private int globalSubscribers;
 	private int retainedResultBytes;
+	private long completionSequence;
 	private volatile boolean stopped;
 	private boolean shutdownDone;
 
@@ -317,8 +318,7 @@ public final class JobRegistry implements AutoCloseable {
 				record.completeness = result.completeness();
 				retainedResultBytes += resultBytes;
 				record.state = JobSnapshot.State.SUCCEEDED;
-				record.completedAt = clock.instant();
-				record.completedNanos = ticker.getAsLong();
+				markCompletedLocked(record);
 				emitLocked(record, "job.completed");
 			}
 			enforceRetentionLocked();
@@ -401,8 +401,7 @@ public final class JobRegistry implements AutoCloseable {
 	private void finishCancelledLocked(Record<?> record) {
 		if (record.snapshot().terminal()) return;
 		record.state = JobSnapshot.State.CANCELLED;
-		record.completedAt = clock.instant();
-		record.completedNanos = ticker.getAsLong();
+		markCompletedLocked(record);
 		emitLocked(record, "job.cancelled");
 		enforceRetentionLocked();
 	}
@@ -410,13 +409,18 @@ public final class JobRegistry implements AutoCloseable {
 	private void finishFailedLocked(Record<?> record, Throwable failure, String message) {
 		if (record.snapshot().terminal()) return;
 		record.state = JobSnapshot.State.FAILED;
-		record.completedAt = clock.instant();
-		record.completedNanos = ticker.getAsLong();
+		markCompletedLocked(record);
 		record.error = new JobSnapshot.JobError(failure instanceof ResourceLimitException ? "RESOURCE_LIMIT"
 				: failure instanceof StaleJobSnapshotException ? "STALE_REVISION" : "INTERNAL_ERROR", message, false);
 		if (record.diagnostics.size() < limits.maxDiagnostics()) record.diagnostics.add(message);
 		emitLocked(record, "job.failed");
 		enforceRetentionLocked();
+	}
+
+	private void markCompletedLocked(Record<?> record) {
+		record.completedAt = clock.instant();
+		record.completedNanos = ticker.getAsLong();
+		record.completedOrder = ++completionSequence;
 	}
 
 	private void emitLocked(Record<?> record, String type) {
@@ -544,27 +548,30 @@ public final class JobRegistry implements AutoCloseable {
 		int terminal = 0;
 		for (Record<?> record : records.values()) if (record.completedNanos != null) terminal++;
 		if (terminal <= limits.maxRetained()) return;
-		for (Record<?> record : List.copyOf(records.values())) {
-			if (record.completedNanos != null) {
-				removeRetainedLocked(record);
-				return;
-			}
-		}
+		Record<?> oldest = oldestCompletedLocked(false);
+		if (oldest != null) removeRetainedLocked(oldest);
 	}
 
 	/** Oldest completed results are expendable when a newly successful job needs byte capacity. */
 	private void reclaimResultRoomLocked(int incomingBytes) {
 		while ((long) retainedResultBytes + incomingBytes > limits.maxTotalResultBytes()) {
-			Record<?> oldest = null;
-			for (Record<?> candidate : records.values()) {
-				if (candidate.completedNanos != null && candidate.resultJson != null) {
-					oldest = candidate;
-					break;
-				}
-			}
+			Record<?> oldest = oldestCompletedLocked(true);
 			if (oldest == null) throw new IllegalStateException("Validated job result cannot fit retention budget");
 			removeRetainedLocked(oldest);
 		}
+	}
+
+	private Record<?> oldestCompletedLocked(boolean requireResult) {
+		Record<?> oldest = null;
+		for (Record<?> candidate : records.values()) {
+			if (candidate.completedNanos == null || (requireResult && candidate.resultJson == null)) continue;
+			if (oldest == null || candidate.completedNanos < oldest.completedNanos
+					|| (candidate.completedNanos.equals(oldest.completedNanos)
+							&& candidate.completedOrder < oldest.completedOrder)) {
+				oldest = candidate;
+			}
+		}
+		return oldest;
 	}
 
 	private void removeRetainedLocked(Record<?> record) {
@@ -621,6 +628,7 @@ public final class JobRegistry implements AutoCloseable {
 		private Instant startedAt;
 		private Instant completedAt;
 		private Long completedNanos;
+		private long completedOrder;
 		private String resultJson;
 		private JobSpec.Completeness completeness;
 		private JobSnapshot.JobError error;

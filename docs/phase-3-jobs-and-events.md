@@ -26,11 +26,14 @@ has a 32-frame live buffer. Terminal records expire after 10 minutes. These
 values are injectable through immutable `JobLimits` for tests and future
 configuration. Active and cancellation-pending jobs never expire or count as
 retained terminal records. When queue or overall record capacity is full, a
-new submission is refused without creating a job. The oldest terminal record
-is evicted when the retained count is exceeded. If result bytes fill first,
-the oldest completed result records are evicted until the new successful
-result fits; evicted IDs return 404. All records and events vanish on restart;
-no job data is written to `.jadx` or another file.
+new submission is refused without creating a job. The terminal record with
+the earliest completion time is evicted when the retained count is exceeded.
+If result bytes fill first, the earliest completed result records are evicted
+until the new successful result fits; evicted IDs return 404. All records and
+events vanish on restart; no job data is written to `.jadx` or another file.
+Jobs completed at the same monotonic time use completion order as the tie
+breaker, so a slow job submitted earlier cannot lose its result immediately
+to a faster job submitted later.
 
 The FIFO dispatcher keeps a queue slot separate from the Phase 3.1 operation
 lease. It acquires the scoped lease only at dispatch. If a conflicting lease

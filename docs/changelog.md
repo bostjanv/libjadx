@@ -16,6 +16,8 @@
 - Total result-byte pressure now evicts the oldest retained successful results
   before publishing a newly successful job; evicted IDs return 404. The
   cancellation route documents its cross-origin 403 response.
+- Terminal count and result-byte eviction order is based on completion time,
+  with deterministic completion-order ties, rather than submission order.
 - Index/query read compatibility now also checks session and logical revision.
 - The generated Python transport remains a Phase 6 deliverable.
 
