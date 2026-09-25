@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -17,6 +18,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -28,6 +30,7 @@ import dev.libjadx.jadxadapter.JadxSymbolAdapter;
 import dev.libjadx.jadxadapter.JadxSourceAdapter;
 import dev.libjadx.core.symbols.SymbolRef;
 import dev.libjadx.scheduler.ProjectBusyException;
+import jadx.api.JadxDecompiler;
 import jadx.api.data.impl.JadxCodeComment;
 import jadx.api.data.impl.JadxCodeRename;
 import jadx.api.data.impl.JadxNodeRef;
@@ -38,6 +41,81 @@ class DecompileEndpointsTest {
 	private static final ObjectMapper JSON = new ObjectMapper();
 	private static final HttpClient HTTP = HttpClient.newHttpClient();
 	@TempDir Path dir;
+
+	@Test
+	void anonymousClassFirstUsesEmittedParentButEmptySyntheticHasNoSource() throws Exception {
+		Path jar = SymbolFixtureSupport.compileFixture(dir);
+		ProjectRuntime runtime = new ProjectRuntime(null, List.of(jar), List.of(dir));
+		try (HttpApiServer server = new HttpApiServer("127.0.0.1", 0, runtime)) {
+			server.start(); runtime.initializeAsync(null).get(20, TimeUnit.SECONDS);
+			JsonNode anonymous = success(server, ref("CLASS", "Lprobe/SymbolFixture$1;", null, null));
+			assertEquals("RESOLVED", anonymous.path("outcome").asText());
+			assertEquals("COMPLETE", anonymous.path("status").asText());
+			assertEquals("Lprobe/SymbolFixture;",
+					anonymous.path("sourceOwnerRef").path("originalClassDescriptor").asText());
+			assertTrue(anonymous.path("source").asText().contains("new Runnable()"));
+			assertTrue(anonymous.path("methodRange").isNull());
+			JsonNode parent = success(server, ref("CLASS", "Lprobe/SymbolFixture;", null, null));
+			assertEquals(parent.path("source").asText(), anonymous.path("source").asText());
+			assertEquals(parent.path("sourceSnapshotId").asText(), anonymous.path("sourceSnapshotId").asText());
+		} finally { runtime.close(); }
+
+		Path emptyJar = SymbolFixtureSupport.syntheticEmptyJar(dir);
+		ProjectRuntime empty = new ProjectRuntime(null, List.of(emptyJar), List.of(dir));
+		try (HttpApiServer server = new HttpApiServer("127.0.0.1", 0, empty)) {
+			server.start(); empty.initializeAsync(null).get(20, TimeUnit.SECONDS);
+			JsonNode unavailable = success(server, ref("CLASS", "Lprobe/EmptySynthetic;", null, null));
+			assertEquals("RESOLVED", unavailable.path("outcome").asText());
+			assertEquals("UNAVAILABLE", unavailable.path("status").asText());
+			assertTrue(unavailable.path("source").isNull());
+			assertTrue(unavailable.path("sourceOwnerRef").isNull());
+			assertEquals("UNAVAILABLE", unavailable.path("capabilities").path("source").asText());
+		} finally { empty.close(); }
+	}
+
+	@Test
+	void nativeSaveHoldingRepositoryMonitorRejectsDecompileImmediately() throws Exception {
+		Path jar = SymbolFixtureSupport.compileFixture(dir);
+		CountDownLatch enteredSave = new CountDownLatch(1);
+		CountDownLatch releaseSave = new CountDownLatch(1);
+		ProjectRuntime runtime = new ProjectRuntime(null, List.of(jar), args -> new ProjectRuntime.ProjectEngine() {
+			private final JadxDecompiler jadx = new JadxDecompiler(args);
+			@Override public void load() { jadx.load(); }
+			@Override public JadxDecompiler decompiler() { return jadx; }
+			@Override public void close() { jadx.close(); }
+		}, (repository, target, session, revision) -> {
+			synchronized (repository) {
+				enteredSave.countDown();
+				try {
+					if (!releaseSave.await(10, TimeUnit.SECONDS)) throw new IOException("Timed out holding native save");
+				} catch (InterruptedException failure) {
+					Thread.currentThread().interrupt();
+					throw new IOException(failure);
+				}
+				return repository.save(target, session, revision);
+			}
+		});
+		try (HttpApiServer server = new HttpApiServer("127.0.0.1", 0, runtime)) {
+			server.start(); runtime.initializeAsync(null).get(20, TimeUnit.SECONDS);
+			String session = runtime.projectSnapshot().revisions().sessionId();
+			CompletableFuture<Void> save = CompletableFuture.runAsync(() -> {
+				try { runtime.saveProject(dir.resolve("busy.jadx"), session, 0L); }
+				catch (IOException failure) { throw new CompletionException(failure); }
+			});
+			try {
+				assertTrue(enteredSave.await(5, TimeUnit.SECONDS));
+				String cls = ref("CLASS", "Lprobe/SymbolFixture;", null, null);
+				for (String request : List.of("{\"ref\":" + cls + "}",
+						"{\"ref\":" + cls + ",\"decompilationMode\":\"SIMPLE\"}")) {
+					HttpResponse<String> busy = HTTP.sendAsync(HttpRequest.newBuilder(uri(server))
+							.header("Content-Type", "application/json")
+							.POST(HttpRequest.BodyPublishers.ofString(request)).build(), HttpResponse.BodyHandlers.ofString())
+							.get(2, TimeUnit.SECONDS);
+					assertError(busy, 409, "PROJECT_BUSY");
+				}
+			} finally { releaseSave.countDown(); save.get(10, TimeUnit.SECONDS); }
+		} finally { releaseSave.countDown(); runtime.close(); }
+	}
 
 	@Test
 	void realJadxClassAndMethodShareSourceSnapshotAndVerifiedExcerpt() throws Exception {

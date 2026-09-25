@@ -38,14 +38,19 @@ public final class JadxSourceAdapter {
 
 	public static SourceData extract(JadxDecompiler jadx, JavaClass declaringClass, SymbolRef requested,
 			boolean includeAnnotations, String sessionId, long revision, long publicationEpoch, String settingsFingerprint) {
-		if (declaringClass.isNoCode()) return SourceData.unavailable("Jadx does not emit standalone source for this class");
+		// Processing the original outer class establishes anonymous/inlined ownership in Jadx.
+		JavaClass originalTop = declaringClass.getOriginalTopParentClass();
+		if (originalTop != declaringClass) originalTop.getCodeInfo();
 		JavaClass owner = declaringClass.getTopParentClass();
-		if (owner == null || owner.isNoCode()) return SourceData.unavailable("Emitted source owner is unavailable");
+		if (owner == null) return SourceData.unavailable("Emitted source owner is unavailable");
+		if (declaringClass.isNoCode() && owner != declaringClass
+				&& !declaringClass.getClassNode().contains(AType.ANONYMOUS_CLASS)
+				&& !declaringClass.getClassNode().contains(AType.INLINED))
+			return SourceData.unavailable("Suppressed child has no verified emitted owner");
 		SymbolRef ownerRef = JadxSymbolAdapter.originalRef(owner);
 		if (ownerRef == null) return SourceData.unavailable("Emitted source owner has no verified original descriptor");
 		ICodeInfo code = owner.getCodeInfo();
-		// Top-parent decompilation may mark an anonymous/inlined child DONT_GENERATE.
-		if (declaringClass.isNoCode()) return SourceData.unavailable("Jadx does not emit standalone source for this class");
+		if (owner.isNoCode()) return SourceData.unavailable("Jadx does not emit source for the resolved owner");
 		String source = code.getCodeStr();
 		if (source == null || source.isBlank()) return SourceData.unavailable("Jadx produced no Java source for the selected class");
 		requireSourceWithinLimit(source);

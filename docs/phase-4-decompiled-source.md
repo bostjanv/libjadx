@@ -25,6 +25,10 @@ The code owner can differ from the queried class. Jadx 1.5.6 inlines the owned
 `SymbolFixture` in `sourceOwnerRef` and returns its full Java text; it never
 claims the anonymous class has a separate generated file. If no owner can be
 proved, the source is null and the capability is `UNAVAILABLE`.
+The adapter processes the original outer class before resolving Jadx's code
+parent, so a first request for an anonymous class sees its emitted owner.
+A suppressed child needs Jadx's anonymous or inline ownership marker;
+a suppressed class without that marker does not inherit unrelated parent text.
 
 ## Locations and source identity
 

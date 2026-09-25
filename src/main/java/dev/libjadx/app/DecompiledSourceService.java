@@ -25,19 +25,31 @@ public final class DecompiledSourceService {
 	}
 
 	public DecompileResult decompile(DecompileRequest request) throws Exception {
-		String primaryMode = runtime.settingsSnapshot().effective().decompilationMode();
-		String mode = request.decompilationMode() == null ? primaryMode : request.decompilationMode();
-		if (mode.equals(primaryMode)) {
-			return runtime.withPrimarySymbolRead(request.ref().originalClassDescriptor(), context ->
-					execute(context.decompiler(), catalogs.primary(context), request, context.revisions().sessionId(),
-							context.revisions().logicalRevision(), context.publicationEpoch(), context.settings()));
+		while (true) {
+			String requestedMode = request.decompilationMode();
+			String primaryMode = runtime.sourceRoutingSettings().decompilationMode();
+			if (requestedMode == null || requestedMode.equals(primaryMode)) {
+				try {
+					return runtime.withPrimarySymbolRead(request.ref().originalClassDescriptor(), context -> {
+						// Settings can change between routing and admission. Retry with the admitted version.
+						if (requestedMode != null && !requestedMode.equals(context.settings().decompilationMode()))
+							throw new SourceModeChangedException();
+						return execute(context.decompiler(), catalogs.primary(context), request, context.revisions().sessionId(),
+								context.revisions().logicalRevision(), context.publicationEpoch(), context.settings());
+					});
+				} catch (SourceModeChangedException changed) {
+					continue;
+				}
+			}
+			return runtime.withTemporarySourceRead(new EffectiveAnalysisConfig(requestedMode), context -> {
+				SymbolCatalog catalog = catalogs.temporary(context.decompiler(), context.revisions(), context.publicationEpoch());
+				return execute(context.decompiler(), catalog, request, context.revisions().sessionId(),
+						context.revisions().logicalRevision(), context.publicationEpoch(), context.settings());
+			}).value();
 		}
-		return runtime.withTemporarySourceRead(new EffectiveAnalysisConfig(mode), context -> {
-			SymbolCatalog catalog = catalogs.temporary(context.decompiler(), context.revisions(), context.publicationEpoch());
-			return execute(context.decompiler(), catalog, request, context.revisions().sessionId(),
-					context.revisions().logicalRevision(), context.publicationEpoch(), context.settings());
-		}).value();
 	}
+
+	private static final class SourceModeChangedException extends RuntimeException { }
 
 	private static DecompileResult execute(JadxDecompiler jadx, SymbolCatalog catalog, DecompileRequest request,
 			String sessionId, long revision, long epoch, EffectiveAnalysisConfig settings) {

@@ -143,6 +143,14 @@ public final class ProjectRuntime implements AutoCloseable {
 		});
 	}
 
+	/** Effective settings for admission routing only; never waits on native project I/O. */
+	EffectiveAnalysisConfig sourceRoutingSettings() {
+		synchronized (lifecycleLock) {
+			requireReady();
+			return effectiveConfig;
+		}
+	}
+
 	public record SettingsSnapshot(Path mappingsPath, EffectiveAnalysisConfig effective,
 			dev.libjadx.core.RevisionState revisions) { }
 

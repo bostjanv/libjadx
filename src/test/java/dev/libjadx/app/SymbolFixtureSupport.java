@@ -1,5 +1,7 @@
 package dev.libjadx.app;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -17,6 +19,33 @@ final class SymbolFixtureSupport {
 
 	static Path compileSourceFixture(Path root) throws IOException {
 		return compile(root, Path.of("tests/fixtures/source/SourceFixture.java"), "source.jar");
+	}
+
+	/** A valid, synthetic JVM class with no members; Jadx suppresses its Java output. */
+	static Path syntheticEmptyJar(Path root) throws IOException {
+		ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+		try (DataOutputStream classFile = new DataOutputStream(bytes)) {
+			classFile.writeInt(0xCAFEBABE);
+			classFile.writeShort(0); classFile.writeShort(52);
+			classFile.writeShort(5); // constant-pool count
+			classFile.writeByte(1); classFile.writeUTF("probe/EmptySynthetic");
+			classFile.writeByte(7); classFile.writeShort(1);
+			classFile.writeByte(1); classFile.writeUTF("java/lang/Object");
+			classFile.writeByte(7); classFile.writeShort(3);
+			classFile.writeShort(0x1021); // public, super, synthetic
+			classFile.writeShort(2); classFile.writeShort(4);
+			classFile.writeShort(0); // interfaces
+			classFile.writeShort(0); // fields
+			classFile.writeShort(0); // methods
+			classFile.writeShort(0); // attributes
+		}
+		Path jar = root.resolve("synthetic-empty.jar");
+		try (JarOutputStream output = new JarOutputStream(Files.newOutputStream(jar))) {
+			output.putNextEntry(new JarEntry("probe/EmptySynthetic.class"));
+			output.write(bytes.toByteArray());
+			output.closeEntry();
+		}
+		return jar;
 	}
 
 	static Path duplicateJar(Path root, String folder, int value) throws IOException {
