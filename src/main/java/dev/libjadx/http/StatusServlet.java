@@ -13,12 +13,14 @@ import java.nio.charset.StandardCharsets;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import dev.libjadx.core.ProjectSnapshot;
+import dev.libjadx.core.source.DecompileRequest;
 import dev.libjadx.core.symbols.ClassQuery;
 import dev.libjadx.core.symbols.SymbolCatalog;
 import dev.libjadx.core.symbols.SymbolLookup;
 import dev.libjadx.core.symbols.SymbolRef;
 import dev.libjadx.core.symbols.SymbolResolution;
 import dev.libjadx.jadxadapter.JadxSymbolAdapter;
+import dev.libjadx.jadxadapter.JadxSourceAdapter;
 import dev.libjadx.project.NativeProjectRepository;
 import dev.libjadx.scheduler.ProjectBusyException;
 import dev.libjadx.scheduler.ServiceShuttingDownException;
@@ -27,6 +29,8 @@ import dev.libjadx.scheduler.JobRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import dev.libjadx.app.ProjectRuntime;
+import dev.libjadx.app.DecompiledSourceService;
+import dev.libjadx.app.SymbolCatalogProvider;
 import dev.libjadx.app.RuntimeStatus;
 import dev.libjadx.app.ShutdownPolicy;
 import dev.libjadx.app.ShutdownRequester;
@@ -41,16 +45,17 @@ public final class StatusServlet extends HttpServlet {
 	private final ProjectRuntime runtime;
 	private final ObjectMapper json;
 	private final JobEventsHandler jobEvents;
+	private final DecompiledSourceService sourceService;
 	private final ShutdownRequester shutdown;
 	private final AtomicBoolean shutdownRequestInProgress = new AtomicBoolean();
-	private final byte[] cursorKey = CursorSigningKey.loadDefault();
-	private volatile SymbolCatalog symbolCatalog;
+	private final SymbolCatalogProvider catalogs = new SymbolCatalogProvider(CursorSigningKey.loadDefault());
 
 	public StatusServlet(ProjectRuntime runtime, ObjectMapper json, ShutdownRequester shutdown) {
 		this.runtime = runtime;
 		this.json = json;
 		this.shutdown = shutdown;
 		this.jobEvents = new JobEventsHandler(runtime.jobRegistry());
+		this.sourceService = new DecompiledSourceService(runtime, catalogs);
 	}
 
 	@Override
@@ -73,6 +78,10 @@ public final class StatusServlet extends HttpServlet {
 					new Capability("symbol.resolve", "PARTIAL", "PINNED_RAW_CLASS_METHOD_FIELD_METADATA", "READ_ONLY"),
 					new Capability("symbol.input_provenance", "UNKNOWN", "TWO_JAR_DUPLICATE_COLLAPSED_ORIGIN_UNVERIFIED", "UNAVAILABLE"),
 					new Capability("code.java", "SUPPORTED", "SMALL_JAR_PROBED", "READ_ONLY"),
+					new Capability("code.java_source_endpoint", "PARTIAL", "CLASS_JAVA_AND_VERIFIED_TOKEN_METADATA", "READ_ONLY"),
+					new Capability("code.method_excerpt", "PARTIAL", "DECLARATION_LEXER_AND_END_MARKER_VERIFIED", "READ_ONLY"),
+					new Capability("code.original_debug_lines", "UNKNOWN", "ORIGIN_NOT_VERIFIED", "UNAVAILABLE"),
+					new Capability("code.original_bytecode_offsets", "UNKNOWN", "ORIGIN_NOT_VERIFIED", "UNAVAILABLE"),
 					new Capability("code.smali", "SUPPORTED", "SMALL_JAR_PROBED", "READ_ONLY"),
 					new Capability("references.method_uses", "PARTIAL", "LOCAL_CALLERS_PROBED", "READ_ONLY"),
 					new Capability("project.native_load", "SUPPORTED", "JADX_1_5_6_FIXTURE", "READ_ONLY"),
@@ -169,6 +178,10 @@ public final class StatusServlet extends HttpServlet {
 		String path = request.getRequestURI();
 		if ("/api/v1/symbols/resolve".equals(path)) {
 			handleSymbolResolve(request, response);
+			return;
+		}
+		if ("/api/v1/decompile".equals(path)) {
+			handleDecompile(request, response);
 			return;
 		}
 		if ("/api/v1/shutdown".equals(path)) {
@@ -294,7 +307,7 @@ public final class StatusServlet extends HttpServlet {
 			runtime.assertReady();
 			ClassQuery query = parseClassQuery(request);
 			write(response, 200, runtime.withPrimarySymbolRead("symbol-catalog", context ->
-					catalog(context).page(query)));
+					catalogs.primary(context).page(query)));
 		} catch (SymbolCatalog.StaleCursorException stale) {
 			writeError(response, 409, "STALE_REVISION", "Class cursor belongs to a previous project snapshot");
 		} catch (ProjectRuntime.ProjectNotReadyException notReady) {
@@ -347,7 +360,7 @@ public final class StatusServlet extends HttpServlet {
 						|| context.revisions().logicalRevision() != expectedRevision)) {
 					throw new SymbolCatalog.StaleCursorException();
 				}
-				return SymbolLookup.resolve(catalog(context), ref, entry -> {
+				return SymbolLookup.resolve(catalogs.primary(context), ref, entry -> {
 					var cls = JadxSymbolAdapter.visibleClass(context.decompiler(),
 							ref.originalClassDescriptor(), entry.occurrence());
 					if (cls == null) throw new IllegalStateException("Visible class vanished during leased lookup");
@@ -372,17 +385,83 @@ public final class StatusServlet extends HttpServlet {
 		}
 	}
 
-	private SymbolCatalog catalog(ProjectRuntime.PrimarySymbolRead context) {
-		SymbolCatalog current = symbolCatalog;
-		if (current == null || !current.sessionId().equals(context.revisions().sessionId())
-				|| current.logicalRevision() != context.revisions().logicalRevision()
-				|| current.publicationEpoch() != context.publicationEpoch()) {
-			current = new SymbolCatalog(JadxSymbolAdapter.classes(context.decompiler()),
-					context.revisions().sessionId(), context.revisions().logicalRevision(),
-					context.publicationEpoch(), cursorKey);
-			symbolCatalog = current;
+	private void handleDecompile(HttpServletRequest request, HttpServletResponse response) throws IOException {
+		try {
+			runtime.assertReady();
+			if (!isJsonContentType(request.getContentType())) {
+				writeError(response, 415, "INVALID_REQUEST", "Content-Type must be application/json");
+				return;
+			}
+			JsonNode body = readBody(request);
+			requireFields(body, Set.of("ref", "representation", "decompilationMode", "includeAnnotations",
+					"includeRawDebugLines", "strict", "expectedSessionId", "expectedLogicalRevision", "expectedSourceSnapshotId"));
+			if (!body.has("ref") || !body.get("ref").isObject()) throw new IllegalArgumentException("ref object is required");
+			SymbolRef ref = parseSymbolRef(body.get("ref"));
+			if (ref.kind() == SymbolRef.Kind.FIELD) throw new IllegalArgumentException("Decompile ref must be CLASS or METHOD");
+			String representation = textOption(body, "representation", "JAVA");
+			if (!"JAVA".equals(representation)) {
+				writeError(response, 422, "UNSUPPORTED_CAPABILITY", "Only JAVA source is supported by this endpoint");
+				return;
+			}
+			String mode = textOption(body, "decompilationMode", null);
+			if (mode != null && !Set.of("AUTO", "RESTRUCTURE", "SIMPLE", "FALLBACK").contains(mode))
+				throw new IllegalArgumentException("Unknown decompilationMode");
+			boolean includeAnnotations = booleanOption(body, "includeAnnotations", true);
+			boolean includeDebug = booleanOption(body, "includeRawDebugLines", false);
+			boolean strict = booleanOption(body, "strict", false);
+			boolean session = body.has("expectedSessionId");
+			boolean revision = body.has("expectedLogicalRevision");
+			if (session != revision) throw new IllegalArgumentException("Revision preconditions must be supplied together");
+			String expectedSession = textOption(body, "expectedSessionId", null);
+			Long expectedRevision = null;
+			if (revision) {
+				if (!body.get("expectedLogicalRevision").canConvertToLong()
+						|| body.get("expectedLogicalRevision").longValue() < 0) throw new IllegalArgumentException("Invalid revision precondition");
+				expectedRevision = body.get("expectedLogicalRevision").longValue();
+			}
+			if (expectedSession != null) {
+				try {
+					if (!UUID.fromString(expectedSession).toString().equalsIgnoreCase(expectedSession))
+						throw new IllegalArgumentException("Invalid expectedSessionId");
+				} catch (IllegalArgumentException invalid) { throw new IllegalArgumentException("Invalid expectedSessionId", invalid); }
+			}
+			String expectedSnapshot = textOption(body, "expectedSourceSnapshotId", null);
+			if (expectedSnapshot != null && !expectedSnapshot.matches("sha256:[0-9a-f]{64}"))
+				throw new IllegalArgumentException("Invalid expectedSourceSnapshotId");
+			write(response, 200, sourceService.decompile(new DecompileRequest(ref, mode, includeAnnotations,
+					includeDebug, strict, expectedSession, expectedRevision, expectedSnapshot)));
+		} catch (DecompiledSourceService.StaleSourceException stale) {
+			writeError(response, 409, "STALE_REVISION", "Source precondition belongs to a previous class snapshot");
+		} catch (DecompiledSourceService.IncompleteAnalysisException incomplete) {
+			writeError(response, 409, "INCOMPLETE_ANALYSIS", incomplete.getMessage(), false,
+					Map.of("diagnostics", incomplete.diagnostics()));
+		} catch (ProjectRuntime.ProjectNotReadyException notReady) {
+			writeLifecycleError(response, notReady.status());
+		} catch (ServiceShuttingDownException stopping) {
+			writeError(response, 503, "SERVICE_SHUTTING_DOWN", stopping.getMessage());
+		} catch (ProjectBusyException busy) {
+			writeError(response, 409, "PROJECT_BUSY", busy.getMessage());
+		} catch (JadxSourceAdapter.SourceLimitException | JadxSourceAdapter.AnnotationLimitException
+				| JadxSymbolAdapter.CatalogLimitException limit) {
+			writeError(response, 429, "RESOURCE_LIMIT", "Source or metadata exceeds synchronous response limits");
+		} catch (IllegalArgumentException invalid) {
+			writeError(response, 400, "INVALID_REQUEST", invalid.getMessage());
+		} catch (Exception failure) {
+			failure.printStackTrace(System.err);
+			writeError(response, 500, "INTERNAL_ERROR", "Java decompilation failed; inspect the local service log");
 		}
-		return current;
+	}
+
+	private static String textOption(JsonNode body, String name, String defaultValue) {
+		if (!body.has(name)) return defaultValue;
+		if (!body.get(name).isTextual()) throw new IllegalArgumentException(name + " must be a string");
+		return body.get(name).asText();
+	}
+
+	private static boolean booleanOption(JsonNode body, String name, boolean defaultValue) {
+		if (!body.has(name)) return defaultValue;
+		if (!body.get(name).isBoolean()) throw new IllegalArgumentException(name + " must be boolean");
+		return body.get(name).booleanValue();
 	}
 
 	private static SymbolRef parseSymbolRef(JsonNode node) {

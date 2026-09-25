@@ -1,0 +1,21 @@
+{
+  "outcome": "RESOLVED",
+  "queriedRef": {"kind":"METHOD","originalClassDescriptor":"Lprobe/SymbolFixture;","inputIdentity":null,"originalName":"mix","originalDescriptor":"(I)I"},
+  "sourceOwnerRef": {"kind":"CLASS","originalClassDescriptor":"Lprobe/SymbolFixture;","inputIdentity":null,"originalName":null,"originalDescriptor":null},
+  "candidates": [],
+  "sessionId": "00000000-0000-4000-8000-000000000000",
+  "logicalRevision": 0,
+  "sourceSnapshotId": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "effectiveSettings": {"decompilationMode":"AUTO","fingerprint":"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},
+  "status": "COMPLETE",
+  "representation": "JAVA",
+  "source": "package probe;\npublic class SymbolFixture {\n    public int mix(int i) {\n        return i + 1;\n    }\n}\n",
+  "methodRangeAvailable": true,
+  "methodRange": {"startOffsetUtf16":44,"endOffsetUtf16":99,"start":{"offsetUtf16":44,"line":3,"columnCodePoints":0},"end":{"offsetUtf16":99,"line":5,"columnCodePoints":5},"sourceSnapshotId":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+  "methodSource": "    public int mix(int i) {\n        return i + 1;\n    }",
+  "annotations": [{"kind":"DECLARATION","position":{"offsetUtf16":59,"line":3,"columnCodePoints":15},"targetRef":{"kind":"METHOD","originalClassDescriptor":"Lprobe/SymbolFixture;","inputIdentity":null,"originalName":"mix","originalDescriptor":"(I)I"},"precision":"EXACT","sourceSnapshotId":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}],
+  "rawDebugLines": null,
+  "classErrorCount": null,
+  "diagnostics": ["Per-input origin and discarded definitions are not verified", "Jadx does not certify complete declaration or reference coverage"],
+  "capabilities": {"source":"EXACT","declarationPositions":"PARTIAL","referenceTargets":"UNKNOWN","methodRange":"EXACT","rawDebugLines":"UNAVAILABLE","originalBytecodeOffsets":"UNAVAILABLE","classErrors":"UNKNOWN"}
+}

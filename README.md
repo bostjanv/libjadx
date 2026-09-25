@@ -2,7 +2,7 @@
 
 **LibJadx is an experimental, standalone, headless Java service for accessing [Jadx](https://github.com/skylot/jadx) from local HTTP clients.** It is intended to make reverse-engineering workflows scriptable through a versioned REST/JSON API and, in a later milestone, a Python SDK.
 
-> **Project status — early development.** Startup, native project lifecycle, jobs, explicit shutdown, and original symbol lookup are implemented. Decompiled source, search, and HTTP editing remain future work. See [Current functionality](#current-functionality) before integrating it.
+> **Project status — early development.** Startup, native project lifecycle, jobs, explicit shutdown, original symbol lookup, and Java decompilation are implemented. Search and HTTP editing remain future work. See [Current functionality](#current-functionality) before integrating it.
 
 LibJadx is an independent project built on Jadx. It is not an official Jadx component and does not provide libghidra API or protocol compatibility.
 
@@ -17,6 +17,7 @@ The implementation currently includes:
 - Native `.jadx` feasibility code and tests for project-relative inputs, mapping references, in-memory class renames/comments, preservation of selected unknown JSON fields, and a save/reopen round trip through the matching Jadx GUI.
 - Explicit native save, reload, mapping-path updates, transient pending-edit export, bounded job polling/cancellation/SSE, and requested shutdown policies.
 - Bounded listing of Jadx-visible classes and exact lookup of classes, methods, and fields by original JVM descriptors. Current aliases are separate from identity.
+- Class-oriented Java source with validated token annotations, source snapshots, and method excerpts only where the pinned Jadx metadata and boundary checks agree. Per-request mode overrides use an isolated engine.
 - Controlled startup/shutdown behavior, including bounded waiting for loader cleanup on ordinary shutdown and separate handling of fatal startup errors.
 
 **Important distinction:** Native project edits and GUI round trips are exercised by probes/tests. An explicit HTTP save exists; HTTP rename/comment editing is still planned. Some capability entries describe proven Jadx integration rather than an available endpoint.
@@ -30,6 +31,7 @@ The implementation currently includes:
 | `GET /api/v1/jobs/{id}`, `POST /api/v1/jobs/{id}/cancel`, `GET /api/v1/jobs/{id}/events` | Process-local job polling, cooperative cancellation, and SSE. |
 | `POST /api/v1/shutdown` | Graceful local shutdown with `discard` (default), `save`, or `refuse_if_dirty`; active work returns `PROJECT_BUSY`. |
 | `GET /api/v1/classes`, `POST /api/v1/symbols/resolve` | Jadx-visible class pages and exact original class/member lookup. Input provenance may be unavailable. |
+| `POST /api/v1/decompile` | Java source for an original class or method ref. Method requests include the containing class source and either a verified excerpt or an explicit range-unavailable fallback. |
 | Other planned analysis and edit routes | Structured `PROJECT_NOT_READY` while loading, a non-retryable load failure after failed initialization, or `OPERATION_NOT_IMPLEMENTED` after readiness. |
 
 Unknown paths return `NOT_FOUND`. The API contract is in [`openapi/openapi.yaml`](openapi/openapi.yaml).
@@ -70,6 +72,7 @@ curl http://127.0.0.1:18777/api/v1/status
 curl http://127.0.0.1:18777/api/v1/capabilities
 curl 'http://127.0.0.1:18777/api/v1/classes?pageSize=50'
 curl -H 'Content-Type: application/json' -d '{"ref":{"kind":"CLASS","originalClassDescriptor":"Lprobe/Sample;"}}' http://127.0.0.1:18777/api/v1/symbols/resolve
+curl -H 'Content-Type: application/json' -d '{"ref":{"kind":"CLASS","originalClassDescriptor":"Lprobe/Sample;"},"representation":"JAVA"}' http://127.0.0.1:18777/api/v1/decompile
 ```
 
 The listener is available while the project loads. Poll `/status` until it reports `READY`, or inspect the safe error information if it reports `FAILED`. A liveness response alone is not a readiness check.
@@ -110,6 +113,8 @@ Supported environment variables are `LIBJADX_PROJECT`, `LIBJADX_INPUT`, `LIBJADX
 LibJadx currently accepts only `127.0.0.1` as the bind address and provides no authentication. It is designed for trusted local use; do not expose the listener to untrusted networks or forward it through a public proxy. Paths are canonicalized, including symlinks, before allowed-root checks.
 
 Class pagination uses an owner-only cursor signing key in `$XDG_STATE_HOME/libjadx/cursor-signing.key` (default `~/.local/state/libjadx/cursor-signing.key`). This is operational state outside native `.jadx` project persistence. See [Phase 4.1 notes](docs/phase-4-symbol-identity.md) for cursor behavior.
+
+Java source is read-only and limited to 4 MiB UTF-8 per request. Source offsets are UTF-16 indices in the exact returned Java text. See [Phase 4.2 notes](docs/phase-4-decompiled-source.md) for method-range proof and metadata limits. Smali, reference-query, and search endpoints are not part of this slice.
 
 See [`docs/configuration.md`](docs/configuration.md) for startup, path handling, response-state, and shutdown details.
 

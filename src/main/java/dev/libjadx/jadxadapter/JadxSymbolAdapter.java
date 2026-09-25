@@ -10,6 +10,7 @@ import jadx.api.JadxDecompiler;
 import jadx.api.JavaClass;
 import jadx.api.JavaField;
 import jadx.api.JavaMethod;
+import jadx.api.JavaNode;
 import jadx.core.codegen.TypeGen;
 import jadx.core.dex.info.FieldInfo;
 import jadx.core.dex.info.MethodInfo;
@@ -83,6 +84,30 @@ public final class JadxSymbolAdapter {
 			}
 		}
 		return List.copyOf(found);
+	}
+
+	/** Original ref for a pinned public Java node; aliases never become identity keys. */
+	public static SymbolRef originalRef(JavaNode node) {
+		if (node instanceof JavaClass cls) return SymbolRef.classRef(descriptor(cls.getRawName()));
+		if (node instanceof JavaMethod method) {
+			MethodInfo info = method.getMethodNode().getMethodInfo();
+			return new SymbolRef(SymbolRef.Kind.METHOD, descriptor(method.getDeclaringClass().getRawName()),
+					null, info.getName(), methodDescriptor(info));
+		}
+		if (node instanceof JavaField field) {
+			FieldInfo info = field.getFieldNode().getFieldInfo();
+			return new SymbolRef(SymbolRef.Kind.FIELD, descriptor(field.getDeclaringClass().getRawName()),
+					null, info.getName(), TypeGen.signature(info.getType()));
+		}
+		return null;
+	}
+
+	public static JavaMethod matchingMethod(JavaClass cls, SymbolRef ref) {
+		if (ref.kind() != SymbolRef.Kind.METHOD) return null;
+		for (JavaMethod method : cls.getMethods()) {
+			if (ref.equals(originalRef(method))) return method;
+		}
+		return null;
 	}
 
 	private static String methodDescriptor(MethodInfo info) {

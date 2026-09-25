@@ -29,6 +29,19 @@ class OpenApiDocumentTest {
 		assertEquals("#/components/schemas/SymbolResolution", yaml.path("paths").path("/symbols/resolve")
 				.path("post").path("responses").path("200").path("content").path("application/json")
 				.path("schema").path("$ref").asText());
+		var decompile = yaml.path("paths").path("/decompile").path("post");
+		assertEquals("#/components/schemas/DecompileRequest", decompile.path("requestBody").path("content")
+				.path("application/json").path("schema").path("$ref").asText());
+		assertEquals("#/components/schemas/DecompileResult", decompile.path("responses").path("200")
+				.path("content").path("application/json").path("schema").path("$ref").asText());
+		for (String status : List.of("400", "409", "415", "422", "429", "503", "500"))
+			assertEquals("#/components/responses/ApiErrorResponse", decompile.path("responses").path(status).path("$ref").asText());
+		assertTrue(decompile.path("description").asText().contains("UTF-16"));
+		assertTrue(decompile.path("description").asText().contains("code points"));
+		assertTrue(yaml.path("components").path("schemas").path("DecompileResult").path("required").toString()
+				.contains("sourceSnapshotId"));
+		assertTrue(yaml.path("components").path("schemas").path("SourceAnnotation").path("properties")
+				.path("precision").path("const").asText().equals("EXACT"));
 		assertEquals(100, yaml.path("paths").path("/classes").path("get").path("parameters").get(0)
 				.path("schema").path("maximum").asInt());
 		for (String schema : List.of("SymbolRef", "SymbolInfo", "ClassInfo", "ClassPage", "SymbolResolveRequest", "SymbolResolution"))
@@ -86,5 +99,19 @@ class OpenApiDocumentTest {
 				"openapi/examples/job-resource-limit.json"))).path("error").path("code").asText());
 		assertTrue(yaml.path("paths").path("/project/save").path("post").path("description")
 				.asText().contains("PROJECT_BUSY"));
+		for (String file : List.of("decompile-class.json", "decompile-method.json", "decompile-method-fallback.json",
+				"decompile-partial.json", "decompile-ambiguous.json", "decompile-unavailable.json")) {
+			OpenApiExampleValidator.assertValid(yaml, "DecompileResult",
+					json.readTree(Files.readString(Path.of("openapi/examples", file))));
+		}
+		for (String file : List.of("decompile-stale.json", "decompile-busy.json", "decompile-malformed.json")) {
+			OpenApiExampleValidator.assertValid(yaml, "ErrorEnvelope",
+					json.readTree(Files.readString(Path.of("openapi/examples", file))));
+		}
+		var methodExample = json.readTree(Files.readString(Path.of("openapi/examples/decompile-method.json")));
+		var exampleRange = methodExample.path("methodRange");
+		assertEquals(methodExample.path("methodSource").asText(), methodExample.path("source").asText().substring(
+				exampleRange.path("startOffsetUtf16").asInt(), exampleRange.path("endOffsetUtf16").asInt()));
+		assertEquals(methodExample.path("sourceSnapshotId").asText(), exampleRange.path("sourceSnapshotId").asText());
 	}
 }
