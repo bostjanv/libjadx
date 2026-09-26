@@ -249,12 +249,19 @@ paths:
         content:
           application/json:
             schema: { $ref: '#/components/schemas/ReferenceQuery' }
+            examples:
+              sourceSites: { externalValue: ./examples/references-query.json }
       responses:
         '200':
           description: Typed outcome and bounded observed relationships; never exhaustive program analysis.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ReferencePage' }
+              examples:
+                methods: { externalValue: ./examples/references-method.json }
+                fields: { externalValue: ./examples/references-field.json }
+                classes: { externalValue: ./examples/references-class.json }
+                sites: { externalValue: ./examples/references-sites.json }
         '400':
           $ref: '#/components/responses/ApiErrorResponse'
         '409':
