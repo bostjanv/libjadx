@@ -12,6 +12,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.nio.file.Files;
 import java.time.Duration;
 import java.util.Base64;
 import java.util.concurrent.TimeUnit;
@@ -29,7 +30,7 @@ class StandaloneDistributionTest {
 
 	@Test
 	void installedServiceLoadsClassesAndAuthenticatesCursorsAcrossRestart() throws Exception {
-		Path script = Path.of(System.getProperty("libjadx.distributionScript"));
+		Path script = Path.of(System.getProperty("libjadx.distributionScript") + (System.getProperty("os.name").startsWith("Windows") ? ".bat" : ""));
 		Path project = Path.of("tests/fixtures/native-project/sample.jar.jadx").toAbsolutePath();
 		int port;
 		try (ServerSocket socket = new ServerSocket(0)) { port = socket.getLocalPort(); }
@@ -63,6 +64,38 @@ class StandaloneDistributionTest {
 					String.join("\0", fields).getBytes(StandardCharsets.UTF_8)) + "." + parts[1];
 			assertError(get(port, "/api/v1/classes?pageSize=1&cursor=" + encode(tampered)), 400, "INVALID_REQUEST");
 		} finally { stop(second, port); }
+	}
+
+	@Test
+	void installedReferencesAreNonemptyAndOldCursorIsStaleAfterRestart() throws Exception {
+		Path script = Path.of(System.getProperty("libjadx.distributionScript") + (System.getProperty("os.name").startsWith("Windows") ? ".bat" : ""));
+		Path jar = SymbolFixtureSupport.referenceFixture(dir);
+		Path project = dir.resolve("references.jadx");
+		Files.writeString(project, "{\"projectVersion\":1,\"files\":[\"references.jar\"]}");
+		int port;
+		try (ServerSocket socket = new ServerSocket(0)) { port = socket.getLocalPort(); }
+		var query = ReferenceEndpointsTest.request(ReferenceEndpointsTest.method("entry", "()V"), "OUTGOING").put("pageSize", 1);
+		String cursor;
+		Process first = start(script, project, port, "references-first");
+		try {
+			awaitReady(first, port);
+			var result = postReferences(port, query.toString());
+			assertEquals(200, result.statusCode(), result.body());
+			assertEquals(1, body(result).path("edges").size());
+			cursor = body(result).path("nextCursor").asText();
+			assertFalse(cursor.isBlank());
+		} finally { stop(first, port); }
+		Process second = start(script, project, port, "references-second");
+		try {
+			awaitReady(second, port);
+			assertError(postReferences(port, query.put("cursor", cursor).toString()), 409, "STALE_REVISION");
+			assertError(postReferences(port, query.put("cursor", "B" + cursor.substring(1)).toString()), 400, "INVALID_REQUEST");
+		} finally { stop(second, port); }
+	}
+	private static HttpResponse<String> postReferences(int port, String body) throws Exception {
+		return HTTP.send(HttpRequest.newBuilder(uri(port, "/api/v1/references/query"))
+				.header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofString(body)).build(),
+				HttpResponse.BodyHandlers.ofString());
 	}
 
 	private Process start(Path script, Path project, int port, String name) throws Exception {

@@ -1,6 +1,6 @@
 # Compatibility and pinned dependencies
 
-Status: Phase 4.2 Java source and metadata, updated 2026-09-25.
+Status: Phase 4.3 basic references, updated 2026-09-26.
 
 ## Jadx pin
 
@@ -59,3 +59,8 @@ JADX_GUI=/path/to/jadx-gui ./gradlew rawGuiRoundTripTest
 ```
 
 The GUI task requires the matching 1.5.6 GUI executable, `xvfb-run` and `xdotool`. The base fixture under `tests/fixtures/native-project/` was created by Jadx 1.5.6 `jadx-gui`; its second relative input, Tiny v2 mapping reference and future JSON member were added for the headless adapter probe and loaded by the matching GUI.
+
+Phase 4.3 proves bounded method/field/class relationships and missing external
+method descriptors on the owned JAR fixture. Optional source sites verify both
+caller and target. Graph mutation at unchanged logical revision is tested.
+See [reference evidence and limits](phase-4-references.md).

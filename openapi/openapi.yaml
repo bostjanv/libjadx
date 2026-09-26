@@ -224,6 +224,49 @@ paths:
                 $ref: '#/components/schemas/PendingEdits'
         'default':
           $ref: '#/components/responses/ApiErrorResponse'
+  /references/query:
+    post:
+      tags: [Symbols]
+      operationId: queryReferences
+      summary: Query bounded Jadx-reported original reference relationships
+      description: >-
+        Uses current primary settings under one conservative CLASS_READ lease.
+        CALL is a distinct observed method pair, not an invoke count or dynamic
+        dispatch closure. FIELD_USE has unknown access direction. CLASS_DEPENDENCY
+        is class-level, not a type occurrence. Coverage is always PARTIAL;
+        pageComplete only exhausts the filtered observed set. strict rejects
+        resolved queries with 409 INCOMPLETE_ANALYSIS; domain misses remain 200.
+        Source sites are optional, exact tokens with verified caller and target
+        in a P4.2 source snapshot. Original offsets are unavailable.
+        HMAC authentication precedes cursor field interpretation. Changed query
+        options or tampering return 400; authentic stale session, revision,
+        publication, settings or graph content returns 409 STALE_REVISION.
+        Limits are 10000 observed edges, 20000 sites and 4 MiB copied strings,
+        enforced during collection. These do not bound Jadx internal allocation
+        or wall time. Busy admission fails promptly with PROJECT_BUSY.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReferenceQuery' }
+      responses:
+        '200':
+          description: Typed outcome and bounded observed relationships; never exhaustive program analysis.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReferencePage' }
+        '400':
+          $ref: '#/components/responses/ApiErrorResponse'
+        '409':
+          $ref: '#/components/responses/ApiErrorResponse'
+        '415':
+          $ref: '#/components/responses/ApiErrorResponse'
+        '429':
+          $ref: '#/components/responses/ApiErrorResponse'
+        '503':
+          $ref: '#/components/responses/ApiErrorResponse'
+        '500':
+          $ref: '#/components/responses/ApiErrorResponse'
   /classes:
     get:
       tags: [Symbols]
@@ -604,6 +647,98 @@ components:
           type: array
           maxItems: 16
           items: { type: string }
+    ReferenceQuery:
+      type: object
+      additionalProperties: false
+      required: [ref, direction]
+      dependentRequired:
+        expectedSessionId: [expectedLogicalRevision]
+        expectedLogicalRevision: [expectedSessionId]
+      properties:
+        ref: { $ref: '#/components/schemas/SymbolRef' }
+        direction: { type: string, enum: [INCOMING, OUTGOING] }
+        relations:
+          type: array
+          minItems: 1
+          maxItems: 4
+          uniqueItems: true
+          items: { $ref: '#/components/schemas/ReferenceRelation' }
+        pageSize: { type: integer, minimum: 1, maximum: 100, default: 50 }
+        cursor: { type: [string, 'null'], maxLength: 4096 }
+        includeSourceSites: { type: boolean, default: false }
+        strict: { type: boolean, default: false }
+        expectedSessionId: { type: string, format: uuid }
+        expectedLogicalRevision: { type: integer, format: int64, minimum: 0 }
+      description: >-
+        Direction is always required. FIELD accepts only INCOMING/FIELD_USE;
+        CLASS accepts CLASS_DEPENDENCY; METHOD INCOMING accepts CALL and OUTGOING
+        accepts CALL/UNRESOLVED_CALL. Omitted relations selects all compatible
+        relations. Empty, repeated or incompatible relations (including unproved
+        READ/WRITE) return 400 INVALID_REQUEST. Unknown/repeated fields and bodies
+        over 64 KiB are rejected. Revision preconditions are checked after admission.
+    ReferenceRelation:
+      type: string
+      enum: [CALL, UNRESOLVED_CALL, FIELD_USE, CLASS_DEPENDENCY]
+    ReferenceSite:
+      type: object
+      additionalProperties: false
+      required: [sourceOwnerRef, sourceSnapshotId, position, precision]
+      properties:
+        sourceOwnerRef: { $ref: '#/components/schemas/SymbolRef' }
+        sourceSnapshotId: { type: string, pattern: '^sha256:[0-9a-f]{64}$' }
+        position: { $ref: '#/components/schemas/SourcePoint' }
+        precision: { const: EXACT }
+    ReferenceEdge:
+      type: object
+      additionalProperties: false
+      required: [sourceRef, targetRef, relation, resolution, evidence, sourceSites, sourceSiteCoverage, originalOffset]
+      properties:
+        sourceRef: { $ref: '#/components/schemas/SymbolRef' }
+        targetRef: { $ref: '#/components/schemas/SymbolRef' }
+        relation: { $ref: '#/components/schemas/ReferenceRelation' }
+        resolution: { type: string, enum: [RESOLVED, UNRESOLVED, OBSERVED] }
+        evidence:
+          type: string
+          enum: [JADX_METHOD_USED, JADX_METHOD_USE_IN, JADX_METHOD_UNRESOLVED_USED, JADX_FIELD_USE_IN, JADX_CLASS_DEPENDENCY, JADX_CLASS_USE_IN]
+        sourceSites: { type: array, maxItems: 20000, items: { $ref: '#/components/schemas/ReferenceSite' } }
+        sourceSiteCoverage: { type: string, enum: [PARTIAL, UNAVAILABLE] }
+        originalOffset: { type: 'null' }
+      description: OBSERVED means a reported node has no verified standalone visible declaration; per-input provenance is always unavailable.
+    ReferenceCapabilities:
+      type: object
+      additionalProperties: false
+      required: [resolvedTarget, sourceLocation, originalOffset, referenceKind, globalCoverage]
+      properties:
+        resolvedTarget: { $ref: '#/components/schemas/SourceAvailability' }
+        sourceLocation: { $ref: '#/components/schemas/SourceAvailability' }
+        originalOffset: { const: UNAVAILABLE }
+        referenceKind: { const: PARTIAL }
+        globalCoverage: { const: UNKNOWN }
+    ReferencePage:
+      type: object
+      additionalProperties: false
+      required: [outcome, queriedRef, direction, candidates, sessionId, logicalRevision, snapshotId, scope, coverage, edges, nextCursor, pageComplete, capabilities, diagnostics]
+      properties:
+        outcome: { type: string, enum: [RESOLVED, NOT_FOUND, AMBIGUOUS, PROVENANCE_UNAVAILABLE] }
+        queriedRef: { $ref: '#/components/schemas/SymbolRef' }
+        direction: { type: string, enum: [INCOMING, OUTGOING] }
+        candidates: { type: array, maxItems: 16, items: { $ref: '#/components/schemas/SymbolInfo' } }
+        sessionId: { type: string, format: uuid }
+        logicalRevision: { type: integer, format: int64, minimum: 0 }
+        snapshotId: { type: [string, 'null'], pattern: '^sha256:[0-9a-f]{64}$' }
+        scope: { const: JADX_REPORTED }
+        coverage:
+          type: object
+          additionalProperties: false
+          required: [status, reason]
+          properties:
+            status: { const: PARTIAL }
+            reason: { type: string, maxLength: 512 }
+        edges: { type: array, maxItems: 100, items: { $ref: '#/components/schemas/ReferenceEdge' } }
+        nextCursor: { type: [string, 'null'], maxLength: 4096 }
+        pageComplete: { type: boolean }
+        capabilities: { $ref: '#/components/schemas/ReferenceCapabilities' }
+        diagnostics: { type: array, maxItems: 16, items: { type: string, maxLength: 512 } }
     DecompileRequest:
       type: object
       additionalProperties: false

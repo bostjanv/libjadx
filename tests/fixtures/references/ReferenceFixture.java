@@ -25,3 +25,7 @@ class ReferenceBase { public void invoke() { } }
 class ReferenceOther { public void work() { } }
 class ReflectiveOnly { }
 class MissingDependency { public static String external(String input) { return input; } }
+class ReferenceLate {
+    public void invoke(ReferenceFixture fixture) { bridge(fixture); }
+    private static void bridge(ReferenceFixture fixture) { fixture.helper(); }
+}

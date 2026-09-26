@@ -1,5 +1,16 @@
 # Experimental API changelog
 
+## 2026-09-26 — Phase 4.3 reference navigation
+
+- Added `POST /api/v1/references/query` for original method callers/callees,
+  unresolved method descriptors, field users and class dependencies.
+- Optional verified P4.2 source sites retain caller, target and source snapshot
+  identity. Coverage is partial; read/write directions and offsets are unavailable.
+- Added bounded content-hashed snapshots and authenticated cursors which become
+  stale even when Jadx graph processing changes content at one logical revision.
+- Strict resolved queries return INCOMPLETE_ANALYSIS; domain misses remain 200.
+  Native state, P4.2 source contracts and generated SDK scope are unchanged.
+
 ## 2026-09-25 — Phase 4.2 class Java source
 
 - Added `POST /api/v1/decompile` for original class and method refs. Method

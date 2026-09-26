@@ -1,0 +1,11 @@
+{
+  "ref": {
+    "kind": "METHOD",
+    "originalClassDescriptor": "Lprobe/ReferenceFixture;",
+    "originalName": "entry",
+    "originalDescriptor": "()V"
+  },
+  "direction": "OUTGOING",
+  "includeSourceSites": true,
+  "pageSize": 50
+}

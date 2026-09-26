@@ -60,3 +60,72 @@ no build-time upstream checkout is needed. Reproduce with:
 ```sh
 ./gradlew test --offline --tests dev.libjadx.app.JadxReferenceProbeTest
 ```
+
+## Delivered contract and bounds
+
+`POST /api/v1/references/query` requires an original `ref` and explicit
+`direction` for every symbol kind. Fields accept only INCOMING. Compatible
+relations are CALL (methods), UNRESOLVED_CALL (outgoing methods), FIELD_USE
+(incoming fields), and CLASS_DEPENDENCY (classes). Unknown READ/WRITE filters
+are rejected with 400; they never silently erase FIELD_USE results.
+
+Primary effective settings are used. One `CLASS_READ` lease captures engine,
+revision, publication epoch and settings before resolution or processing.
+The requested owner is processed; optional sites process only reported caller
+owners. Jadx itself may process dependencies. There is no LibJadx global crawl,
+background job, persistent graph or retained query cache. There is no mode
+parameter. Hidden graph nodes are reported as OBSERVED where suppression is
+known, with original refs retained. Provenance is unavailable independently
+of whether the graph endpoint is resolved.
+
+Source sites require P4.2 exact target metadata, its source snapshot algorithm,
+a verified method range and matching `getNodeAt` caller metadata. Repeated
+calls can have two sites on one edge. Overloaded descriptors stay separate.
+Missing external methods, synthetic lambdas without a method range, and
+unverified inlined boundaries have no speculative sites. Every offset is null.
+Even with sites, source-site coverage remains PARTIAL. All resolved strict
+queries return 409 INCOMPLETE_ANALYSIS because global coverage is unproved;
+NOT_FOUND, AMBIGUOUS and PROVENANCE_UNAVAILABLE stay typed 200 outcomes.
+
+The collector rejects above 10,000 observed edges, 20,000 sites or a conservative
+4 MiB copied-string budget (six bytes per UTF-16 code unit, including identity
+encoding overhead). Earlier string rejection is possible. Source extraction
+retains P4.2's separate 4 MiB/source and 20,000 annotation limits. These ceilings
+do not constrain Jadx's internal allocations or guarantee a wall-time deadline.
+No truncated success is returned. Diagnostics are fixed/bounded to 16 × 512.
+
+Pages contain 1–100 requested edges (default 50). The full observed filtered
+result is copied, deduplicated and sorted by original relation/source/target,
+resolution and verified site identity. A versioned length-prefixed UTF-16BE
+encoding hashes state, normalized options and full edge evidence/sites.
+The snapshot and HMAC cursor bind session, logical revision, engine publication,
+effective settings, filters and last raw ordering key. The existing private
+operational key is reused, with `libjadx-references-v1` endpoint separation.
+Signature verification precedes decoding any payload field. Follow-up requests
+recompute content; changes return STALE_REVISION, including changes without a
+logical edit. A changed page size/filter returns 400. Cursors are capped at
+4096 characters; an unusually long ordering key that cannot fit returns
+RESOURCE_LIMIT. `pageComplete` only exhausts this observed result.
+
+`ReferenceEndpointsTest.graphObservationChangesAtSameLogicalRevision` processes
+`ReferenceLate` through `/decompile` between pages. Jadx changes the reported
+helper users while logical revision remains equal; the old cursor is rejected.
+This is a real pinned graph change, not injected mock data.
+
+Native mappings and unsaved rename/comment tests keep original graph refs
+unchanged, update snapshot identity and leave project/mapping bytes untouched.
+Queries do not alter dirty state or logical revision. Native save publication,
+reload, settings rebuild, edits and restart invalidate cursors. The native-save
+monitor race returns PROJECT_BUSY within two seconds, before any monitor-taking
+repository access. Installed tests launch the headless distribution and verify
+nonempty references and authenticated stale/tampered cursors across restart.
+
+## Remaining limits and next milestone
+
+Evidence is from owned JVM JAR inputs, not a complete DEX precision audit.
+Recursive self edges can be missing, native Jadx optimization can prune or
+redirect graph relationships, and no complete call graph or dispatch closure is
+claimed. READ/WRITE, override navigation, original offsets, exact per-input
+provenance and reflection inference are not exposed. Python transport remains
+Phase 6; this PR introduces no SDK. After review and merge, Phase 5 incremental
+search and supported edits is the next milestone.

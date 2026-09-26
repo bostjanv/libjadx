@@ -1,0 +1,136 @@
+{
+  "outcome" : "RESOLVED",
+  "queriedRef" : {
+    "kind" : "METHOD",
+    "originalClassDescriptor" : "Lprobe/ReferenceFixture;",
+    "inputIdentity" : null,
+    "originalName" : "entry",
+    "originalDescriptor" : "()V"
+  },
+  "direction" : "OUTGOING",
+  "candidates" : [ ],
+  "sessionId" : "afa771fe-f2b0-48f5-acd0-4a428a470498",
+  "logicalRevision" : 0,
+  "snapshotId" : "sha256:718c09d7617ca69eaaeab6028893ca5c4ac162c70dfc2c15db5a651b2189aa34",
+  "scope" : "JADX_REPORTED",
+  "coverage" : {
+    "status" : "PARTIAL",
+    "reason" : "Jadx usage graph and discarded/original input coverage are not proved exhaustive"
+  },
+  "edges" : [ {
+    "sourceRef" : {
+      "kind" : "METHOD",
+      "originalClassDescriptor" : "Lprobe/ReferenceFixture;",
+      "inputIdentity" : null,
+      "originalName" : "entry",
+      "originalDescriptor" : "()V"
+    },
+    "targetRef" : {
+      "kind" : "METHOD",
+      "originalClassDescriptor" : "Lprobe/ReferenceFixture;",
+      "inputIdentity" : null,
+      "originalName" : "helper",
+      "originalDescriptor" : "()V"
+    },
+    "relation" : "CALL",
+    "resolution" : "RESOLVED",
+    "evidence" : "JADX_METHOD_USED",
+    "sourceSites" : [ ],
+    "sourceSiteCoverage" : "UNAVAILABLE",
+    "originalOffset" : null
+  }, {
+    "sourceRef" : {
+      "kind" : "METHOD",
+      "originalClassDescriptor" : "Lprobe/ReferenceFixture;",
+      "inputIdentity" : null,
+      "originalName" : "entry",
+      "originalDescriptor" : "()V"
+    },
+    "targetRef" : {
+      "kind" : "METHOD",
+      "originalClassDescriptor" : "Lprobe/ReferenceFixture;",
+      "inputIdentity" : null,
+      "originalName" : "helper",
+      "originalDescriptor" : "(I)I"
+    },
+    "relation" : "CALL",
+    "resolution" : "RESOLVED",
+    "evidence" : "JADX_METHOD_USED",
+    "sourceSites" : [ ],
+    "sourceSiteCoverage" : "UNAVAILABLE",
+    "originalOffset" : null
+  }, {
+    "sourceRef" : {
+      "kind" : "METHOD",
+      "originalClassDescriptor" : "Lprobe/ReferenceFixture;",
+      "inputIdentity" : null,
+      "originalName" : "entry",
+      "originalDescriptor" : "()V"
+    },
+    "targetRef" : {
+      "kind" : "METHOD",
+      "originalClassDescriptor" : "Lprobe/ReferenceOther;",
+      "inputIdentity" : null,
+      "originalName" : "<init>",
+      "originalDescriptor" : "()V"
+    },
+    "relation" : "CALL",
+    "resolution" : "RESOLVED",
+    "evidence" : "JADX_METHOD_USED",
+    "sourceSites" : [ ],
+    "sourceSiteCoverage" : "UNAVAILABLE",
+    "originalOffset" : null
+  }, {
+    "sourceRef" : {
+      "kind" : "METHOD",
+      "originalClassDescriptor" : "Lprobe/ReferenceFixture;",
+      "inputIdentity" : null,
+      "originalName" : "entry",
+      "originalDescriptor" : "()V"
+    },
+    "targetRef" : {
+      "kind" : "METHOD",
+      "originalClassDescriptor" : "Lprobe/ReferenceOther;",
+      "inputIdentity" : null,
+      "originalName" : "work",
+      "originalDescriptor" : "()V"
+    },
+    "relation" : "CALL",
+    "resolution" : "RESOLVED",
+    "evidence" : "JADX_METHOD_USED",
+    "sourceSites" : [ ],
+    "sourceSiteCoverage" : "UNAVAILABLE",
+    "originalOffset" : null
+  }, {
+    "sourceRef" : {
+      "kind" : "METHOD",
+      "originalClassDescriptor" : "Lprobe/ReferenceFixture;",
+      "inputIdentity" : null,
+      "originalName" : "entry",
+      "originalDescriptor" : "()V"
+    },
+    "targetRef" : {
+      "kind" : "METHOD",
+      "originalClassDescriptor" : "Lprobe/MissingDependency;",
+      "inputIdentity" : null,
+      "originalName" : "external",
+      "originalDescriptor" : "(Ljava/lang/String;)Ljava/lang/String;"
+    },
+    "relation" : "UNRESOLVED_CALL",
+    "resolution" : "UNRESOLVED",
+    "evidence" : "JADX_METHOD_UNRESOLVED_USED",
+    "sourceSites" : [ ],
+    "sourceSiteCoverage" : "UNAVAILABLE",
+    "originalOffset" : null
+  } ],
+  "nextCursor" : null,
+  "pageComplete" : true,
+  "capabilities" : {
+    "resolvedTarget" : "PARTIAL",
+    "sourceLocation" : "UNAVAILABLE",
+    "originalOffset" : "UNAVAILABLE",
+    "referenceKind" : "PARTIAL",
+    "globalCoverage" : "UNKNOWN"
+  },
+  "diagnostics" : [ "CALL is a distinct Jadx-reported method pair, not an invoke count or dynamic dispatch closure", "Usage graph may omit recursive, optimized, unresolved or discarded input relationships; coverage is not exhaustive", "FIELD_USE access direction, original bytecode offsets and per-input provenance are unavailable", "Source sites require matching original target, exact P4.2 token/range and enclosing caller metadata; absent sites are unavailable", "Only current primary settings are used; no native edits or save are performed" ]
+}
