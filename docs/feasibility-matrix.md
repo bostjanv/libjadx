@@ -40,3 +40,11 @@ or a persistent representation for decompilation mode.
 ## Phase 0 exit status
 
 **Phase 0 exit gate passed for the first implementation slice.** A matching-GUI native fixture, two relative inputs, a native mapping reference, headless class rename/comment save, unknown-field retention, and actual GUI open/save/headless reopen are covered. Advanced behavior remains limited or unknown as listed above; keep those capability limits explicit and probe them before implementing corresponding API features.
+
+## Phase 4.3 reference probe
+
+`JadxReferenceProbeTest` proves distinct incoming/outgoing method pairs, field
+users, class dependencies and omitted-dependency original method descriptors
+on an owned JAR. Graphs exist before owner decompilation, but may be pruned by
+later processing. Recursive self edges can be absent. READ/WRITE, exhaustive
+coverage and original offsets remain unavailable. See [reference evidence](phase-4-references.md).

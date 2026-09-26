@@ -21,6 +21,21 @@ final class SymbolFixtureSupport {
 		return compile(root, Path.of("tests/fixtures/source/SourceFixture.java"), "source.jar");
 	}
 
+	static Path referenceFixture(Path root) throws IOException {
+		Path full = compile(root, Path.of("tests/fixtures/references/ReferenceFixture.java"), "references-full.jar");
+		Path jar = root.resolve("references.jar");
+		try (var input = new java.util.jar.JarFile(full.toFile());
+				var output = new JarOutputStream(Files.newOutputStream(jar))) {
+			for (var entry : input.stream().toList()) {
+				if (entry.getName().equals("probe/MissingDependency.class")) continue;
+				output.putNextEntry(new JarEntry(entry.getName()));
+				try (var bytes = input.getInputStream(entry)) { bytes.transferTo(output); }
+				output.closeEntry();
+			}
+		}
+		return jar;
+	}
+
 	/** A valid, synthetic JVM class with no members; Jadx suppresses its Java output. */
 	static Path syntheticEmptyJar(Path root) throws IOException {
 		ByteArrayOutputStream bytes = new ByteArrayOutputStream();
@@ -88,7 +103,7 @@ final class SymbolFixtureSupport {
 		return jar;
 	}
 
-	private static Path compile(Path root, Path source, String filename) throws IOException {
+	static Path compile(Path root, Path source, String filename) throws IOException {
 		Path classes = Files.createDirectories(root.resolve("compiled"));
 		int result = ToolProvider.getSystemJavaCompiler().run(null, null, null,
 				"-d", classes.toString(), source.toString());
