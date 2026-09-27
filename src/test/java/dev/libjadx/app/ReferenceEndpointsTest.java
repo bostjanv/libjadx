@@ -56,7 +56,7 @@ class ReferenceEndpointsTest {
             JsonNode helperEdge = null;
             for (var edge : withSites.path("edges")) if (edge.path("targetRef").path("originalName").asText().equals("helper")
                     && edge.path("targetRef").path("originalDescriptor").asText().equals("()V")) helperEdge = edge;
-            assertNotNull(helperEdge); assertEquals(2, helperEdge.path("sourceSites").size());
+            assertNotNull(helperEdge); assertEquals(8, helperEdge.path("sourceSites").size());
             JsonNode source = JSON.readTree(post(server, "/decompile", "{\"ref\":" + JSON.writeValueAsString(method("entry", "()V")) + "}").body());
             for (var site : helperEdge.path("sourceSites")) {
                 assertEquals(source.path("sourceSnapshotId"), site.path("sourceSnapshotId"));
@@ -64,6 +64,17 @@ class ReferenceEndpointsTest {
             }
             var fieldRequest = request(field, "INCOMING").put("includeSourceSites", true);
             assertTrue(success(server, fieldRequest).path("edges").toString().contains("\"precision\":\"EXACT\""));
+            entry.put("pageSize", 1);
+            JsonNode sitePage = success(server, entry);
+            assertEquals("helper", sitePage.path("edges").get(0).path("targetRef").path("originalName").asText());
+            assertEquals(8, sitePage.path("edges").get(0).path("sourceSites").size());
+            String compactCursor = sitePage.path("nextCursor").asText();
+            assertTrue(compactCursor.length() < 1024, "Eight verified sites must use a compact cursor");
+            entry.put("cursor", compactCursor);
+            JsonNode nextSitePage = success(server, entry);
+            assertNotEquals(sitePage.path("edges"), nextSitePage.path("edges"));
+            assertEquals(sitePage.path("snapshotId"), nextSitePage.path("snapshotId"));
+            entry.remove("cursor");
             entry.put("includeSourceSites", false).put("pageSize", 1);
             JsonNode first = success(server, entry);
             String token = first.path("nextCursor").asText(); assertFalse(token.isEmpty());
@@ -243,7 +254,7 @@ class ReferenceEndpointsTest {
             var page=success(server,q);
             for(var edge:page.path("edges")) {
                 if(edge.path("targetRef").path("originalName").asText().equals("helper"))
-                    assertEquals(edge.path("targetRef").path("originalDescriptor").asText().equals("()V")?2:1,edge.path("sourceSites").size());
+                    assertEquals(edge.path("targetRef").path("originalDescriptor").asText().equals("()V")?8:1,edge.path("sourceSites").size());
                 if(edge.path("relation").asText().equals("UNRESOLVED_CALL")) assertEquals(0,edge.path("sourceSites").size());
             }
             var incoming=success(server,request(method("helper","()V"),"INCOMING").put("includeSourceSites",true));

@@ -8,6 +8,8 @@
   identity. Coverage is partial; read/write directions and offsets are unavailable.
 - Added bounded content-hashed snapshots and authenticated cursors which become
   stale even when Jadx graph processing changes content at one logical revision.
+- Cursors use a fixed-size last-edge digest, so repeated verified call sites
+  remain pageable. One request reuses caller source metadata across its callees.
 - Strict resolved queries return INCOMPLETE_ANALYSIS; domain misses remain 200.
   Native state, P4.2 source contracts and generated SDK scope are unchanged.
 

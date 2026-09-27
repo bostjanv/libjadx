@@ -13,6 +13,18 @@ public final class JadxReferenceAdapter {
     private JadxReferenceAdapter() { }
     public static List<ReferenceEdge> extract(JadxDecompiler jadx, JavaClass cls, ReferenceQuery query,
             String session, long revision, long epoch, String settings) {
+        return extract(jadx, cls, query, session, revision, epoch, settings, JadxSourceAdapter::extract);
+    }
+
+    @FunctionalInterface
+    interface SourceExtractor {
+        JadxSourceAdapter.SourceData extract(JadxDecompiler jadx, JavaClass caller, SymbolRef callerRef,
+                boolean includeAnnotations, String session, long revision, long epoch, String settings);
+    }
+
+    /** Package-private reader seam lets a real-Jadx test count full source extractions. */
+    static List<ReferenceEdge> extract(JadxDecompiler jadx, JavaClass cls, ReferenceQuery query,
+            String session, long revision, long epoch, String settings, SourceExtractor sourceExtractor) {
         // Match P4.1 member resolution timing and establish optimized owner state.
         cls.getCodeInfo();
         List<ReferenceEdge> edges = new ArrayList<>();
@@ -43,22 +55,34 @@ public final class JadxReferenceAdapter {
                 add(edges, budget, incoming ? other : cls, incoming ? cls : other, CLASS_DEPENDENCY,
                         incoming ? JADX_CLASS_USE_IN : JADX_CLASS_DEPENDENCY);
         }
-        if (query.includeSourceSites()) {
+        if (query.includeSourceSites() && ref.kind() != SymbolRef.Kind.CLASS) {
+            ClassLookup classes = new ClassLookup(jadx);
             // Process only reported caller owners, never a whole-project traversal.
             // Re-extract graph afterwards: source generation can prune Jadx's relationships.
+            Set<JavaClass> processedOwners = new HashSet<>();
             for (var edge : List.copyOf(edges)) if (edge.sourceRef().kind() == SymbolRef.Kind.METHOD) {
-                JavaClass caller = uniqueClass(jadx, edge.sourceRef());
-                if (caller != null) caller.getOriginalTopParentClass().getCodeInfo();
+                JavaClass caller = classes.unique(edge.sourceRef());
+                if (caller != null) {
+                    JavaClass owner = caller.getOriginalTopParentClass();
+                    if (processedOwners.add(owner)) owner.getCodeInfo();
+                }
             }
             var withoutSites = new ReferenceQuery(ref, query.direction(), query.relations(), query.pageSize(), null,
                     false, false, null, null);
             edges = new ArrayList<>(extract(jadx, cls, withoutSites, session, revision, epoch, settings));
             budget = new ReferenceSnapshot.Budget();
             for (var edge : edges) budget.edge(edge.sourceRef(), edge.targetRef());
+            Map<SymbolRef, Map<SymbolRef, List<ReferenceEdge.Site>>> sitesByCaller = new HashMap<>();
             for (int i = 0; i < edges.size(); i++) {
                 var edge = edges.get(i);
                 if (!query.relations().contains(edge.relation())) continue;
-                var sites = sites(jadx, edge, session, revision, epoch, settings, budget);
+                List<ReferenceEdge.Site> sites = List.of();
+                if (edge.relation() == CALL || edge.relation() == FIELD_USE) {
+                    sites = sitesByCaller.computeIfAbsent(edge.sourceRef(), callerRef ->
+                            sitesByTarget(jadx, classes, callerRef, session, revision, epoch, settings, sourceExtractor))
+                            .getOrDefault(edge.targetRef(), List.of());
+                    for (var site : sites) budget.site(site);
+                }
                 edges.set(i, new ReferenceEdge(edge.sourceRef(), edge.targetRef(), edge.relation(), edge.resolution(),
                         edge.evidence(), sites, sites.isEmpty() ? "UNAVAILABLE" : "PARTIAL", null));
             }
@@ -77,29 +101,43 @@ public final class JadxReferenceAdapter {
                 || target.getDeclaringClass() != null && target.getDeclaringClass().isNoCode();
         edges.add(new ReferenceEdge(from, to, relation, hidden ? OBSERVED : RESOLVED, evidence, List.of(), "UNAVAILABLE", null));
     }
-    private static JavaClass uniqueClass(JadxDecompiler jadx, SymbolRef ref) {
-        JavaClass cls = JadxSymbolAdapter.visibleClass(jadx, ref.originalClassDescriptor(), 0);
-        return JadxSymbolAdapter.visibleClass(jadx, ref.originalClassDescriptor(), 1) == null ? cls : null;
+    private static final class ClassLookup {
+        private final Map<String, JavaClass> unique = new HashMap<>();
+        private final Set<String> ambiguous = new HashSet<>();
+
+        ClassLookup(JadxDecompiler jadx) {
+            for (JavaClass cls : jadx.getClassesWithInners()) {
+                String descriptor = JadxSymbolAdapter.descriptor(cls.getRawName());
+                if (unique.putIfAbsent(descriptor, cls) != null) ambiguous.add(descriptor);
+            }
+        }
+
+        JavaClass unique(SymbolRef ref) {
+            String descriptor = ref.originalClassDescriptor();
+            return ambiguous.contains(descriptor) ? null : unique.get(descriptor);
+        }
     }
-    private static List<ReferenceEdge.Site> sites(JadxDecompiler jadx, ReferenceEdge edge, String session,
-            long revision, long epoch, String settings, ReferenceSnapshot.Budget budget) {
-        if (edge.relation() != CALL && edge.relation() != FIELD_USE) return List.of();
-        JavaClass caller = uniqueClass(jadx, edge.sourceRef());
-        if (caller == null || caller.isNoCode()) return List.of();
-        JavaMethod method = JadxSymbolAdapter.matchingMethod(caller, edge.sourceRef());
-        if (method == null) return List.of();
-        var data = JadxSourceAdapter.extract(jadx, caller, edge.sourceRef(), true, session, revision, epoch, settings);
-        if (data.methodRange() == null) return List.of();
+
+    private static Map<SymbolRef, List<ReferenceEdge.Site>> sitesByTarget(JadxDecompiler jadx, ClassLookup classes,
+            SymbolRef callerRef, String session, long revision, long epoch, String settings,
+            SourceExtractor sourceExtractor) {
+        JavaClass caller = classes.unique(callerRef);
+        if (caller == null || caller.isNoCode()) return Map.of();
+        JavaMethod method = JadxSymbolAdapter.matchingMethod(caller, callerRef);
+        if (method == null) return Map.of();
+        var data = sourceExtractor.extract(jadx, caller, callerRef, true, session, revision, epoch, settings);
+        if (data.methodRange() == null) return Map.of();
         var metadata = caller.getTopParentClass().getCodeInfo().getCodeMetadata();
-        List<ReferenceEdge.Site> result = new ArrayList<>();
+        Map<SymbolRef, List<ReferenceEdge.Site>> byTarget = new HashMap<>();
         for (var annotation : data.annotations()) {
             int offset = annotation.position().offsetUtf16();
-            if (!annotation.kind().equals("REFERENCE") || !annotation.targetRef().equals(edge.targetRef())
+            if (!annotation.kind().equals("REFERENCE")
                     || offset < data.methodRange().startOffsetUtf16() || offset >= data.methodRange().endOffsetUtf16()
                     || metadata.getNodeAt(offset) != method.getCodeNodeRef()) continue;
             var site = new ReferenceEdge.Site(data.ownerRef(), data.sourceSnapshotId(), annotation.position(), "EXACT");
-            budget.site(site); result.add(site);
+            byTarget.computeIfAbsent(annotation.targetRef(), ignored -> new ArrayList<>()).add(site);
         }
-        return List.copyOf(result);
+        byTarget.replaceAll((target, sites) -> List.copyOf(sites));
+        return Map.copyOf(byTarget);
     }
 }

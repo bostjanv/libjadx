@@ -9,9 +9,9 @@
   },
   "direction" : "OUTGOING",
   "candidates" : [ ],
-  "sessionId" : "afa771fe-f2b0-48f5-acd0-4a428a470498",
+  "sessionId" : "c7b8a199-4054-4c47-96de-155cfb5450c6",
   "logicalRevision" : 0,
-  "snapshotId" : "sha256:84fb96a0511a224c577631a53702d5ae5de4c53a351026253dc0adc1f361cfe4",
+  "snapshotId" : "sha256:74a7d1bb8c31d3057c2be2b50c3fd343c2f3e302d49c1a2c824bdd01db3c6458",
   "scope" : "JADX_REPORTED",
   "coverage" : {
     "status" : "PARTIAL",

@@ -20,6 +20,8 @@ public final class ReferenceSnapshot {
     private final String queryHash;
     private final String id;
     private final byte[] key;
+    private final Map<String, Integer> edgePositionByDigest;
+    private final List<String> edgeDigests;
 
     public ReferenceSnapshot(List<ReferenceEdge> observed, ReferenceQuery query, String session, long revision,
             long epoch, String settings, byte[] key) {
@@ -30,7 +32,19 @@ public final class ReferenceSnapshot {
         state = hash(List.of(DOMAIN, session, Long.toString(revision), Long.toString(epoch), settings));
         queryHash = queryHash(query);
         List<String> fields = new ArrayList<>(List.of(DOMAIN, state, queryHash));
-        for (var edge : edges) fields.add(orderingKey(edge));
+        Map<String, Integer> positions = new HashMap<>();
+        List<String> digests = new ArrayList<>(edges.size());
+        for (int i = 0; i < edges.size(); i++) {
+            String fullKey = orderingKey(edges.get(i));
+            fields.add(fullKey); // Full site identity remains part of the content snapshot.
+            String digest = edgeDigest(fullKey);
+            digests.add(digest);
+            if (positions.putIfAbsent(digest, i) != null) {
+                throw new IllegalStateException("Reference edge digest collision");
+            }
+        }
+        edgePositionByDigest = Map.copyOf(positions);
+        edgeDigests = List.copyOf(digests);
         id = hash(fields);
     }
     public String id() { return id; }
@@ -41,12 +55,12 @@ public final class ReferenceSnapshot {
             if (!state.equals(cursor.state)) throw new StaleReferenceException();
             if (!queryHash.equals(cursor.queryHash)) throw new IllegalArgumentException("Cursor query options changed");
             if (!id.equals(cursor.snapshot)) throw new StaleReferenceException();
-            while (from < edges.size() && !orderingKey(edges.get(from)).equals(cursor.last)) from++;
-            if (from == edges.size()) throw new IllegalArgumentException("Cursor ordering key is absent");
-            from++;
+            Integer lastPosition = edgePositionByDigest.get(cursor.last);
+            if (lastPosition == null) throw new IllegalArgumentException("Cursor edge is absent");
+            from = lastPosition + 1;
         }
         int to = Math.min(edges.size(), from + query.pageSize());
-        String next = to < edges.size() ? encode(new Cursor(state, queryHash, id, orderingKey(edges.get(to - 1)))) : null;
+        String next = to < edges.size() ? encode(new Cursor(state, queryHash, id, edgeDigests.get(to - 1))) : null;
         return new Slice(edges.subList(from, to), next);
     }
     public static Cursor authenticate(String token, byte[] key) {
@@ -122,6 +136,9 @@ public final class ReferenceSnapshot {
         try {
             Mac mac = Mac.getInstance("HmacSHA256"); mac.init(new SecretKeySpec(key, "HmacSHA256")); return mac.doFinal(raw);
         } catch (Exception impossible) { throw new IllegalStateException(impossible); }
+    }
+    private static String edgeDigest(String fullKey) {
+        return hash(List.of("libjadx-reference-edge-v1", fullKey));
     }
     public record Cursor(String state, String queryHash, String snapshot, String last) { }
     public record Slice(List<ReferenceEdge> edges, String nextCursor) { public Slice { edges = List.copyOf(edges); } }

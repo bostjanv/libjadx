@@ -9,9 +9,9 @@
   },
   "direction" : "OUTGOING",
   "candidates" : [ ],
-  "sessionId" : "afa771fe-f2b0-48f5-acd0-4a428a470498",
+  "sessionId" : "c7b8a199-4054-4c47-96de-155cfb5450c6",
   "logicalRevision" : 0,
-  "snapshotId" : "sha256:84e2a5fe70ce22ade35a773785f05ee84c2a3c7c3a9a3ac077aebc7f2352c29d",
+  "snapshotId" : "sha256:99f65203b78836eac4cdfc07a1d952a7536c9516407143b3429f8f1e67124384",
   "scope" : "JADX_REPORTED",
   "coverage" : {
     "status" : "PARTIAL",
@@ -43,7 +43,7 @@
         "originalName" : null,
         "originalDescriptor" : null
       },
-      "sourceSnapshotId" : "sha256:ae226bc0102a0eb46705e4558e5aa5a34d87d2661da8f3b8759fd3031f875616",
+      "sourceSnapshotId" : "sha256:c83cef33dc16afa4bf7737b0c27da0960c0e43fd0caf0e367554f7a5f0433460",
       "position" : {
         "offsetUtf16" : 287,
         "line" : 10,
@@ -58,10 +58,100 @@
         "originalName" : null,
         "originalDescriptor" : null
       },
-      "sourceSnapshotId" : "sha256:ae226bc0102a0eb46705e4558e5aa5a34d87d2661da8f3b8759fd3031f875616",
+      "sourceSnapshotId" : "sha256:c83cef33dc16afa4bf7737b0c27da0960c0e43fd0caf0e367554f7a5f0433460",
       "position" : {
         "offsetUtf16" : 305,
         "line" : 11,
+        "columnCodePoints" : 8
+      },
+      "precision" : "EXACT"
+    }, {
+      "sourceOwnerRef" : {
+        "kind" : "CLASS",
+        "originalClassDescriptor" : "Lprobe/ReferenceFixture;",
+        "inputIdentity" : null,
+        "originalName" : null,
+        "originalDescriptor" : null
+      },
+      "sourceSnapshotId" : "sha256:c83cef33dc16afa4bf7737b0c27da0960c0e43fd0caf0e367554f7a5f0433460",
+      "position" : {
+        "offsetUtf16" : 323,
+        "line" : 12,
+        "columnCodePoints" : 8
+      },
+      "precision" : "EXACT"
+    }, {
+      "sourceOwnerRef" : {
+        "kind" : "CLASS",
+        "originalClassDescriptor" : "Lprobe/ReferenceFixture;",
+        "inputIdentity" : null,
+        "originalName" : null,
+        "originalDescriptor" : null
+      },
+      "sourceSnapshotId" : "sha256:c83cef33dc16afa4bf7737b0c27da0960c0e43fd0caf0e367554f7a5f0433460",
+      "position" : {
+        "offsetUtf16" : 341,
+        "line" : 13,
+        "columnCodePoints" : 8
+      },
+      "precision" : "EXACT"
+    }, {
+      "sourceOwnerRef" : {
+        "kind" : "CLASS",
+        "originalClassDescriptor" : "Lprobe/ReferenceFixture;",
+        "inputIdentity" : null,
+        "originalName" : null,
+        "originalDescriptor" : null
+      },
+      "sourceSnapshotId" : "sha256:c83cef33dc16afa4bf7737b0c27da0960c0e43fd0caf0e367554f7a5f0433460",
+      "position" : {
+        "offsetUtf16" : 359,
+        "line" : 14,
+        "columnCodePoints" : 8
+      },
+      "precision" : "EXACT"
+    }, {
+      "sourceOwnerRef" : {
+        "kind" : "CLASS",
+        "originalClassDescriptor" : "Lprobe/ReferenceFixture;",
+        "inputIdentity" : null,
+        "originalName" : null,
+        "originalDescriptor" : null
+      },
+      "sourceSnapshotId" : "sha256:c83cef33dc16afa4bf7737b0c27da0960c0e43fd0caf0e367554f7a5f0433460",
+      "position" : {
+        "offsetUtf16" : 377,
+        "line" : 15,
+        "columnCodePoints" : 8
+      },
+      "precision" : "EXACT"
+    }, {
+      "sourceOwnerRef" : {
+        "kind" : "CLASS",
+        "originalClassDescriptor" : "Lprobe/ReferenceFixture;",
+        "inputIdentity" : null,
+        "originalName" : null,
+        "originalDescriptor" : null
+      },
+      "sourceSnapshotId" : "sha256:c83cef33dc16afa4bf7737b0c27da0960c0e43fd0caf0e367554f7a5f0433460",
+      "position" : {
+        "offsetUtf16" : 395,
+        "line" : 16,
+        "columnCodePoints" : 8
+      },
+      "precision" : "EXACT"
+    }, {
+      "sourceOwnerRef" : {
+        "kind" : "CLASS",
+        "originalClassDescriptor" : "Lprobe/ReferenceFixture;",
+        "inputIdentity" : null,
+        "originalName" : null,
+        "originalDescriptor" : null
+      },
+      "sourceSnapshotId" : "sha256:c83cef33dc16afa4bf7737b0c27da0960c0e43fd0caf0e367554f7a5f0433460",
+      "position" : {
+        "offsetUtf16" : 413,
+        "line" : 17,
         "columnCodePoints" : 8
       },
       "precision" : "EXACT"
@@ -94,10 +184,10 @@
         "originalName" : null,
         "originalDescriptor" : null
       },
-      "sourceSnapshotId" : "sha256:ae226bc0102a0eb46705e4558e5aa5a34d87d2661da8f3b8759fd3031f875616",
+      "sourceSnapshotId" : "sha256:c83cef33dc16afa4bf7737b0c27da0960c0e43fd0caf0e367554f7a5f0433460",
       "position" : {
-        "offsetUtf16" : 323,
-        "line" : 12,
+        "offsetUtf16" : 431,
+        "line" : 18,
         "columnCodePoints" : 8
       },
       "precision" : "EXACT"
@@ -130,10 +220,10 @@
         "originalName" : null,
         "originalDescriptor" : null
       },
-      "sourceSnapshotId" : "sha256:ae226bc0102a0eb46705e4558e5aa5a34d87d2661da8f3b8759fd3031f875616",
+      "sourceSnapshotId" : "sha256:c83cef33dc16afa4bf7737b0c27da0960c0e43fd0caf0e367554f7a5f0433460",
       "position" : {
-        "offsetUtf16" : 346,
-        "line" : 13,
+        "offsetUtf16" : 454,
+        "line" : 19,
         "columnCodePoints" : 12
       },
       "precision" : "EXACT"
@@ -166,10 +256,10 @@
         "originalName" : null,
         "originalDescriptor" : null
       },
-      "sourceSnapshotId" : "sha256:ae226bc0102a0eb46705e4558e5aa5a34d87d2661da8f3b8759fd3031f875616",
+      "sourceSnapshotId" : "sha256:c83cef33dc16afa4bf7737b0c27da0960c0e43fd0caf0e367554f7a5f0433460",
       "position" : {
-        "offsetUtf16" : 363,
-        "line" : 13,
+        "offsetUtf16" : 471,
+        "line" : 19,
         "columnCodePoints" : 29
       },
       "precision" : "EXACT"

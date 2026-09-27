@@ -52,7 +52,7 @@ class JadxReferenceProbeTest {
             var sites = data.annotations().stream().filter(a -> a.kind().equals("REFERENCE")
                     && a.targetRef().equals(JadxSymbolAdapter.originalRef(helper))
                     && cls.getCodeInfo().getCodeMetadata().getNodeAt(a.position().offsetUtf16()) == entry.getCodeNodeRef()).toList();
-            assertEquals(2, sites.size());
+            assertEquals(8, sites.size());
             for (var site : sites) {
                 assertTrue(site.position().offsetUtf16() >= data.methodRange().startOffsetUtf16());
                 assertTrue(site.position().offsetUtf16() < data.methodRange().endOffsetUtf16());

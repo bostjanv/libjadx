@@ -49,4 +49,19 @@ class ReferenceSnapshotTest {
         assertThrows(ReferenceSnapshot.ReferenceLimitException.class,()->{for(int i=0;i<1000;i++) strings.edge(large,large);});
         assertThrows(UnsupportedOperationException.class,()->snapshot(List.of(edge("a")),"one",0,0,"s").edges().clear());
     }
+
+    @Test void sourceSiteChangeAtSameRevisionInvalidatesCompactCursor() {
+        var site = new ReferenceEdge.Site(SymbolRef.classRef("Lprobe/ReferenceFixture;"),
+                "sha256:" + "a".repeat(64), new SourceCoordinates.Point(20, 2, 4), "EXACT");
+        var original = edge("a");
+        var withSite = new ReferenceEdge(original.sourceRef(), original.targetRef(), original.relation(),
+                original.resolution(), original.evidence(), List.of(site), "PARTIAL", null);
+        var query = new ReferenceQuery(ref, ReferenceQuery.Direction.OUTGOING, null, 1,
+                null, true, false, null, null);
+        var before = new ReferenceSnapshot(List.of(withSite, edge("b")), query, "one", 0, 0, "settings", key);
+        var cursor = ReferenceSnapshot.authenticate(before.page(query, null).nextCursor(), key);
+        var changed = new ReferenceSnapshot(List.of(original, edge("b")), query, "one", 0, 0, "settings", key);
+        assertNotEquals(before.id(), changed.id());
+        assertThrows(ReferenceSnapshot.StaleReferenceException.class, () -> changed.page(query, cursor));
+    }
 }

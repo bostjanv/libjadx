@@ -26,7 +26,7 @@ All upstream paths below are relative to that commit's `jadx-core/src/main/java/
   No self-edge is synthesized. Lambda/synthetic and anonymous identities may
   remain graph nodes even when no standalone Java declaration is emitted.
 - Reflection does not make `ReflectiveOnly` a static class dependency.
-- Two direct helper tokens have P4.2 original targets, verified method ranges,
+- Eight direct helper tokens have P4.2 original targets, verified method ranges,
   and `ICodeMetadata.getNodeAt` equal to entry. Field tokens also have verified
   caller metadata. Sites require all these checks; nested/inlined ambiguity
   must fall back to no site.
@@ -72,7 +72,9 @@ are rejected with 400; they never silently erase FIELD_USE results.
 Primary effective settings are used. One `CLASS_READ` lease captures engine,
 revision, publication epoch and settings before resolution or processing.
 The requested owner is processed; optional sites process only reported caller
-owners. Jadx itself may process dependencies. There is no LibJadx global crawl,
+owners. A request-local class lookup and one source/annotation map per distinct
+caller avoid repeated full-class scans and extraction for its multiple callees.
+Jadx itself may process dependencies. There is no LibJadx global crawl,
 background job, persistent graph or retained query cache. There is no mode
 parameter. Hidden graph nodes are reported as OBSERVED where suppression is
 known, with original refs retained. Provenance is unavailable independently
@@ -80,7 +82,7 @@ of whether the graph endpoint is resolved.
 
 Source sites require P4.2 exact target metadata, its source snapshot algorithm,
 a verified method range and matching `getNodeAt` caller metadata. Repeated
-calls can have two sites on one edge. Overloaded descriptors stay separate.
+calls can have eight sites on one edge. Overloaded descriptors stay separate.
 Missing external methods, synthetic lambdas without a method range, and
 unverified inlined boundaries have no speculative sites. Every offset is null.
 Even with sites, source-site coverage remains PARTIAL. All resolved strict
@@ -99,13 +101,16 @@ result is copied, deduplicated and sorted by original relation/source/target,
 resolution and verified site identity. A versioned length-prefixed UTF-16BE
 encoding hashes state, normalized options and full edge evidence/sites.
 The snapshot and HMAC cursor bind session, logical revision, engine publication,
-effective settings, filters and last raw ordering key. The existing private
+effective settings, filters and a fixed-size digest of the last full ordering
+key. The full edge and site records remain in the snapshot digest. A cursor's
+last-edge digest must match exactly one edge in the rebuilt snapshot. The existing private
 operational key is reused, with `libjadx-references-v1` endpoint separation.
 Signature verification precedes decoding any payload field. Follow-up requests
 recompute content; changes return STALE_REVISION, including changes without a
 logical edit. A changed page size/filter returns 400. Cursors are capped at
-4096 characters; an unusually long ordering key that cannot fit returns
-RESOURCE_LIMIT. `pageComplete` only exhausts this observed result.
+4096 characters; the marker stays compact even when an edge has many verified
+sites. `pageComplete` only exhausts this observed result. The owned fixture
+proves that an eight-site edge can be followed by another page at size one.
 
 `ReferenceEndpointsTest.graphObservationChangesAtSameLogicalRevision` processes
 `ReferenceLate` through `/decompile` between pages. Jadx changes the reported
