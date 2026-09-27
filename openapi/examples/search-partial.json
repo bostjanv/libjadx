@@ -1,0 +1,28 @@
+{
+  "sessionId": "8ffedccd-107a-4b05-8345-ad7155feb6b9",
+  "logicalRevision": 0,
+  "settingsFingerprint": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "indexSnapshotId": "example-index-1",
+  "indexGeneration": 1,
+  "resultSnapshotId": "example-search-result-1",
+  "coverage": [
+    {
+      "domain": "SOURCE_TEXT",
+      "availability": "SUPPORTED",
+      "state": "PARTIAL",
+      "scope": "JADX_VISIBLE_ELIGIBLE",
+      "sourceInputCoverage": "UNVERIFIED",
+      "eligible": 2,
+      "indexed": 0,
+      "pending": 2,
+      "skipped": 0,
+      "failed": 0,
+      "evicted": 0,
+      "diagnostics": []
+    }
+  ],
+  "hits": [],
+  "nextCursor": null,
+  "pageComplete": true,
+  "diagnostics": []
+}

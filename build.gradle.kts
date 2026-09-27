@@ -33,6 +33,7 @@ dependencies {
     runtimeOnly("io.github.skylot:jadx-apkm-input:1.5.6")
     runtimeOnly("io.github.skylot:jadx-apks-input:1.5.6")
     implementation("com.google.code.gson:gson:2.14.0")
+    implementation("com.google.re2j:re2j:1.8")
     implementation(platform("com.fasterxml.jackson:jackson-bom:2.21.7"))
     implementation("com.fasterxml.jackson.core:jackson-databind")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml")
@@ -57,6 +58,14 @@ tasks.test {
 
 application {
     mainClass.set("dev.libjadx.app.LibJadxMain")
+}
+
+distributions {
+    main {
+        contents {
+            from("licenses") { into("licenses") }
+        }
+    }
 }
 
 val guiSavedProject = layout.buildDirectory.file("native-roundtrip-fixture/gui-resaved.jadx")

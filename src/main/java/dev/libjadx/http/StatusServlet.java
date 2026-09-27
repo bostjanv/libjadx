@@ -30,6 +30,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import dev.libjadx.app.ProjectRuntime;
 import dev.libjadx.app.DecompiledSourceService;
+import dev.libjadx.app.SearchService;
+import dev.libjadx.core.search.SearchQuery;
+import dev.libjadx.core.search.SearchIndexStore;
 import dev.libjadx.app.SymbolCatalogProvider;
 import dev.libjadx.app.RuntimeStatus;
 import dev.libjadx.app.ShutdownPolicy;
@@ -46,6 +49,7 @@ public final class StatusServlet extends HttpServlet {
 	private final ObjectMapper json;
 	private final JobEventsHandler jobEvents;
 	private final DecompiledSourceService sourceService;
+	private final SearchService searchService;
 	private final dev.libjadx.app.ReferenceQueryService referenceService;
 	private final ShutdownRequester shutdown;
 	private final AtomicBoolean shutdownRequestInProgress = new AtomicBoolean();
@@ -53,11 +57,16 @@ public final class StatusServlet extends HttpServlet {
 	private final SymbolCatalogProvider catalogs = new SymbolCatalogProvider(cursorKey);
 
 	public StatusServlet(ProjectRuntime runtime, ObjectMapper json, ShutdownRequester shutdown) {
+		this(runtime, json, shutdown, null);
+	}
+
+	StatusServlet(ProjectRuntime runtime, ObjectMapper json, ShutdownRequester shutdown, SearchService injectedSearch) {
 		this.runtime = runtime;
 		this.json = json;
 		this.shutdown = shutdown;
 		this.jobEvents = new JobEventsHandler(runtime.jobRegistry());
-		this.sourceService = new DecompiledSourceService(runtime, catalogs);
+		this.searchService = injectedSearch == null ? new SearchService(runtime, catalogs, cursorKey) : injectedSearch;
+		this.sourceService = new DecompiledSourceService(runtime, catalogs, searchService);
 		this.referenceService = new dev.libjadx.app.ReferenceQueryService(runtime, catalogs, cursorKey);
 	}
 
@@ -87,6 +96,13 @@ public final class StatusServlet extends HttpServlet {
 					new Capability("code.original_bytecode_offsets", "UNKNOWN", "ORIGIN_NOT_VERIFIED", "UNAVAILABLE"),
 					new Capability("code.smali", "SUPPORTED", "SMALL_JAR_PROBED", "READ_ONLY"),
 					new Capability("references.method_uses", "PARTIAL", "METHOD_FIELD_CLASS_AND_UNRESOLVED_JAR_PROBED", "READ_ONLY"),
+					new Capability("search.class_names", "SUPPORTED", "JADX_VISIBLE_CATALOG", "MEMORY_ONLY"),
+					new Capability("search.member_names", "PARTIAL", "PINNED_ORIGINAL_MEMBER_SIGNATURES", "MEMORY_ONLY"),
+					new Capability("search.source_text", "PARTIAL", "EXACT_EMITTED_OWNER_JAVA", "MEMORY_ONLY"),
+					new Capability("search.string_literals", "UNKNOWN", "LEXICAL_OWNERSHIP_NOT_PROBED", "UNAVAILABLE"),
+					new Capability("search.regex_safe", "SUPPORTED", "RE2J_1_8_SOURCE_ONLY", "MEMORY_ONLY"),
+					new Capability("search.complete_index_job", "PARTIAL", "JADX_VISIBLE_OWNER_SCAN", "MEMORY_ONLY"),
+					new Capability("search.original_input_coverage", "UNKNOWN", "JADX_VISIBLE_IS_NOT_INPUT_CENSUS", "UNAVAILABLE"),
 					new Capability("project.native_load", "SUPPORTED", "JADX_1_5_6_FIXTURE", "READ_ONLY"),
 					new Capability("project.native_save", "PARTIAL", "CLASS_RENAME_COMMENT_MAPPING_AND_GUI_ROUND_TRIP", "EXPLICIT_SAVE_ONLY"),
 					new Capability("project.revisions", "PARTIAL", "CONTENT_HASH_AND_SESSION_TOKENS", "PROCESS_LOCAL_COUNTERS"),
@@ -189,6 +205,10 @@ public final class StatusServlet extends HttpServlet {
 		}
 		if ("/api/v1/decompile".equals(path)) {
 			handleDecompile(request, response);
+			return;
+		}
+		if ("/api/v1/search".equals(path) || "/api/v1/search/build-index".equals(path)) {
+			handleSearch(request, response);
 			return;
 		}
 		if ("/api/v1/shutdown".equals(path)) {
@@ -520,6 +540,94 @@ public final class StatusServlet extends HttpServlet {
 		}
 	}
 
+	private void handleSearch(HttpServletRequest request, HttpServletResponse response) throws IOException {
+		try {
+			runtime.assertReady();
+			if (!sameOrigin(request)) {
+				writeError(response, 403, "INPUT_SECURITY_REJECTION", "Cross-origin search submission is not allowed");
+				return;
+			}
+			if (!isJsonContentType(request.getContentType())) {
+				writeError(response, 415, "INVALID_REQUEST", "Content-Type must be application/json");
+				return;
+			}
+			JsonNode body = readBody(request);
+			Object result;
+			if ("/api/v1/search/build-index".equals(request.getRequestURI())) {
+				requireFields(body, Set.of("domains", "force"));
+				result = searchService.buildIndex(searchDomains(body), booleanOption(body, "force", false));
+			} else {
+				requireFields(body, Set.of("query", "domains", "matchMode", "caseSensitive", "pageSize", "cursor",
+						"strict", "requireComplete", "expectedSessionId", "expectedLogicalRevision"));
+				String expression = textOption(body, "query", null);
+				SearchQuery.MatchMode mode;
+				try { mode = SearchQuery.MatchMode.valueOf(textOption(body, "matchMode", "CONTAINS")); }
+				catch (IllegalArgumentException invalid) { throw new IllegalArgumentException("Unknown matchMode"); }
+				int pageSize = 50;
+				if (body.has("pageSize")) {
+					if (!body.get("pageSize").isIntegralNumber() || !body.get("pageSize").canConvertToInt())
+						throw new IllegalArgumentException("pageSize must be an integer");
+					pageSize = body.get("pageSize").intValue();
+				}
+				Long revision = null;
+				for (String field : List.of("cursor", "expectedSessionId")) {
+					if (body.hasNonNull(field) && !body.get(field).isTextual())
+						throw new IllegalArgumentException(field + " must be a string or null");
+				}
+				if (body.hasNonNull("expectedLogicalRevision")) {
+					if (!body.get("expectedLogicalRevision").isIntegralNumber()
+							|| !body.get("expectedLogicalRevision").canConvertToLong())
+						throw new IllegalArgumentException("expectedLogicalRevision must be an integer");
+					revision = body.get("expectedLogicalRevision").longValue();
+				}
+				result = searchService.query(new SearchQuery(expression, searchDomains(body), mode,
+						booleanOption(body, "caseSensitive", true), pageSize, optionalText(body, "cursor"),
+						booleanOption(body, "strict", false), booleanOption(body, "requireComplete", false),
+						optionalText(body, "expectedSessionId"), revision));
+			}
+			if (result instanceof dev.libjadx.scheduler.JobSnapshot job) {
+				response.setHeader("Location", "/api/v1/jobs/" + job.jobId());
+				write(response, 202, JobHttpResponses.map(job, json));
+			} else write(response, 200, result);
+		} catch (SearchQuery.UnsupportedDomainException | SearchService.UnsupportedRegexException unsupported) {
+			writeError(response, 422, "UNSUPPORTED_CAPABILITY", unsupported.getMessage());
+		} catch (SearchService.IncompleteSearchException incomplete) {
+			writeError(response, 409, "INCOMPLETE_ANALYSIS", incomplete.getMessage(), false, incomplete.details());
+		} catch (SearchService.StaleSearchException | SearchIndexStore.StaleIndexException
+				| JobRegistry.StaleJobSnapshotException stale) {
+			writeError(response, 409, "STALE_REVISION", stale.getMessage() == null ? "Search snapshot is stale" : stale.getMessage());
+		} catch (SearchService.SearchLimitException | SearchIndexStore.IndexLimitException | JobRegistry.ResourceLimitException
+				| JadxSymbolAdapter.CatalogLimitException limit) {
+			writeError(response, 429, "RESOURCE_LIMIT", limit.getMessage(), true);
+		} catch (ProjectRuntime.ProjectNotReadyException notReady) {
+			writeLifecycleError(response, notReady.status());
+		} catch (ServiceShuttingDownException stopping) {
+			writeError(response, 503, "SERVICE_SHUTTING_DOWN", stopping.getMessage());
+		} catch (ProjectBusyException busy) {
+			writeError(response, 409, "PROJECT_BUSY", busy.getMessage(), true);
+		} catch (IllegalArgumentException invalid) {
+			writeError(response, 400, "INVALID_REQUEST", invalid.getMessage());
+		} catch (RuntimeException failure) {
+			writeError(response, 500, "INTERNAL_ERROR", "Search failed; inspect the local service log");
+		}
+	}
+
+	private static List<SearchQuery.Domain> searchDomains(JsonNode body) {
+		if (!body.has("domains")) return List.of(SearchQuery.Domain.CLASS_NAME,
+				SearchQuery.Domain.MEMBER_NAME, SearchQuery.Domain.SOURCE_TEXT);
+		JsonNode domains = body.get("domains");
+		if (!domains.isArray() || domains.isEmpty() || domains.size() > 4)
+			throw new IllegalArgumentException("domains must be a bounded nonempty array");
+		List<SearchQuery.Domain> values = new java.util.ArrayList<>();
+		for (JsonNode value : domains) {
+			if (!value.isTextual()) throw new IllegalArgumentException("domains must contain strings");
+			try { values.add(SearchQuery.Domain.valueOf(value.asText())); }
+			catch (IllegalArgumentException invalid) { throw new IllegalArgumentException("Unknown search domain"); }
+		}
+		if (values.stream().distinct().count() != values.size()) throw new IllegalArgumentException("Duplicate search domain");
+		return List.copyOf(values);
+	}
+
 	private static String textOption(JsonNode body, String name, String defaultValue) {
 		if (!body.has(name)) return defaultValue;
 		if (!body.get(name).isTextual()) throw new IllegalArgumentException(name + " must be a string");
@@ -622,7 +730,9 @@ public final class StatusServlet extends HttpServlet {
 		if (bytes.length > 65_536) throw new IllegalArgumentException("Request body exceeds 64 KiB");
 		JsonNode body;
 		try {
-			if ("/api/v1/references/query".equals(request.getRequestURI())) {
+			if ("/api/v1/references/query".equals(request.getRequestURI())
+					|| "/api/v1/search".equals(request.getRequestURI())
+					|| "/api/v1/search/build-index".equals(request.getRequestURI())) {
 				try (var parser = json.getFactory().createParser(bytes)) {
 					parser.enable(com.fasterxml.jackson.core.JsonParser.Feature.STRICT_DUPLICATE_DETECTION);
 					body = json.readTree(parser);

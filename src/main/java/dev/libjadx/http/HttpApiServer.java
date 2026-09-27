@@ -7,6 +7,7 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 
 import dev.libjadx.app.ProjectRuntime;
+import dev.libjadx.app.SearchService;
 import dev.libjadx.app.ShutdownRequester;
 import dev.libjadx.app.ShutdownService;
 
@@ -18,6 +19,11 @@ public final class HttpApiServer implements AutoCloseable {
 	}
 
 	public HttpApiServer(String host, int port, ProjectRuntime runtime, ShutdownRequester requester) {
+		this(host, port, runtime, requester, null);
+	}
+
+	/** Search injection keeps resource-limit integration tests deterministic. */
+	public HttpApiServer(String host, int port, ProjectRuntime runtime, ShutdownRequester requester, SearchService search) {
 		this.server = new Server();
 		this.server.setStopTimeout(5_000);
 		ServerConnector connector = new ServerConnector(server);
@@ -31,7 +37,7 @@ public final class HttpApiServer implements AutoCloseable {
 			catch (Exception failure) { System.err.println("libjadx: listener shutdown failed"); }
 			finally { runtime.close(); }
 		}) : requester;
-		ServletHolder api = new ServletHolder(new StatusServlet(runtime, JsonMapper.builder().build(), shutdown));
+		ServletHolder api = new ServletHolder(new StatusServlet(runtime, JsonMapper.builder().build(), shutdown, search));
 		api.setAsyncSupported(true);
 		context.addServlet(api, "/api/v1/*");
 		server.setHandler(context);

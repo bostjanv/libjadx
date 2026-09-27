@@ -10,15 +10,34 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 import javax.tools.ToolProvider;
 
-final class SymbolFixtureSupport {
+public final class SymbolFixtureSupport {
 	private SymbolFixtureSupport() { }
 
-	static Path compileFixture(Path root) throws IOException {
+	public static Path compileFixture(Path root) throws IOException {
 		return compile(root, Path.of("tests/fixtures/symbols/SymbolFixture.java"), "symbols.jar");
 	}
 
 	static Path compileSourceFixture(Path root) throws IOException {
 		return compile(root, Path.of("tests/fixtures/source/SourceFixture.java"), "source.jar");
+	}
+
+	static Path compileSearchFixture(Path root) throws IOException {
+		Path source = root.resolve("src/probe/SearchFixture.java");
+		Files.createDirectories(source.getParent());
+		Files.writeString(source, "package probe;\r\npublic class SearchFixture {\r\n"
+				+ "  public String emoji = \"😀\";\r\n"
+				+ "  public String quoted = \"a\\\"b\";\r\n"
+				+ "  public String block = \"\"\"\r\n    alpha beta\r\n    \"\"\";\r\n"
+				+ "  public String choice() { return emoji + quoted + block; }\r\n}\r\n");
+		return compile(root, source, "search.jar");
+	}
+
+	static Path compileManyMatchesFixture(Path root) throws IOException {
+		Path source = root.resolve("src/probe/ManyMatches.java");
+		Files.createDirectories(source.getParent());
+		Files.writeString(source, "package probe; public class ManyMatches { public String text = \""
+				+ "a".repeat(6000) + "\"; }");
+		return compile(root, source, "many-matches.jar");
 	}
 
 	static Path referenceFixture(Path root) throws IOException {
@@ -71,7 +90,7 @@ final class SymbolFixtureSupport {
 	}
 
 	/** Owned classfile fixture: two methods have the same name/arguments but distinct return descriptors. */
-	static Path returnTypeClashJar(Path root) throws IOException {
+	public static Path returnTypeClashJar(Path root) throws IOException {
 		Path source = root.resolve("return-types/src/probe/ReturnClash.java");
 		Files.createDirectories(source.getParent());
 		Files.writeString(source, "package probe; public class ReturnClash { "

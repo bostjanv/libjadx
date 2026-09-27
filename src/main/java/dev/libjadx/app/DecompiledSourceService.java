@@ -11,6 +11,7 @@ import dev.libjadx.core.symbols.SymbolLookup;
 import dev.libjadx.core.symbols.SymbolRef;
 import dev.libjadx.core.symbols.SymbolResolution;
 import dev.libjadx.jadxadapter.JadxSourceAdapter;
+import dev.libjadx.jadxadapter.JadxSearchAdapter;
 import dev.libjadx.jadxadapter.JadxSymbolAdapter;
 import jadx.api.JadxDecompiler;
 
@@ -18,10 +19,12 @@ import jadx.api.JadxDecompiler;
 public final class DecompiledSourceService {
 	private final ProjectRuntime runtime;
 	private final SymbolCatalogProvider catalogs;
+	private final SearchService search;
 
-	public DecompiledSourceService(ProjectRuntime runtime, SymbolCatalogProvider catalogs) {
+	public DecompiledSourceService(ProjectRuntime runtime, SymbolCatalogProvider catalogs, SearchService search) {
 		this.runtime = runtime;
 		this.catalogs = catalogs;
+		this.search = search;
 	}
 
 	public DecompileResult decompile(DecompileRequest request) throws Exception {
@@ -34,8 +37,18 @@ public final class DecompiledSourceService {
 						// Settings can change between routing and admission. Retry with the admitted version.
 						if (requestedMode != null && !requestedMode.equals(context.settings().decompilationMode()))
 							throw new SourceModeChangedException();
-						return execute(context.decompiler(), catalogs.primary(context), request, context.revisions().sessionId(),
+						DecompileResult result = execute(context.decompiler(), catalogs.primary(context), request, context.revisions().sessionId(),
 								context.revisions().logicalRevision(), context.publicationEpoch(), context.settings());
+						if (result.outcome() == SymbolResolution.Outcome.RESOLVED) {
+							try {
+								var cls = JadxSymbolAdapter.visibleClass(context.decompiler(), request.ref().originalClassDescriptor(), 0);
+								if (cls != null) search.ingest(context, result, JadxSearchAdapter.members(cls));
+							} catch (RuntimeException indexingFailure) {
+								// Search is optional: the already-produced Java result remains authoritative.
+								System.err.println("libjadx: opportunistic search indexing failed: " + indexingFailure);
+							}
+						}
+						return result;
 					});
 				} catch (SourceModeChangedException changed) {
 					continue;

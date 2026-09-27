@@ -401,6 +401,69 @@ paths:
         '429': { $ref: '#/components/responses/ApiErrorResponse' }
         '503': { $ref: '#/components/responses/ApiErrorResponse' }
         '500': { $ref: '#/components/responses/ApiErrorResponse' }
+  /search:
+    post:
+      tags: [Analysis]
+      operationId: search
+      summary: Search the current process-local Jadx-visible index
+      description: >-
+        Class names are cataloged without decompiling Java. Member and emitted-owner
+        Java coverage grows as classes are processed. COMPLETE describes only
+        currently Jadx-visible eligible entities, never every original input
+        definition. Source ranges are UTF-16 half-open offsets into the exact
+        emitted Java source snapshot. strict rejects partial coverage. If
+        requireComplete is set, an incomplete index starts or reuses an async
+        build and returns 202; repeat the query after that job finishes.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SearchRequest' }
+            examples:
+              source: { externalValue: ./examples/search-request.json }
+      responses:
+        '200':
+          description: One immutable result page with explicit domain coverage.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SearchPage' }
+              examples:
+                partial: { externalValue: ./examples/search-partial.json }
+                complete: { externalValue: ./examples/search-complete.json }
+        '202': { $ref: '#/components/responses/AcceptedJob' }
+        '400': { $ref: '#/components/responses/ApiErrorResponse' }
+        '403': { $ref: '#/components/responses/ApiErrorResponse' }
+        '409': { $ref: '#/components/responses/ApiErrorResponse' }
+        '415': { $ref: '#/components/responses/ApiErrorResponse' }
+        '422': { $ref: '#/components/responses/ApiErrorResponse' }
+        '429': { $ref: '#/components/responses/JobResourceLimit' }
+        '503': { $ref: '#/components/responses/ApiErrorResponse' }
+        '500': { $ref: '#/components/responses/ApiErrorResponse' }
+  /search/build-index:
+    post:
+      tags: [Analysis]
+      operationId: buildSearchIndex
+      summary: Build supported member and emitted-Java search domains asynchronously
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SearchBuildRequest' }
+      responses:
+        '200':
+          description: Selected domains are already complete in the current index.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SearchIndexStatus' }
+        '202': { $ref: '#/components/responses/AcceptedJob' }
+        '400': { $ref: '#/components/responses/ApiErrorResponse' }
+        '403': { $ref: '#/components/responses/ApiErrorResponse' }
+        '409': { $ref: '#/components/responses/ApiErrorResponse' }
+        '415': { $ref: '#/components/responses/ApiErrorResponse' }
+        '422': { $ref: '#/components/responses/ApiErrorResponse' }
+        '429': { $ref: '#/components/responses/JobResourceLimit' }
+        '503': { $ref: '#/components/responses/ApiErrorResponse' }
+        '500': { $ref: '#/components/responses/ApiErrorResponse' }
   /jobs/{jobId}:
     parameters:
       - $ref: '#/components/parameters/JobId'
@@ -494,7 +557,7 @@ components:
         format: uuid
   responses:
     AcceptedJob:
-      description: HTTP 202 contract for future asynchronous job-producing operations.
+      description: HTTP 202 contract for asynchronous job-producing operations.
       headers:
         Location:
           required: true
@@ -511,6 +574,8 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Job'
+          examples:
+            searchBuild: { externalValue: ./examples/search-job-queued.json }
     JobResourceLimit:
       description: HTTP 429 RESOURCE_LIMIT when the process-local queue or retention budget is exhausted.
       headers:
@@ -540,6 +605,103 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorEnvelope'
   schemas:
+    SearchRequest:
+      type: object
+      additionalProperties: false
+      required: [query]
+      properties:
+        query: { type: string, minLength: 1, maxLength: 512 }
+        domains:
+          type: array
+          minItems: 1
+          maxItems: 4
+          uniqueItems: true
+          items: { type: string, enum: [CLASS_NAME, MEMBER_NAME, SOURCE_TEXT, STRING_LITERAL] }
+        matchMode: { type: string, enum: [EXACT, CONTAINS, REGEX], default: CONTAINS }
+        caseSensitive: { type: boolean, default: true }
+        pageSize: { type: integer, minimum: 1, maximum: 100, default: 50 }
+        cursor: { type: [string, 'null'], maxLength: 1024 }
+        strict: { type: boolean, default: false }
+        requireComplete: { type: boolean, default: false }
+        expectedSessionId: { type: [string, 'null'] }
+        expectedLogicalRevision: { type: [integer, 'null'], format: int64, minimum: 0 }
+    SearchBuildRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        domains:
+          type: array
+          minItems: 1
+          maxItems: 4
+          uniqueItems: true
+          items: { type: string, enum: [CLASS_NAME, MEMBER_NAME, SOURCE_TEXT, STRING_LITERAL] }
+        force: { type: boolean, default: false }
+    SearchCoverage:
+      type: object
+      additionalProperties: false
+      required: [domain, availability, state, scope, sourceInputCoverage, eligible, indexed, pending, skipped, failed, evicted, diagnostics]
+      properties:
+        domain: { type: string, enum: [CLASS_NAME, MEMBER_NAME, SOURCE_TEXT, STRING_LITERAL] }
+        availability: { type: string, enum: [SUPPORTED, UNSUPPORTED] }
+        state: { type: string, enum: [COMPLETE, PARTIAL, UNAVAILABLE] }
+        scope: { type: string, const: JADX_VISIBLE_ELIGIBLE }
+        sourceInputCoverage: { type: string, const: UNVERIFIED }
+        eligible: { type: integer, minimum: 0 }
+        indexed: { type: integer, minimum: 0 }
+        pending: { type: integer, minimum: 0 }
+        skipped: { type: integer, minimum: 0 }
+        failed: { type: integer, minimum: 0 }
+        evicted: { type: integer, minimum: 0 }
+        diagnostics: { type: array, maxItems: 16, items: { type: string } }
+    SearchHit:
+      type: object
+      additionalProperties: false
+      required: [domain, ref, sourceOwnerRef, displayName, matchedText, matchMode, range, sourceSnapshotId]
+      properties:
+        domain: { type: string, enum: [CLASS_NAME, MEMBER_NAME, SOURCE_TEXT, STRING_LITERAL] }
+        ref:
+          oneOf:
+            - $ref: '#/components/schemas/SymbolRef'
+            - type: 'null'
+        sourceOwnerRef:
+          oneOf:
+            - $ref: '#/components/schemas/SymbolRef'
+            - type: 'null'
+        displayName: { type: [string, 'null'] }
+        matchedText: { type: string, maxLength: 160 }
+        matchMode: { type: string, enum: [EXACT, CONTAINS, REGEX] }
+        range:
+          oneOf:
+            - $ref: '#/components/schemas/SourceRange'
+            - type: 'null'
+        sourceSnapshotId: { type: [string, 'null'] }
+    SearchPage:
+      type: object
+      additionalProperties: false
+      required: [sessionId, logicalRevision, settingsFingerprint, indexSnapshotId, indexGeneration, resultSnapshotId, coverage, hits, nextCursor, pageComplete, diagnostics]
+      properties:
+        sessionId: { type: string }
+        logicalRevision: { type: integer, format: int64, minimum: 0 }
+        settingsFingerprint: { type: string }
+        indexSnapshotId: { type: string }
+        indexGeneration: { type: integer, format: int64, minimum: 0 }
+        resultSnapshotId: { type: string }
+        coverage: { type: array, items: { $ref: '#/components/schemas/SearchCoverage' } }
+        hits: { type: array, maxItems: 100, items: { $ref: '#/components/schemas/SearchHit' } }
+        nextCursor: { type: [string, 'null'], maxLength: 1024 }
+        pageComplete: { type: boolean }
+        diagnostics: { type: array, maxItems: 16, items: { type: string } }
+    SearchIndexStatus:
+      type: object
+      additionalProperties: false
+      required: [sessionId, logicalRevision, settingsFingerprint, indexSnapshotId, indexGeneration, coverage]
+      properties:
+        sessionId: { type: string }
+        logicalRevision: { type: integer, format: int64, minimum: 0 }
+        settingsFingerprint: { type: string }
+        indexSnapshotId: { type: string }
+        indexGeneration: { type: integer, format: int64, minimum: 0 }
+        coverage: { type: array, items: { $ref: '#/components/schemas/SearchCoverage' } }
     SymbolRef:
       type: object
       additionalProperties: false

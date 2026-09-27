@@ -1,6 +1,6 @@
 # Compatibility and pinned dependencies
 
-Status: Phase 4.3 basic references, updated 2026-09-26.
+Status: Phase 5.1 incremental search, updated 2026-09-27.
 
 ## Jadx pin
 
@@ -43,12 +43,20 @@ The source archive was fetched from the `v1.5.6` tag and inspected at the commit
 | Jackson BOM / databind / YAML | 2.21.7 | API JSON responses and optional YAML configuration |
 | JUnit Jupiter | 5.12.2 | Phase 0 executable feasibility probes |
 | JUnit Platform Launcher | 1.12.2 | Gradle test runtime |
+| RE2/J | 1.8 | Linear-time source regex; pinned in `gradle.lockfile`, included in the standalone runtime with its Go/RE2 license notice under `licenses/RE2J-LICENSE` |
 
 Resolved transitive versions are recorded in [gradle.lockfile](../gradle.lockfile) after initial resolution. Jadx artifacts are pinned in Gradle declarations and locks. Review and regenerate that lock deliberately when changing dependencies.
 
 ## Current feasibility status
 
-The public-core smoke probe, in-memory class rename/comment, native project JSON round-trip, unknown-field retention, and matching-GUI save/reopen have executable probes. Remaining P0.3 topics are listed with bounded follow-up probes in [feasibility-matrix.md](feasibility-matrix.md). Phase 2 adds native save/reload/conflict detection, process-scoped revisions, mapping-path rebuilds and isolated temporary decompilation mode. Phase 4.1 adds Jadx-visible class listing and original class/method/field resolution. Phase 4.2 adds class-oriented Java source, validated token annotations and verified method excerpts. Source-only internals are isolated in `JadxSourceAdapter`. Search and edit HTTP routes remain unimplemented.
+The public-core smoke probe, in-memory class rename/comment, native project JSON round-trip, unknown-field retention, and matching-GUI save/reopen have executable probes. Remaining P0.3 topics are listed with bounded follow-up probes in [feasibility-matrix.md](feasibility-matrix.md). Phase 2 adds native save/reload/conflict detection, process-scoped revisions, mapping-path rebuilds and isolated temporary decompilation mode. Phase 4.1 adds Jadx-visible class listing and original class/method/field resolution. Phase 4.2 adds class-oriented Java source, validated token annotations and verified method excerpts. Source-only internals are isolated in `JadxSourceAdapter`. Phase 5.1 adds memory-only class/member/emitted-Java search and a complete-index job. Editing remains Phase 5.2.
+
+For Phase 5.1, the exact 1.5.6 Maven source JAR was inspected for public
+`JavaClass.getOriginalTopParentClass`, `getTopParentClass`, `getCodeInfo`,
+`getMethods`, `getFields`, `getAccessInfo` and `isNoCode`. The audited
+`JadxSymbolAdapter` continues to isolate `MethodInfo`, `FieldInfo` and
+`TypeGen.signature` for full original member descriptors. See
+[Phase 5.1 search evidence](phase-5-search.md).
 
 ## Reproducing Phase 0 probes
 
