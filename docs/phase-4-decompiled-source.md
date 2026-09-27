@@ -110,7 +110,7 @@ revision, mappings or native files. There is no shared source cache.
 ## Pinned source and executable evidence
 
 All paths below refer to Jadx commit
-`4c0ac37699aa8c9803f1c73cfaacd9205acb044b` (release `v1.5.6`):
+`28ff15e4ae69950aebea110a13e5ab895d234dfc` (release `v1.5.6`):
 
 - `jadx-core/src/main/java/jadx/api/JavaClass.java`: `getCodeInfo()`,
   `isNoCode()`, `getTopParentClass()`, and `getCodeParent()`.

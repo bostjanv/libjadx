@@ -1,0 +1,9 @@
+{
+  "error": {
+    "code": "INVALID_REQUEST",
+    "message": "newName must be a nonreserved ASCII Java identifier of at most 128 characters",
+    "retryable": false,
+    "requestId": "00000000-0000-4000-8000-000000000002",
+    "details": { "itemErrors": [ { "index": 1, "code": "INVALID_REQUEST", "message": "newName must be a nonreserved ASCII Java identifier of at most 128 characters" } ] }
+  }
+}

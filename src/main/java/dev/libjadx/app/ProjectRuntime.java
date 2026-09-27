@@ -239,6 +239,64 @@ public final class ProjectRuntime implements AutoCloseable {
 		}
 	}
 
+	/** One admitted edit operation. Validation may read the primary engine and copied native data;
+	 * only commit publishes a changed revision. The context must not escape the callback. */
+	<T> T withExclusiveEdit(Function<EditContext, T> operation) {
+		try (var lease = admit(OperationRequest.projectExclusive("native-edit-batch"))) {
+			NativeProjectRepository current = repository;
+			ProjectEngine engine = activeEngine;
+			return operation.apply(new EditContext(current, engine, current.snapshot()));
+		}
+	}
+
+	final class EditContext {
+		private final NativeProjectRepository current;
+		private final ProjectEngine engine;
+		private final ProjectSnapshot before;
+		private boolean committed;
+
+		private EditContext(NativeProjectRepository current, ProjectEngine engine, ProjectSnapshot before) {
+			this.current = current;
+			this.engine = engine;
+			this.before = before;
+		}
+
+		ProjectSnapshot before() { return before; }
+		JadxDecompiler decompiler() { return engine.decompiler(); }
+		JadxCodeData codeDataCopy() { return current.codeDataCopy(); }
+
+		/** A single native replacement and reload. A reload failure after replacement fails the runtime. */
+		ProjectSnapshot commit(JadxCodeData edited) {
+			if (committed) throw new IllegalStateException("Edit context already committed");
+			committed = true;
+			boolean replaced = false;
+			try {
+				current.replaceCodeData(edited, before.revisions().logicalRevision());
+				replaced = true;
+				engine.reloadCodeData(current.codeDataCopy());
+				ProjectSnapshot after = current.snapshot();
+				synchronized (lifecycleLock) {
+					publicationEpoch++;
+					publishedAdmission = admission(after);
+				}
+				return after;
+			} catch (RuntimeException failure) {
+				if (replaced) {
+					synchronized (lifecycleLock) {
+						lifecycle = Lifecycle.FAILED;
+						publishedSearchIdentity = null;
+						status = status("FAILED", "FAILED", status.progress(),
+								new RuntimeStatus.ApiError("PROJECT_LOAD_FAILED", "Code-data reload failed", null));
+					}
+				}
+				throw failure;
+			} catch (Error fatal) {
+				reportFatalRebuild(fatal);
+				throw fatal;
+			}
+		}
+	}
+
 	/** One isolated, read-only analysis operation over an admitted immutable native edit snapshot. */
 	<T> TemporaryResult<T> withTemporaryAnalysis(EffectiveAnalysisConfig override,
 			Function<JadxDecompiler, T> operation) throws Exception {
@@ -923,6 +981,10 @@ public final class ProjectRuntime implements AutoCloseable {
 			JadxDecompiler jadx = decompiler();
 			jadx.getArgs().setCodeData(codeData);
 			jadx.reloadCodeData();
+			// In 1.5.6 reloadCodeData only notifies code-data listeners. Previously
+			// decompiled Java remains cached until each owner is explicitly unloaded.
+			// An edit can change references in any owner, so invalidate all owners.
+			for (var cls : jadx.getClasses()) cls.unload();
 		}
 
 		@Override

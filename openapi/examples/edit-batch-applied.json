@@ -1,0 +1,14 @@
+{
+  "outcome": "APPLIED",
+  "sessionId": "00000000-0000-4000-8000-000000000001",
+  "logicalRevisionBefore": 7,
+  "logicalRevisionAfter": 8,
+  "indexRevisionAfter": 8,
+  "dirty": true,
+  "saved": false,
+  "items": [
+    { "index": 0, "status": "APPLIED", "kind": "RENAME", "target": { "kind": "CLASS", "originalClassDescriptor": "Lprobe/Example;", "inputIdentity": null, "originalName": null, "originalDescriptor": null }, "affectedRefs": [], "message": null },
+    { "index": 1, "status": "APPLIED", "kind": "SET_COMMENT", "target": { "kind": "METHOD", "originalClassDescriptor": "Lprobe/Example;", "inputIdentity": null, "originalName": "work", "originalDescriptor": "(I)V" }, "affectedRefs": [], "message": null }
+  ],
+  "diagnostics": []
+}

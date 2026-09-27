@@ -66,7 +66,7 @@ The operational cursor signing key is outside the native project.
 
 ## Pinned source and executable observations
 
-Jadx 1.5.6 is pinned to commit `4c0ac37699aa8c9803f1c73cfaacd9205acb044b`.
+Jadx 1.5.6 is pinned to commit `28ff15e4ae69950aebea110a13e5ab895d234dfc`.
 The audited public APIs are `jadx/api/JavaClass.java` (`getRawName`,
 `getOriginalTopParentClass`, `getTopParentClass`, `getCodeInfo`, `getMethods`,
 `getFields`, `getAccessInfo`, `isNoCode`), `jadx/api/JavaMethod.java`,

@@ -119,6 +119,13 @@ class OpenApiDocumentTest {
 		OpenApiExampleValidator.assertValid(yaml, "SearchRequest", json.readTree(Path.of("openapi/examples/search-request.json").toFile()));
 		for (String file : List.of("search-partial.json", "search-complete.json"))
 			OpenApiExampleValidator.assertValid(yaml, "SearchPage", json.readTree(Path.of("openapi/examples", file).toFile()));
+		assertEquals("#/components/schemas/EditBatchRequest", yaml.path("paths").path("/edits/batch").path("post")
+				.path("requestBody").path("content").path("application/json").path("schema").path("$ref").asText());
+		OpenApiExampleValidator.assertValid(yaml, "EditBatchRequest", json.readTree(Path.of("openapi/examples/edit-batch-request.json").toFile()));
+		for (String file : List.of("edit-batch-applied.json", "edit-batch-no-change.json", "edit-batch-partial.json")) {
+			OpenApiExampleValidator.assertValid(yaml, "EditBatchResult", json.readTree(Path.of("openapi/examples", file).toFile()));
+		}
+		OpenApiExampleValidator.assertValid(yaml, "ErrorEnvelope", json.readTree(Path.of("openapi/examples/edit-batch-rejected.json").toFile()));
 		OpenApiExampleValidator.assertValid(yaml, "Job", json.readTree(Path.of("openapi/examples/search-job-queued.json").toFile()));
 
 		OpenApiExampleValidator.assertValid(yaml, "ReferenceQuery", json.readTree(Path.of("openapi/examples/references-query.json").toFile()));

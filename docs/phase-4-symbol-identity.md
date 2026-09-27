@@ -67,7 +67,7 @@ publication change. Neither endpoint edits or saves native files.
 ## Pinned source and executable evidence
 
 Pinned Jadx source: `v1.5.6`, commit
-`4c0ac37699aa8c9803f1c73cfaacd9205acb044b`.
+`28ff15e4ae69950aebea110a13e5ab895d234dfc`.
 
 - `jadx-core/src/main/java/jadx/api/JadxDecompiler.java`: `getClasses()`
   excludes inner and `DONT_GENERATE` classes; `getClassesWithInners()` covers

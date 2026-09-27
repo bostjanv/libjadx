@@ -1,6 +1,6 @@
 # Jadx feasibility matrix
 
-Evidence is tied to Jadx `1.5.6` (`4c0ac37699aa8c9803f1c73cfaacd9205acb044b`). Capabilities are reported at the precision actually exercised; UNKNOWN entries include bounded follow-up probes.
+Evidence is tied to Jadx `1.5.6` source commit `28ff15e4ae69950aebea110a13e5ab895d234dfc` (annotated tag object `4c0ac37699aa8c9803f1c73cfaacd9205acb044b`). Capabilities are reported at the precision actually exercised; UNKNOWN entries include bounded follow-up probes.
 
 | Capability | Status | Evidence / next probe |
 |---|---|---|
@@ -32,6 +32,11 @@ Evidence is tied to Jadx `1.5.6` (`4c0ac37699aa8c9803f1c73cfaacd9205acb044b`). C
 | Emitted string literal lexer and original constants | UNKNOWN; API UNSUPPORTED | A lexical ownership probe across strings, text blocks and Java escaping remains. Search only sees these characters through `SOURCE_TEXT`; it does not label them as original bytecode constants. |
 | Annotation and resource metadata search | UNKNOWN; API UNSUPPORTED | Bounded follow-up: audit pinned annotation and resource APIs using an owned JAR/APK fixture, including cheap pre-code availability and provenance. |
 | Complete-index job and cancellation | SUPPORTED for Jadx-visible eligible owners; partial failures explicit | `SearchBuildJobTest` verifies class-boundary cancellation, engine lease release and a verified empty synthetic skip. `StandaloneDistributionTest` runs the installed headless job and strict source search. JVM-level interruption during Jadx work remains unproved. |
+| Native class/method/field declaration rename | SUPPORTED for owned Java fixture; GUI save/reopen verified | `EditBatchEndpointsTest` stages all three aliases and explicitly saves native data; `nativeEditGuiRoundTripTest` has the matching GUI resave and headless emitted Java check. `EditBatchServiceTest` proves return-type-only overloads have distinct native IDs. Synthetic/bridge/special methods and exact input origin remain unsupported. |
+| Native class/method/field LINE declaration comments | SUPPORTED for owned Java fixture; GUI save/reopen verified | The same GUI task retains three comments after resave. `EditBatchEndpointsTest` updates one LINE comment without erasing a BLOCK comment on the same node or its unknown fields. Multiline/control input and other styles are intentionally rejected. |
+| Batch prevalidation and partial execution | SUPPORTED for validated declaration edits | `EditBatchEndpointsTest` proves invalid later item yields no native change, unchanged revision and usable class cursor; `EditBatchServiceTest` injects a staging failure after one staged item and observes only the real committed prefix. Normal batches commit once. Reload failure after replacement remains a hard runtime failure gate. |
+| Native mapping export/import | UNSUPPORTED | The pinned `MappingExporter` can delete an existing output and swallows errors; output path safety, completeness and GUI behavior are unverified. Existing mapping-path attachment is supported and remains a separate settings operation. See ADR 0001. |
+| Parameter/local rename and related override propagation | UNSUPPORTED | Source-snapshot-scoped variable identity and complete related-declaration enumeration have no matching-GUI probe. Jadx API existence alone does not justify mutation. See ADR 0001. |
 
 ## Phase 2 exercised behavior
 

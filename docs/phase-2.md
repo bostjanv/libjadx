@@ -59,4 +59,4 @@ a simultaneous write by an uncooperative GUI process.
 Jadx 1.5.6 source evidence: `JadxArgs.setCodeData`,
 `JadxArgs.setDecompilationMode`, `JadxArgs.setUserRenamesMappingsPath`, and
 `JadxDecompiler.reloadCodeData` in the pinned
-[`jadx-core` source](https://github.com/skylot/jadx/tree/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-core/src/main/java/jadx/api).
+[`jadx-core` source](https://github.com/skylot/jadx/tree/28ff15e4ae69950aebea110a13e5ab895d234dfc/jadx-core/src/main/java/jadx/api).

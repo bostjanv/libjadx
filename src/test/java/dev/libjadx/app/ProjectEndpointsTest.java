@@ -19,6 +19,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.libjadx.http.HttpApiServer;
 import dev.libjadx.project.NativeProjectDocument;
+import dev.libjadx.core.edits.EditDtos;
+import dev.libjadx.core.symbols.SymbolRef;
 import jadx.api.data.impl.JadxCodeComment;
 import jadx.api.data.impl.JadxCodeRename;
 import jadx.api.data.impl.JadxNodeRef;
@@ -53,10 +55,10 @@ class ProjectEndpointsTest {
 					.POST(HttpRequest.BodyPublishers.ofString("{}"))
 					.build(), HttpResponse.BodyHandlers.ofString()).statusCode());
 
-			var code = NativeProjectDocument.open(path).getCodeData();
-			code.setRenames(List.of(new JadxCodeRename(JadxNodeRef.forCls("probe.Sample"), "EndpointAlias")));
-			code.setComments(List.of(new JadxCodeComment(JadxNodeRef.forCls("probe.Sample"), "pending endpoint edit")));
-			runtime.replaceCodeData(code, 0);
+			SymbolRef sample = SymbolRef.classRef("Lprobe/Sample;");
+			assertEquals("APPLIED", new EditBatchService(runtime).apply(new EditDtos.Request(session, 0L, List.of(
+					new EditDtos.Operation(EditDtos.Kind.RENAME, sample, "EndpointAlias", null, null),
+					new EditDtos.Operation(EditDtos.Kind.SET_COMMENT, sample, null, "pending endpoint edit", "LINE")))).outcome());
 			assertTrue(body(get(server, "/api/v1/project")).path("dirty").asBoolean());
 			assertFalse(Files.readString(path).contains("EndpointAlias"));
 			assertEquals(409, post(server, "/api/v1/project/save", "{\"expectedLogicalRevision\":0,\"expectedSessionId\":\"" + session + "\"}").statusCode());
@@ -67,9 +69,8 @@ class ProjectEndpointsTest {
 			assertNotEquals(persisted, body(get(server, "/api/v1/project")).path("revisions").path("persistedIdentity").asText());
 			assertEquals(session, body(get(server, "/api/v1/project")).path("revisions").path("sessionId").asText());
 
-			var changed = NativeProjectDocument.open(path).getCodeData();
-			changed.setComments(List.of(new JadxCodeComment(JadxNodeRef.forCls("probe.Sample"), "second pending edit")));
-			runtime.replaceCodeData(changed, 1);
+			assertEquals("APPLIED", new EditBatchService(runtime).apply(new EditDtos.Request(session, 1L, List.of(
+					new EditDtos.Operation(EditDtos.Kind.SET_COMMENT, sample, null, "second pending edit", "LINE")))).outcome());
 			Files.writeString(dir.resolve("sample.tiny"), Files.readString(dir.resolve("sample.tiny")) + "\n");
 			JsonNode conflict = body(post(server, "/api/v1/project/save", "{}"));
 			assertEquals("EXTERNAL_MODIFICATION_CONFLICT", conflict.path("error").path("code").asText());

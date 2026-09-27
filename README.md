@@ -2,7 +2,7 @@
 
 **LibJadx is an experimental, standalone, headless Java service for accessing [Jadx](https://github.com/skylot/jadx) from local HTTP clients.** It is intended to make reverse-engineering workflows scriptable through a versioned REST/JSON API and, in a later milestone, a Python SDK.
 
-> **Project status — early development.** Startup, native project lifecycle, jobs, explicit shutdown, original symbol lookup, and Java decompilation are implemented. Search and HTTP editing remain future work. See [Current functionality](#current-functionality) before integrating it.
+> **Project status — early development.** Startup, native project lifecycle, jobs, explicit shutdown, original symbol lookup, Java decompilation, incremental search and native declaration editing are implemented. Advanced editing remains gated by Jadx and GUI probes. See [Current functionality](#current-functionality) before integrating it.
 
 LibJadx is an independent project built on Jadx. It is not an official Jadx component and does not provide libghidra API or protocol compatibility.
 
@@ -18,9 +18,10 @@ The implementation currently includes:
 - Explicit native save, reload, mapping-path updates, transient pending-edit export, bounded job polling/cancellation/SSE, and requested shutdown policies.
 - Bounded listing of Jadx-visible classes and exact lookup of classes, methods, and fields by original JVM descriptors. Current aliases are separate from identity.
 - Class-oriented Java source with validated token annotations, source snapshots, and method excerpts only where the pinned Jadx metadata and boundary checks agree. Per-request mode overrides use an isolated engine.
+- Validated in-memory batches for original class/method/field renames and single-line native declaration comments. Explicit save is required for durability; mapping export, parameter/local edits and override propagation are unsupported.
 - Controlled startup/shutdown behavior, including bounded waiting for loader cleanup on ordinary shutdown and separate handling of fatal startup errors.
 
-**Important distinction:** Native project edits and GUI round trips are exercised by probes/tests. An explicit HTTP save exists; HTTP rename/comment editing is still planned. Some capability entries describe proven Jadx integration rather than an available endpoint.
+Native declaration edits and a matching-GUI save/reopen round trip are exercised by real Jadx tests. The capability endpoint identifies narrower support and remaining unverified edit forms.
 
 | HTTP endpoint | Current behavior |
 | --- | --- |
@@ -32,7 +33,8 @@ The implementation currently includes:
 | `POST /api/v1/shutdown` | Graceful local shutdown with `discard` (default), `save`, or `refuse_if_dirty`; active work returns `PROJECT_BUSY`. |
 | `GET /api/v1/classes`, `POST /api/v1/symbols/resolve` | Jadx-visible class pages and exact original class/member lookup. Input provenance may be unavailable. |
 | `POST /api/v1/decompile` | Java source for an original class or method ref. Method requests include the containing class source and either a verified excerpt or an explicit range-unavailable fallback. |
-| Other planned analysis and edit routes | Structured `PROJECT_NOT_READY` while loading, a non-retryable load failure after failed initialization, or `OPERATION_NOT_IMPLEMENTED` after readiness. |
+| `POST /api/v1/edits/batch` | Validate all items, then stage native class/method/field renames and LINE declaration comments under one exclusive admission. Mutations remain unsaved until explicit native save. |
+| Other planned analysis routes | Structured `PROJECT_NOT_READY` while loading, a non-retryable load failure after failed initialization, or `OPERATION_NOT_IMPLEMENTED` after readiness. |
 
 Unknown paths return `NOT_FOUND`. The API contract is in [`openapi/openapi.yaml`](openapi/openapi.yaml).
 
@@ -114,7 +116,7 @@ LibJadx currently accepts only `127.0.0.1` as the bind address and provides no a
 
 Class pagination uses an owner-only cursor signing key in `$XDG_STATE_HOME/libjadx/cursor-signing.key` (default `~/.local/state/libjadx/cursor-signing.key`). This is operational state outside native `.jadx` project persistence. See [Phase 4.1 notes](docs/phase-4-symbol-identity.md) for cursor behavior.
 
-Java source is read-only and limited to 4 MiB UTF-8 per request. Source offsets are UTF-16 indices in the exact returned Java text. See [Phase 4.2 notes](docs/phase-4-decompiled-source.md) for method-range proof and metadata limits. Basic references and incremental search are available; Smali and editing endpoints remain planned.
+Java source is read-only and limited to 4 MiB UTF-8 per request. Source offsets are UTF-16 indices in the exact returned Java text. See [Phase 4.2 notes](docs/phase-4-decompiled-source.md) for method-range proof and metadata limits. Basic references, incremental search and native declaration editing are available; Smali remains planned.
 
 `POST /api/v1/search` queries class names immediately and member/emitted-Java
 text as classes are processed. It reports partial coverage until every eligible
@@ -123,6 +125,13 @@ starts the complete-index job; `strict` rejects partial results, while
 `requireComplete` returns a job to poll. Safe source regex uses RE2/J.
 Indexes and cursors are memory-only and disappear on restart. See
 [Phase 5.1 search](docs/phase-5-search.md) for exact semantics and limits.
+
+`POST /api/v1/edits/batch` accepts 1–64 exact original-declaration edits and
+returns per-item results plus before/after revisions. `RENAME` supports ordinary
+classes, methods and fields; `SET_COMMENT` supports one-line `LINE` comments.
+Prevalidation failure changes nothing, and a no-op leaves revisions unchanged.
+See [Phase 5.2 editing](docs/phase-5-editing.md) for a request example, native
+identity rules, persistence proof and unsupported cases.
 
 See [`docs/configuration.md`](docs/configuration.md) for startup, path handling, response-state, and shutdown details.
 
@@ -138,6 +147,7 @@ The repository includes unit/HTTP lifecycle tests, Jadx feasibility probes, and 
 
 ```bash
 JADX_GUI=/absolute/path/to/jadx-gui ./gradlew guiRoundTripTest
+JADX_GUI=/absolute/path/to/jadx-gui ./gradlew nativeEditGuiRoundTripTest
 ```
 
 The opt-in GUI test is not part of a normal `./gradlew test` run. Results from the small fixture and GUI round-trip probes do not establish correctness for all Jadx-supported input formats or all edit types.
@@ -148,7 +158,7 @@ Before contributing, read [`AGENTS.md`](AGENTS.md), [`DESIGN.md`](DESIGN.md), an
 
 The intended architecture separates application lifecycle and HTTP transport from native project persistence, Jadx-version-sensitive integration, analysis, in-memory search, and operation scheduling. The current Gradle application is the initial implementation slice; the full logical architecture is documented in [`DESIGN.md`](DESIGN.md).
 
-Completed milestones cover native save/reload and external-change detection, revisions, coordinated operations, process-local jobs, shutdown, original symbol lookup, Java source, basic references and incremental search. Next slices cover supported native editing, then a generated-transport/handwritten-convenience Python SDK. Smali, CFG and resource capabilities depend on further tests against the pinned Jadx release.
+Completed slices cover native save/reload and external-change detection, revisions, coordinated operations, process-local jobs, shutdown, original symbol lookup, Java source, basic references, incremental search and native declaration editing. Remaining Phase 5.2 gates are mapping export, scoped variable editing and related-method propagation; the Python SDK follows in Phase 6. Smali, CFG and resource capabilities depend on further tests against the pinned Jadx release.
 
 The long-term design retains **one project per process**, native Jadx persistence, explicit saves, and no HTTP file uploads. Planned endpoints and behavior must not be mistaken for features already delivered.
 
@@ -165,6 +175,7 @@ For implementation sequencing and known technical limits, see [`IMPLEMENTATION.m
 - [`docs/feasibility-matrix.md`](docs/feasibility-matrix.md) — tested Jadx behavior, limitations, and follow-up probes.
 - [`docs/phase-4-symbol-identity.md`](docs/phase-4-symbol-identity.md) — original identity, paging, provenance, and pinned-source evidence.
 - [`docs/phase-5-search.md`](docs/phase-5-search.md) — incremental search, coverage, jobs, cursors and pinned-source evidence.
+- [`docs/phase-5-editing.md`](docs/phase-5-editing.md) — native declaration editing, batch semantics, GUI evidence and remaining gates.
 
 ## License and attribution
 

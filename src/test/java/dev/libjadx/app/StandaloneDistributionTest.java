@@ -13,6 +13,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.util.Base64;
 import java.util.concurrent.TimeUnit;
@@ -28,6 +29,46 @@ class StandaloneDistributionTest {
 	private static final ObjectMapper JSON = new ObjectMapper();
 	private static final HttpClient HTTP = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build();
 	@TempDir Path dir;
+
+	@Test
+	void installedHeadlessServiceEditsAndExplicitlySavesNativeProject() throws Exception {
+		Path script = Path.of(System.getProperty("libjadx.distributionScript"));
+		Path fixture = Path.of("tests/fixtures/native-project").toAbsolutePath();
+		for (String name : java.util.List.of("sample.jar.jadx", "sample.jar", "second.jar", "sample.tiny")) {
+			Files.copy(fixture.resolve(name), dir.resolve(name), StandardCopyOption.REPLACE_EXISTING);
+		}
+		Path project = dir.resolve("sample.jar.jadx");
+		byte[] before = Files.readAllBytes(project);
+		assertFalse(Files.exists(script.getParent().getParent().resolve("lib/jadx-gui-1.5.6.jar")));
+		int port;
+		try (ServerSocket socket = new ServerSocket(0)) { port = socket.getLocalPort(); }
+		Process first = start(script, project, port, "edit-first");
+		try {
+			awaitReady(first, port);
+			String ref = "{\"kind\":\"CLASS\",\"originalClassDescriptor\":\"Lprobe/Sample;\"}";
+			String batch = "{\"items\":[{\"kind\":\"RENAME\",\"target\":" + ref + ",\"newName\":\"DistAlias\"},"
+					+ "{\"kind\":\"SET_COMMENT\",\"target\":" + ref + ",\"comment\":\"distribution edit\",\"style\":\"LINE\"}]}";
+			HttpResponse<String> applied = post(port, "/api/v1/edits/batch", batch);
+			assertEquals(200, applied.statusCode(), applied.body());
+			assertEquals("APPLIED", body(applied).path("outcome").asText());
+			assertTrue(body(post(port, "/api/v1/project/pending-edits/export", "{}"))
+					.path("codeData").toString().contains("DistAlias"));
+			assertTrue(body(get(port, "/api/v1/project")).path("dirty").asBoolean());
+			org.junit.jupiter.api.Assertions.assertArrayEquals(before, Files.readAllBytes(project));
+			assertEquals(200, post(port, "/api/v1/project/save", "{}").statusCode());
+			assertFalse(body(get(port, "/api/v1/project")).path("dirty").asBoolean());
+		} finally { stop(first, port); }
+		assertTrue(Files.readString(project).contains("DistAlias"));
+		Process second = start(script, project, port, "edit-second");
+		try {
+			awaitReady(second, port);
+			HttpResponse<String> source = post(port, "/api/v1/decompile", "{\"ref\":{\"kind\":\"CLASS\","
+					+ "\"originalClassDescriptor\":\"Lprobe/Sample;\"}}");
+			assertEquals(200, source.statusCode(), source.body());
+			assertTrue(body(source).path("source").asText().contains("class DistAlias"));
+			assertTrue(body(source).path("source").asText().contains("distribution edit"));
+		} finally { stop(second, port); }
+	}
 
 	@Test
 	void installedSearchBuildsMemoryOnlyIndexAndRestartInvalidatesCursor() throws Exception {

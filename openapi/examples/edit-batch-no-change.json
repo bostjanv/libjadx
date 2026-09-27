@@ -1,0 +1,13 @@
+{
+  "outcome": "NO_CHANGE",
+  "sessionId": "00000000-0000-4000-8000-000000000001",
+  "logicalRevisionBefore": 8,
+  "logicalRevisionAfter": 8,
+  "indexRevisionAfter": 8,
+  "dirty": true,
+  "saved": false,
+  "items": [
+    { "index": 0, "status": "SKIPPED", "kind": "RENAME", "target": { "kind": "CLASS", "originalClassDescriptor": "Lprobe/Example;", "inputIdentity": null, "originalName": null, "originalDescriptor": null }, "affectedRefs": [], "message": "NO_CHANGE" }
+  ],
+  "diagnostics": []
+}

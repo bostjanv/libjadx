@@ -128,7 +128,7 @@ public final class NativeProjectDocument {
 		updated.entrySet().forEach(entry -> {
 			String key = entry.getKey();
 			if (("renames".equals(key) || "comments".equals(key)) && merged.has(key)) {
-				merged.add(key, preserveUnknownEntryFields(merged.get(key), entry.getValue()));
+				merged.add(key, preserveUnknownEntryFields(merged.get(key), entry.getValue(), "comments".equals(key)));
 			} else {
 				merged.add(key, entry.getValue());
 			}
@@ -136,7 +136,7 @@ public final class NativeProjectDocument {
 		root.add(CODE_DATA_KEY, merged);
 	}
 
-	private static JsonElement preserveUnknownEntryFields(JsonElement oldEntries, JsonElement updatedEntries) {
+	private static JsonElement preserveUnknownEntryFields(JsonElement oldEntries, JsonElement updatedEntries, boolean comments) {
 		if (!oldEntries.isJsonArray() || !updatedEntries.isJsonArray()) return updatedEntries;
 		JsonArray result = new JsonArray();
 		boolean[] used = new boolean[oldEntries.getAsJsonArray().size()];
@@ -147,7 +147,8 @@ public final class NativeProjectDocument {
 				if (used[i] || !old.isJsonObject()) continue;
 				JsonObject oldObject = old.getAsJsonObject();
 				if (Objects.equals(oldObject.get("nodeRef"), combined.get("nodeRef"))
-						&& Objects.equals(oldObject.get("codeRef"), combined.get("codeRef"))) {
+						&& Objects.equals(oldObject.get("codeRef"), combined.get("codeRef"))
+						&& (!comments || Objects.equals(commentStyle(oldObject), commentStyle(combined)))) {
 					JsonObject preserved = oldObject.deepCopy();
 					combined.entrySet().forEach(entry -> preserved.add(entry.getKey(), entry.getValue()));
 					combined = preserved;
@@ -158,6 +159,10 @@ public final class NativeProjectDocument {
 			result.add(combined);
 		}
 		return result;
+	}
+
+	private static String commentStyle(JsonObject entry) {
+		return entry.has("style") && !entry.get("style").isJsonNull() ? entry.get("style").getAsString() : "LINE";
 	}
 
 	public static JadxCodeData copyCodeData(JadxCodeData source) {

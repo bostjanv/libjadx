@@ -230,10 +230,10 @@ class ReferenceEndpointsTest {
             var q=request(ref,"OUTGOING"); var before=success(server,q);
             assertEquals(1,count(before,"CALL","answer","()I"));
             assertFalse(runtime.projectSnapshot().dirty());
-            var data=document.getCodeData();
-            data.setRenames(List.of(new jadx.api.data.impl.JadxCodeRename(jadx.api.data.impl.JadxNodeRef.forCls("probe.Sample"),"UnsavedReferenceAlias")));
-            data.setComments(List.of(new jadx.api.data.impl.JadxCodeComment(jadx.api.data.impl.JadxNodeRef.forCls("probe.Sample"),"unsaved reference comment")));
-            runtime.replaceCodeData(data,0);
+            var sample=SymbolRef.classRef("Lprobe/Sample;");
+            assertEquals("APPLIED",new EditBatchService(runtime).apply(new dev.libjadx.core.edits.EditDtos.Request(null,null,List.of(
+                    new dev.libjadx.core.edits.EditDtos.Operation(dev.libjadx.core.edits.EditDtos.Kind.RENAME,sample,"UnsavedReferenceAlias",null,null),
+                    new dev.libjadx.core.edits.EditDtos.Operation(dev.libjadx.core.edits.EditDtos.Kind.SET_COMMENT,sample,null,"unsaved reference comment","LINE")))).outcome());
             var after=success(server,q);
             assertEquals(before.path("edges"),after.path("edges"));
             assertNotEquals(before.path("snapshotId"),after.path("snapshotId"));
