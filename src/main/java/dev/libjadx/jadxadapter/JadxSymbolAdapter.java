@@ -110,6 +110,12 @@ public final class JadxSymbolAdapter {
 		return null;
 	}
 
+	/** Pinned MethodInfo retains original owner/name and full argument plus return descriptor. */
+	public static SymbolRef originalRef(MethodInfo info) {
+		return new SymbolRef(SymbolRef.Kind.METHOD, descriptor(info.getDeclClass().getRawName()),
+				null, info.getName(), methodDescriptor(info));
+	}
+
 	private static String methodDescriptor(MethodInfo info) {
 		StringBuilder descriptor = new StringBuilder("(");
 		info.getArgumentsTypes().forEach(type -> descriptor.append(TypeGen.signature(type)));

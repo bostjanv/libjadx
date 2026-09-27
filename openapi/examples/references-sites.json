@@ -1,0 +1,301 @@
+{
+  "outcome" : "RESOLVED",
+  "queriedRef" : {
+    "kind" : "METHOD",
+    "originalClassDescriptor" : "Lprobe/ReferenceFixture;",
+    "inputIdentity" : null,
+    "originalName" : "entry",
+    "originalDescriptor" : "()V"
+  },
+  "direction" : "OUTGOING",
+  "candidates" : [ ],
+  "sessionId" : "c7b8a199-4054-4c47-96de-155cfb5450c6",
+  "logicalRevision" : 0,
+  "snapshotId" : "sha256:99f65203b78836eac4cdfc07a1d952a7536c9516407143b3429f8f1e67124384",
+  "scope" : "JADX_REPORTED",
+  "coverage" : {
+    "status" : "PARTIAL",
+    "reason" : "Jadx usage graph and discarded/original input coverage are not proved exhaustive"
+  },
+  "edges" : [ {
+    "sourceRef" : {
+      "kind" : "METHOD",
+      "originalClassDescriptor" : "Lprobe/ReferenceFixture;",
+      "inputIdentity" : null,
+      "originalName" : "entry",
+      "originalDescriptor" : "()V"
+    },
+    "targetRef" : {
+      "kind" : "METHOD",
+      "originalClassDescriptor" : "Lprobe/ReferenceFixture;",
+      "inputIdentity" : null,
+      "originalName" : "helper",
+      "originalDescriptor" : "()V"
+    },
+    "relation" : "CALL",
+    "resolution" : "RESOLVED",
+    "evidence" : "JADX_METHOD_USED",
+    "sourceSites" : [ {
+      "sourceOwnerRef" : {
+        "kind" : "CLASS",
+        "originalClassDescriptor" : "Lprobe/ReferenceFixture;",
+        "inputIdentity" : null,
+        "originalName" : null,
+        "originalDescriptor" : null
+      },
+      "sourceSnapshotId" : "sha256:c83cef33dc16afa4bf7737b0c27da0960c0e43fd0caf0e367554f7a5f0433460",
+      "position" : {
+        "offsetUtf16" : 287,
+        "line" : 10,
+        "columnCodePoints" : 8
+      },
+      "precision" : "EXACT"
+    }, {
+      "sourceOwnerRef" : {
+        "kind" : "CLASS",
+        "originalClassDescriptor" : "Lprobe/ReferenceFixture;",
+        "inputIdentity" : null,
+        "originalName" : null,
+        "originalDescriptor" : null
+      },
+      "sourceSnapshotId" : "sha256:c83cef33dc16afa4bf7737b0c27da0960c0e43fd0caf0e367554f7a5f0433460",
+      "position" : {
+        "offsetUtf16" : 305,
+        "line" : 11,
+        "columnCodePoints" : 8
+      },
+      "precision" : "EXACT"
+    }, {
+      "sourceOwnerRef" : {
+        "kind" : "CLASS",
+        "originalClassDescriptor" : "Lprobe/ReferenceFixture;",
+        "inputIdentity" : null,
+        "originalName" : null,
+        "originalDescriptor" : null
+      },
+      "sourceSnapshotId" : "sha256:c83cef33dc16afa4bf7737b0c27da0960c0e43fd0caf0e367554f7a5f0433460",
+      "position" : {
+        "offsetUtf16" : 323,
+        "line" : 12,
+        "columnCodePoints" : 8
+      },
+      "precision" : "EXACT"
+    }, {
+      "sourceOwnerRef" : {
+        "kind" : "CLASS",
+        "originalClassDescriptor" : "Lprobe/ReferenceFixture;",
+        "inputIdentity" : null,
+        "originalName" : null,
+        "originalDescriptor" : null
+      },
+      "sourceSnapshotId" : "sha256:c83cef33dc16afa4bf7737b0c27da0960c0e43fd0caf0e367554f7a5f0433460",
+      "position" : {
+        "offsetUtf16" : 341,
+        "line" : 13,
+        "columnCodePoints" : 8
+      },
+      "precision" : "EXACT"
+    }, {
+      "sourceOwnerRef" : {
+        "kind" : "CLASS",
+        "originalClassDescriptor" : "Lprobe/ReferenceFixture;",
+        "inputIdentity" : null,
+        "originalName" : null,
+        "originalDescriptor" : null
+      },
+      "sourceSnapshotId" : "sha256:c83cef33dc16afa4bf7737b0c27da0960c0e43fd0caf0e367554f7a5f0433460",
+      "position" : {
+        "offsetUtf16" : 359,
+        "line" : 14,
+        "columnCodePoints" : 8
+      },
+      "precision" : "EXACT"
+    }, {
+      "sourceOwnerRef" : {
+        "kind" : "CLASS",
+        "originalClassDescriptor" : "Lprobe/ReferenceFixture;",
+        "inputIdentity" : null,
+        "originalName" : null,
+        "originalDescriptor" : null
+      },
+      "sourceSnapshotId" : "sha256:c83cef33dc16afa4bf7737b0c27da0960c0e43fd0caf0e367554f7a5f0433460",
+      "position" : {
+        "offsetUtf16" : 377,
+        "line" : 15,
+        "columnCodePoints" : 8
+      },
+      "precision" : "EXACT"
+    }, {
+      "sourceOwnerRef" : {
+        "kind" : "CLASS",
+        "originalClassDescriptor" : "Lprobe/ReferenceFixture;",
+        "inputIdentity" : null,
+        "originalName" : null,
+        "originalDescriptor" : null
+      },
+      "sourceSnapshotId" : "sha256:c83cef33dc16afa4bf7737b0c27da0960c0e43fd0caf0e367554f7a5f0433460",
+      "position" : {
+        "offsetUtf16" : 395,
+        "line" : 16,
+        "columnCodePoints" : 8
+      },
+      "precision" : "EXACT"
+    }, {
+      "sourceOwnerRef" : {
+        "kind" : "CLASS",
+        "originalClassDescriptor" : "Lprobe/ReferenceFixture;",
+        "inputIdentity" : null,
+        "originalName" : null,
+        "originalDescriptor" : null
+      },
+      "sourceSnapshotId" : "sha256:c83cef33dc16afa4bf7737b0c27da0960c0e43fd0caf0e367554f7a5f0433460",
+      "position" : {
+        "offsetUtf16" : 413,
+        "line" : 17,
+        "columnCodePoints" : 8
+      },
+      "precision" : "EXACT"
+    } ],
+    "sourceSiteCoverage" : "PARTIAL",
+    "originalOffset" : null
+  }, {
+    "sourceRef" : {
+      "kind" : "METHOD",
+      "originalClassDescriptor" : "Lprobe/ReferenceFixture;",
+      "inputIdentity" : null,
+      "originalName" : "entry",
+      "originalDescriptor" : "()V"
+    },
+    "targetRef" : {
+      "kind" : "METHOD",
+      "originalClassDescriptor" : "Lprobe/ReferenceFixture;",
+      "inputIdentity" : null,
+      "originalName" : "helper",
+      "originalDescriptor" : "(I)I"
+    },
+    "relation" : "CALL",
+    "resolution" : "RESOLVED",
+    "evidence" : "JADX_METHOD_USED",
+    "sourceSites" : [ {
+      "sourceOwnerRef" : {
+        "kind" : "CLASS",
+        "originalClassDescriptor" : "Lprobe/ReferenceFixture;",
+        "inputIdentity" : null,
+        "originalName" : null,
+        "originalDescriptor" : null
+      },
+      "sourceSnapshotId" : "sha256:c83cef33dc16afa4bf7737b0c27da0960c0e43fd0caf0e367554f7a5f0433460",
+      "position" : {
+        "offsetUtf16" : 431,
+        "line" : 18,
+        "columnCodePoints" : 8
+      },
+      "precision" : "EXACT"
+    } ],
+    "sourceSiteCoverage" : "PARTIAL",
+    "originalOffset" : null
+  }, {
+    "sourceRef" : {
+      "kind" : "METHOD",
+      "originalClassDescriptor" : "Lprobe/ReferenceFixture;",
+      "inputIdentity" : null,
+      "originalName" : "entry",
+      "originalDescriptor" : "()V"
+    },
+    "targetRef" : {
+      "kind" : "METHOD",
+      "originalClassDescriptor" : "Lprobe/ReferenceOther;",
+      "inputIdentity" : null,
+      "originalName" : "<init>",
+      "originalDescriptor" : "()V"
+    },
+    "relation" : "CALL",
+    "resolution" : "RESOLVED",
+    "evidence" : "JADX_METHOD_USED",
+    "sourceSites" : [ {
+      "sourceOwnerRef" : {
+        "kind" : "CLASS",
+        "originalClassDescriptor" : "Lprobe/ReferenceFixture;",
+        "inputIdentity" : null,
+        "originalName" : null,
+        "originalDescriptor" : null
+      },
+      "sourceSnapshotId" : "sha256:c83cef33dc16afa4bf7737b0c27da0960c0e43fd0caf0e367554f7a5f0433460",
+      "position" : {
+        "offsetUtf16" : 454,
+        "line" : 19,
+        "columnCodePoints" : 12
+      },
+      "precision" : "EXACT"
+    } ],
+    "sourceSiteCoverage" : "PARTIAL",
+    "originalOffset" : null
+  }, {
+    "sourceRef" : {
+      "kind" : "METHOD",
+      "originalClassDescriptor" : "Lprobe/ReferenceFixture;",
+      "inputIdentity" : null,
+      "originalName" : "entry",
+      "originalDescriptor" : "()V"
+    },
+    "targetRef" : {
+      "kind" : "METHOD",
+      "originalClassDescriptor" : "Lprobe/ReferenceOther;",
+      "inputIdentity" : null,
+      "originalName" : "work",
+      "originalDescriptor" : "()V"
+    },
+    "relation" : "CALL",
+    "resolution" : "RESOLVED",
+    "evidence" : "JADX_METHOD_USED",
+    "sourceSites" : [ {
+      "sourceOwnerRef" : {
+        "kind" : "CLASS",
+        "originalClassDescriptor" : "Lprobe/ReferenceFixture;",
+        "inputIdentity" : null,
+        "originalName" : null,
+        "originalDescriptor" : null
+      },
+      "sourceSnapshotId" : "sha256:c83cef33dc16afa4bf7737b0c27da0960c0e43fd0caf0e367554f7a5f0433460",
+      "position" : {
+        "offsetUtf16" : 471,
+        "line" : 19,
+        "columnCodePoints" : 29
+      },
+      "precision" : "EXACT"
+    } ],
+    "sourceSiteCoverage" : "PARTIAL",
+    "originalOffset" : null
+  }, {
+    "sourceRef" : {
+      "kind" : "METHOD",
+      "originalClassDescriptor" : "Lprobe/ReferenceFixture;",
+      "inputIdentity" : null,
+      "originalName" : "entry",
+      "originalDescriptor" : "()V"
+    },
+    "targetRef" : {
+      "kind" : "METHOD",
+      "originalClassDescriptor" : "Lprobe/MissingDependency;",
+      "inputIdentity" : null,
+      "originalName" : "external",
+      "originalDescriptor" : "(Ljava/lang/String;)Ljava/lang/String;"
+    },
+    "relation" : "UNRESOLVED_CALL",
+    "resolution" : "UNRESOLVED",
+    "evidence" : "JADX_METHOD_UNRESOLVED_USED",
+    "sourceSites" : [ ],
+    "sourceSiteCoverage" : "UNAVAILABLE",
+    "originalOffset" : null
+  } ],
+  "nextCursor" : null,
+  "pageComplete" : true,
+  "capabilities" : {
+    "resolvedTarget" : "PARTIAL",
+    "sourceLocation" : "PARTIAL",
+    "originalOffset" : "UNAVAILABLE",
+    "referenceKind" : "PARTIAL",
+    "globalCoverage" : "UNKNOWN"
+  },
+  "diagnostics" : [ "CALL is a distinct Jadx-reported method pair, not an invoke count or dynamic dispatch closure", "Usage graph may omit recursive, optimized, unresolved or discarded input relationships; coverage is not exhaustive", "FIELD_USE access direction, original bytecode offsets and per-input provenance are unavailable", "Source sites require matching original target, exact P4.2 token/range and enclosing caller metadata; absent sites are unavailable", "Only current primary settings are used; no native edits or save are performed" ]
+}

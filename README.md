@@ -160,3 +160,19 @@ For implementation sequencing and known technical limits, see [`IMPLEMENTATION.m
 ## License and attribution
 
 LibJadx depends on [Jadx](https://github.com/skylot/jadx) and other third-party libraries, each subject to its own license. **No LibJadx project license file is present in the repository at the time this README was drafted**; do not assume that Jadx's license also licenses LibJadx. Review the repository's licensing status and third-party notices before redistributing a build.
+
+### Basic references (Phase 4.3)
+
+`POST /api/v1/references/query` accepts original class/method/field refs and an
+explicit `INCOMING` or `OUTGOING` direction (fields: incoming only). For example:
+
+```json
+{"ref":{"kind":"METHOD","originalClassDescriptor":"Lprobe/Sample;","originalName":"caller","originalDescriptor":"()I"},"direction":"OUTGOING","includeSourceSites":true}
+```
+
+Results report Jadx-observed method pairs, unresolved original method descriptors,
+field users and class dependencies. Optional source sites are verified against a
+P4.2 Java snapshot. Coverage is always partial; READ/WRITE and original offsets
+are unavailable. Signed pagination detects changes in observed graph content,
+including those caused by decompilation without project edits. Queries do not
+save or dirty native state. See [semantics, limits and evidence](docs/phase-4-references.md).

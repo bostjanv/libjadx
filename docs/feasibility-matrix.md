@@ -5,7 +5,7 @@ Evidence is tied to Jadx `1.5.6` (`4c0ac37699aa8c9803f1c73cfaacd9205acb044b`). C
 | Capability | Status | Evidence / next probe |
 |---|---|---|
 | Public Java loading/decompilation and class/Smali metadata | SUPPORTED for a small JAR | `JadxSmokeProbeTest` loads a generated JAR, resolves an aliased class, reads Java, non-empty code metadata and `JavaClass.getSmali()`. This does not establish behavior for every input type. |
-| Basic method use references | PARTIAL | `JadxSmokeProbeTest` verifies `JavaMethod.getUseIn()` reports a local caller. Field refs, unresolved refs, exact instruction offsets and multidex provenance remain unproven. |
+| Basic method, field and class references | PARTIAL | `JadxReferenceProbeTest` verifies distinct incoming/outgoing method pairs, field user methods, class dependencies and missing external method descriptors. `ReferenceEndpointsTest` verifies source sites and real graph-content changes at unchanged revision. READ/WRITE, original offsets, exhaustive coverage and multidex provenance remain unverified. |
 | Headless native `.jadx` parsing and relative input paths | SUPPORTED for the pinned simple project | `NativeProjectModelProbeTest` calls `JadxProject.loadProjectData(Path)` under headless test execution and checks project-relative input resolution. The service codec does not invoke GUI windows. |
 | Multiple input and native mapping references | SUPPORTED for two JAR inputs and a Tiny v2 class mapping | The native fixture references two relative JARs and `sample.tiny`. `NativeGuiFixtureRoundTripProbeTest` resolves both inputs, passes the mapping path through `JadxArgs.setUserRenamesMappingsPath`, and verifies the mapped class alias. The matching GUI log reported two classes loaded. |
 | Native rename/comment JSON save and core reload | SUPPORTED for class rename/comment | `NativeGuiFixtureRoundTripProbeTest` updates `JadxCodeData`, explicitly writes via `NativeProjectDocument`, then loads it into `JadxDecompiler`; output contains the alias and comment. Method/field rename, mapping and local/parameter edits remain unproven. |
@@ -40,3 +40,11 @@ or a persistent representation for decompilation mode.
 ## Phase 0 exit status
 
 **Phase 0 exit gate passed for the first implementation slice.** A matching-GUI native fixture, two relative inputs, a native mapping reference, headless class rename/comment save, unknown-field retention, and actual GUI open/save/headless reopen are covered. Advanced behavior remains limited or unknown as listed above; keep those capability limits explicit and probe them before implementing corresponding API features.
+
+## Phase 4.3 reference probe
+
+`JadxReferenceProbeTest` proves distinct incoming/outgoing method pairs, field
+users, class dependencies and omitted-dependency original method descriptors
+on an owned JAR. Graphs exist before owner decompilation, but may be pruned by
+later processing. Recursive self edges can be absent. READ/WRITE, exhaustive
+coverage and original offsets remain unavailable. See [reference evidence](phase-4-references.md).

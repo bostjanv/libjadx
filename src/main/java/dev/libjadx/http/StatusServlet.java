@@ -46,9 +46,11 @@ public final class StatusServlet extends HttpServlet {
 	private final ObjectMapper json;
 	private final JobEventsHandler jobEvents;
 	private final DecompiledSourceService sourceService;
+	private final dev.libjadx.app.ReferenceQueryService referenceService;
 	private final ShutdownRequester shutdown;
 	private final AtomicBoolean shutdownRequestInProgress = new AtomicBoolean();
-	private final SymbolCatalogProvider catalogs = new SymbolCatalogProvider(CursorSigningKey.loadDefault());
+	private final byte[] cursorKey = CursorSigningKey.loadDefault();
+	private final SymbolCatalogProvider catalogs = new SymbolCatalogProvider(cursorKey);
 
 	public StatusServlet(ProjectRuntime runtime, ObjectMapper json, ShutdownRequester shutdown) {
 		this.runtime = runtime;
@@ -56,6 +58,7 @@ public final class StatusServlet extends HttpServlet {
 		this.shutdown = shutdown;
 		this.jobEvents = new JobEventsHandler(runtime.jobRegistry());
 		this.sourceService = new DecompiledSourceService(runtime, catalogs);
+		this.referenceService = new dev.libjadx.app.ReferenceQueryService(runtime, catalogs, cursorKey);
 	}
 
 	@Override
@@ -83,7 +86,7 @@ public final class StatusServlet extends HttpServlet {
 					new Capability("code.original_debug_lines", "UNKNOWN", "ORIGIN_NOT_VERIFIED", "UNAVAILABLE"),
 					new Capability("code.original_bytecode_offsets", "UNKNOWN", "ORIGIN_NOT_VERIFIED", "UNAVAILABLE"),
 					new Capability("code.smali", "SUPPORTED", "SMALL_JAR_PROBED", "READ_ONLY"),
-					new Capability("references.method_uses", "PARTIAL", "LOCAL_CALLERS_PROBED", "READ_ONLY"),
+					new Capability("references.method_uses", "PARTIAL", "METHOD_FIELD_CLASS_AND_UNRESOLVED_JAR_PROBED", "READ_ONLY"),
 					new Capability("project.native_load", "SUPPORTED", "JADX_1_5_6_FIXTURE", "READ_ONLY"),
 					new Capability("project.native_save", "PARTIAL", "CLASS_RENAME_COMMENT_MAPPING_AND_GUI_ROUND_TRIP", "EXPLICIT_SAVE_ONLY"),
 					new Capability("project.revisions", "PARTIAL", "CONTENT_HASH_AND_SESSION_TOKENS", "PROCESS_LOCAL_COUNTERS"),
@@ -178,6 +181,10 @@ public final class StatusServlet extends HttpServlet {
 		String path = request.getRequestURI();
 		if ("/api/v1/symbols/resolve".equals(path)) {
 			handleSymbolResolve(request, response);
+			return;
+		}
+		if ("/api/v1/references/query".equals(path)) {
+			handleReferences(request, response);
 			return;
 		}
 		if ("/api/v1/decompile".equals(path)) {
@@ -385,6 +392,67 @@ public final class StatusServlet extends HttpServlet {
 		}
 	}
 
+	private void handleReferences(HttpServletRequest request, HttpServletResponse response) throws IOException {
+		try {
+			runtime.assertReady();
+			if (!isJsonContentType(request.getContentType())) {
+				writeError(response, 415, "INVALID_REQUEST", "Content-Type must be application/json"); return;
+			}
+			JsonNode body = readBody(request);
+			requireFields(body, Set.of("ref", "direction", "relations", "pageSize", "cursor", "includeSourceSites", "strict",
+					"expectedSessionId", "expectedLogicalRevision"));
+			if (!body.has("ref") || !body.get("ref").isObject()) throw new IllegalArgumentException("ref object is required");
+			var ref = parseSymbolRef(body.get("ref"));
+			String rawDirection = textOption(body, "direction", "");
+			var direction = dev.libjadx.core.references.ReferenceQuery.Direction.valueOf(rawDirection);
+			List<dev.libjadx.core.references.ReferenceQuery.Relation> relations = null;
+			if (body.has("relations")) {
+				if (!body.get("relations").isArray() || body.get("relations").size() > 4)
+					throw new IllegalArgumentException("relations must be a bounded array");
+				relations = new java.util.ArrayList<>();
+				for (JsonNode value : body.get("relations")) {
+					if (!value.isTextual()) throw new IllegalArgumentException("relations must contain strings");
+					relations.add(dev.libjadx.core.references.ReferenceQuery.Relation.valueOf(value.asText()));
+				}
+			}
+			int pageSize = 50;
+			if (body.has("pageSize")) {
+				if (!body.get("pageSize").isIntegralNumber() || !body.get("pageSize").canConvertToInt())
+					throw new IllegalArgumentException("pageSize must be an integer");
+				pageSize = body.get("pageSize").intValue();
+			}
+			String cursor = body.has("cursor") && body.get("cursor").isNull() ? null : textOption(body, "cursor", null);
+			String session = textOption(body, "expectedSessionId", null);
+			Long revision = null;
+			if (body.has("expectedLogicalRevision")) {
+				if (!body.get("expectedLogicalRevision").isIntegralNumber() || !body.get("expectedLogicalRevision").canConvertToLong())
+					throw new IllegalArgumentException("expectedLogicalRevision must be an integer");
+				revision = body.get("expectedLogicalRevision").longValue();
+			}
+			write(response, 200, referenceService.query(new dev.libjadx.core.references.ReferenceQuery(ref, direction, relations,
+					pageSize, cursor, booleanOption(body, "includeSourceSites", false), booleanOption(body, "strict", false), session, revision)));
+		} catch (dev.libjadx.core.references.ReferenceSnapshot.StaleReferenceException stale) {
+			writeError(response, 409, "STALE_REVISION", "Reference cursor or precondition belongs to an obsolete observed snapshot");
+		} catch (dev.libjadx.app.ReferenceQueryService.IncompleteReferencesException incomplete) {
+			writeError(response, 409, "INCOMPLETE_ANALYSIS", "Requested reference coverage is not proved complete", false,
+					Map.of("diagnostics", incomplete.diagnostics()));
+		} catch (ProjectRuntime.ProjectNotReadyException notReady) {
+			writeLifecycleError(response, notReady.status());
+		} catch (ServiceShuttingDownException stopping) {
+			writeError(response, 503, "SERVICE_SHUTTING_DOWN", stopping.getMessage());
+		} catch (ProjectBusyException busy) {
+			writeError(response, 409, "PROJECT_BUSY", busy.getMessage());
+		} catch (dev.libjadx.core.references.ReferenceSnapshot.ReferenceLimitException | JadxSymbolAdapter.CatalogLimitException
+				| JadxSourceAdapter.SourceLimitException | JadxSourceAdapter.AnnotationLimitException limit) {
+			writeError(response, 429, "RESOURCE_LIMIT", "Reference materialization exceeds synchronous limits");
+		} catch (IllegalArgumentException invalid) {
+			writeError(response, 400, "INVALID_REQUEST", "Malformed or incompatible reference request or cursor");
+		} catch (Exception failure) {
+			failure.printStackTrace(System.err);
+			writeError(response, 500, "INTERNAL_ERROR", "Reference query failed; inspect the local service log");
+		}
+	}
+
 	private void handleDecompile(HttpServletRequest request, HttpServletResponse response) throws IOException {
 		try {
 			runtime.assertReady();
@@ -554,7 +622,13 @@ public final class StatusServlet extends HttpServlet {
 		if (bytes.length > 65_536) throw new IllegalArgumentException("Request body exceeds 64 KiB");
 		JsonNode body;
 		try {
-			body = json.readTree(new String(bytes, StandardCharsets.UTF_8));
+			if ("/api/v1/references/query".equals(request.getRequestURI())) {
+				try (var parser = json.getFactory().createParser(bytes)) {
+					parser.enable(com.fasterxml.jackson.core.JsonParser.Feature.STRICT_DUPLICATE_DETECTION);
+					body = json.readTree(parser);
+					if (parser.nextToken() != null) throw new IllegalArgumentException("Trailing JSON value");
+				}
+			} else body = json.readTree(new String(bytes, StandardCharsets.UTF_8));
 		} catch (JsonProcessingException malformed) {
 			throw new IllegalArgumentException("Malformed JSON request body", malformed);
 		}

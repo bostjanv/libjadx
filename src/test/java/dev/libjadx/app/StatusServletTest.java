@@ -45,6 +45,7 @@ class StatusServletTest {
 			assertTrue(body(capabilities).path("capabilities").size() > 0);
 
 			assertError(request(server, "POST", "/api/v1/decompile"), 503, "PROJECT_NOT_READY", true, true);
+			assertError(request(server, "POST", "/api/v1/references/query"), 503, "PROJECT_NOT_READY", true, true);
 			assertError(request(server, "GET", "/api/v1/does-not-exist"), 404, "NOT_FOUND", false, false);
 			assertError(request(server, "PUT", "/api/v1/status"), 405, "METHOD_NOT_ALLOWED", false, false);
 
@@ -54,10 +55,12 @@ class StatusServletTest {
 			assertEquals("FAILED", body(failedStatus).path("state").asText());
 			assertEquals("PROJECT_LOAD_FAILED", body(failedStatus).path("error").path("code").asText());
 			assertError(request(server, "POST", "/api/v1/decompile"), 503, "PROJECT_LOAD_FAILED", false, false);
+			assertError(request(server, "POST", "/api/v1/references/query"), 503, "PROJECT_LOAD_FAILED", false, false);
 			assertError(request(server, "POST", "/api/v1/unknown"), 404, "NOT_FOUND", false, false);
 
 			runtime.close();
 			assertError(request(server, "POST", "/api/v1/decompile"), 503, "SERVICE_SHUTTING_DOWN", false, false);
+			assertError(request(server, "POST", "/api/v1/references/query"), 503, "SERVICE_SHUTTING_DOWN", false, false);
 		} finally {
 			server.close();
 			runtime.close();
@@ -71,7 +74,7 @@ class StatusServletTest {
 		HttpApiServer server = start(runtime);
 		try {
 			runtime.initializeAsync(null).get(5, TimeUnit.SECONDS);
-			assertError(request(server, "POST", "/api/v1/references/query"), 501, "OPERATION_NOT_IMPLEMENTED", false, false);
+			assertError(request(server, "POST", "/api/v1/search"), 501, "OPERATION_NOT_IMPLEMENTED", false, false);
 		} finally {
 			server.close();
 			runtime.close();
@@ -92,6 +95,7 @@ class StatusServletTest {
 			runtime.close();
 			assertEquals("SHUTTING_DOWN", runtime.status().state());
 			assertError(request(server, "POST", "/api/v1/decompile"), 503, "SERVICE_SHUTTING_DOWN", false, false);
+			assertError(request(server, "POST", "/api/v1/references/query"), 503, "SERVICE_SHUTTING_DOWN", false, false);
 		} finally {
 			releaseLoad.countDown();
 			if (initialization != null) initialization.get(5, TimeUnit.SECONDS);

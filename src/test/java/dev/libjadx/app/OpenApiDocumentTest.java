@@ -108,6 +108,12 @@ class OpenApiDocumentTest {
 			OpenApiExampleValidator.assertValid(yaml, "ErrorEnvelope",
 					json.readTree(Files.readString(Path.of("openapi/examples", file))));
 		}
+		assertEquals("#/components/schemas/ReferencePage", yaml.path("paths").path("/references/query").path("post")
+				.path("responses").path("200").path("content").path("application/json").path("schema").path("$ref").asText());
+		for (String file : List.of("references-method.json", "references-field.json", "references-class.json", "references-sites.json"))
+			OpenApiExampleValidator.assertValid(yaml, "ReferencePage", json.readTree(Path.of("openapi/examples", file).toFile()));
+
+		OpenApiExampleValidator.assertValid(yaml, "ReferenceQuery", json.readTree(Path.of("openapi/examples/references-query.json").toFile()));
 		var methodExample = json.readTree(Files.readString(Path.of("openapi/examples/decompile-method.json")));
 		var exampleRange = methodExample.path("methodRange");
 		assertEquals(methodExample.path("methodSource").asText(), methodExample.path("source").asText().substring(
