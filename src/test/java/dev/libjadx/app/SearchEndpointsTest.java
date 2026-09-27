@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import dev.libjadx.http.HttpApiServer;
+import dev.libjadx.core.symbols.SymbolCatalog;
 import jadx.api.JadxDecompiler;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -29,6 +30,25 @@ class SearchEndpointsTest {
 	private static final ObjectMapper JSON = new ObjectMapper();
 	private static final HttpClient HTTP = HttpClient.newHttpClient();
 	@TempDir Path dir;
+
+	@Test
+	void indexCatalogExhaustionDoesNotBreakDecompile() throws Exception {
+		Path jar = SymbolFixtureSupport.compileFixture(dir);
+		ProjectRuntime runtime = new ProjectRuntime(null, List.of(jar), List.of(dir));
+		SearchService search = new SearchService(runtime,
+				new SymbolCatalogProvider(SymbolCatalog.newCursorKey()), SymbolCatalog.newCursorKey(),
+				processed -> { }, SearchService::extractSource, System::nanoTime, 1024);
+		try (HttpApiServer server = new HttpApiServer("127.0.0.1", 0, runtime, null, search)) {
+			server.start(); runtime.initializeAsync(null).get(20, TimeUnit.SECONDS);
+			JsonNode source = ok(post(server, "/api/v1/decompile", JSON.createObjectNode().set("ref",
+					JSON.createObjectNode().put("kind", "CLASS")
+							.put("originalClassDescriptor", "Lprobe/SymbolFixture;"))));
+			assertEquals("RESOLVED", source.path("outcome").asText());
+			assertTrue(source.path("source").asText().contains("class SymbolFixture"));
+			assertError(post(server, "/api/v1/search", query("SymbolFixture", "CLASS_NAME")),
+					429, "RESOURCE_LIMIT");
+		} finally { runtime.close(); }
+	}
 
 	@Test
 	void excessiveLiteralAndRegexMatchesReturnResourceLimitWithoutTruncation() throws Exception {

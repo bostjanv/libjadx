@@ -85,13 +85,18 @@ public final class SearchService {
 
 	SearchService(ProjectRuntime runtime, SymbolCatalogProvider catalogs, byte[] cursorKey,
 			BuildBoundary boundary, SourceExtractor extractor, java.util.function.LongSupplier nanoClock) {
+		this(runtime, catalogs, cursorKey, boundary, extractor, nanoClock, 64L * 1024 * 1024);
+	}
+
+	SearchService(ProjectRuntime runtime, SymbolCatalogProvider catalogs, byte[] cursorKey,
+			BuildBoundary boundary, SourceExtractor extractor, java.util.function.LongSupplier nanoClock, long indexBudget) {
 		this.nanoClock = nanoClock;
 		this.runtime = runtime;
 		this.catalogs = catalogs;
 		this.cursorKey = cursorKey.clone();
 		this.buildBoundary = boundary;
 		this.sourceExtractor = extractor;
-		this.store = new SearchIndexStore(runtime::searchIdentity, 64L * 1024 * 1024);
+		this.store = new SearchIndexStore(runtime::searchIdentity, indexBudget);
 	}
 
 	@FunctionalInterface interface BuildBoundary { void afterClass(int processed); }
@@ -139,6 +144,10 @@ public final class SearchService {
 		runtime.assertReady();
 		Pattern compiledRegex = compileRegex(query);
 		ensureCatalog();
+		if (query.requireComplete() && cursor == null) {
+			JobSnapshot running = runningBuild(query);
+			if (running != null) return running;
+		}
 		Object result = runtime.withSearchSnapshotRead(key -> {
 			if (query.expectedSessionId() != null && (!query.expectedSessionId().equals(key.sessionId())
 					|| query.expectedLogicalRevision() != key.logicalRevision())) throw new StaleSearchException("Search precondition is stale");
@@ -156,6 +165,31 @@ public final class SearchService {
 		return result == BUILD_NEEDED ? buildIndex(query.domains(), false) : result;
 	}
 
+	/** Inspect only copied index/job metadata; the running build holds the incompatible engine lease. */
+	private JobSnapshot runningBuild(SearchQuery query) {
+		synchronized (buildLock) {
+			SearchIndexKey key = runtime.searchIdentity();
+			if (key == null) throw new SearchIndexStore.StaleIndexException();
+			if (query.expectedSessionId() != null && (!query.expectedSessionId().equals(key.sessionId())
+					|| query.expectedLogicalRevision() != key.logicalRevision()))
+				throw new StaleSearchException("Search precondition is stale");
+			if (!key.equals(buildIdentity)) return null;
+			UUID id = builds.get(flight(key, query.domains()));
+			if (id == null) return null;
+			try {
+				JobSnapshot job = runtime.jobRegistry().snapshot(id);
+				if (job.terminal() || store.view(key).coverage(query.domains()).stream()
+						.allMatch(c -> "COMPLETE".equals(c.state()))) return null;
+				if (!key.equals(runtime.searchIdentity())) throw new SearchIndexStore.StaleIndexException();
+				return job;
+			} catch (java.util.NoSuchElementException expired) { return null; }
+		}
+	}
+
+	private static String flight(SearchIndexKey key, List<SearchQuery.Domain> domains) {
+		return key.snapshotId() + ":" + domains.stream().sorted().toList();
+	}
+
 	/** Returns current status or a real CLASS_READ job. */
 	public Object buildIndex(List<SearchQuery.Domain> domains, boolean force) {
 		if (domains.contains(SearchQuery.Domain.STRING_LITERAL))
@@ -167,7 +201,7 @@ public final class SearchService {
 		SearchIndexStore.View view = store.view(key);
 		List<Coverage> coverage = view.coverage(domains);
 		if (!force && coverage.stream().allMatch(c -> "COMPLETE".equals(c.state()))) return status(view, domains);
-		String flight = key.snapshotId() + ":" + domains.stream().sorted().toList();
+		String flight = flight(key, domains);
 		synchronized (buildLock) {
 			if (!key.equals(buildIdentity)) { builds.clear(); buildIdentity = key; }
 			UUID activeBuildId = builds.get(flight);
@@ -184,12 +218,11 @@ public final class SearchService {
 				} catch (java.util.NoSuchElementException expired) { /* Submit again. */ }
 			}
 			runtime.assertSearchBuildAvailable();
-			if (force) store.resetDomains(key, domains);
 			JobSpec<ProjectRuntime.PrimarySymbolRead> spec = new JobSpec<>("search-build-index",
 					OperationRequest.classRead("search-build-index"),
 					new OperationCoordinator.Admission(key.sessionId(), key.logicalRevision()),
 					key.snapshotId(), Duration.ofMinutes(30), () -> runtime.captureSearchRead(key),
-					(context, captured) -> runBuild(context, captured, key, domains));
+					(context, captured) -> runBuild(context, captured, key, domains, force));
 			JobSnapshot submitted = runtime.submitJob(spec);
 			builds.put(flight, submitted.jobId());
 			return submitted;
@@ -197,7 +230,10 @@ public final class SearchService {
 	}
 
 	private JobSpec.JobResult runBuild(JobSpec.JobContext job, ProjectRuntime.PrimarySymbolRead captured,
-			SearchIndexKey expected, List<SearchQuery.Domain> domains) {
+			SearchIndexKey expected, List<SearchQuery.Domain> domains, boolean force) {
+		job.cancellation().throwIfCancellationRequested();
+		if (!expected.equals(runtime.searchIdentity())) throw new JobRegistry.StaleJobSnapshotException();
+		if (force) store.resetDomains(expected, domains);
 		store.beginBuild(expected, domains);
 		List<JavaClass> classes = List.copyOf(captured.decompiler().getClassesWithInners());
 		Set<String> visitedOwners = new HashSet<>();

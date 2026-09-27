@@ -57,11 +57,15 @@ public final class StatusServlet extends HttpServlet {
 	private final SymbolCatalogProvider catalogs = new SymbolCatalogProvider(cursorKey);
 
 	public StatusServlet(ProjectRuntime runtime, ObjectMapper json, ShutdownRequester shutdown) {
+		this(runtime, json, shutdown, null);
+	}
+
+	StatusServlet(ProjectRuntime runtime, ObjectMapper json, ShutdownRequester shutdown, SearchService injectedSearch) {
 		this.runtime = runtime;
 		this.json = json;
 		this.shutdown = shutdown;
 		this.jobEvents = new JobEventsHandler(runtime.jobRegistry());
-		this.searchService = new SearchService(runtime, catalogs, cursorKey);
+		this.searchService = injectedSearch == null ? new SearchService(runtime, catalogs, cursorKey) : injectedSearch;
 		this.sourceService = new DecompiledSourceService(runtime, catalogs, searchService);
 		this.referenceService = new dev.libjadx.app.ReferenceQueryService(runtime, catalogs, cursorKey);
 	}

@@ -46,12 +46,17 @@ when selected domains are incomplete. The caller polls the existing
 flags set, the build happens first. If a completed build still has failures or
 evictions, another `requireComplete` query returns 409 rather than starting an
 endless sequence of jobs; `force=true` on `/search/build-index` explicitly
-retries. Cancellation is cooperative between classes and consistency passes.
+retries. A matching running build can be reused while its engine lease blocks
+ordinary searches. A rejected forced submission leaves the prior index and
+cursors intact; resetting selected domains starts only after the job is admitted.
+Cancellation is cooperative between classes and consistency passes.
 An in-progress Jadx call cannot be interrupted safely by a deadline.
 
 The index retains up to 64 MiB of copied member/source fragments. LRU eviction
 increments `indexGeneration` and degrades coverage. Result snapshots have a
 separate 16 MiB aggregate budget, 256-entry maximum and ten-minute TTL. The
+catalog can also exceed the index budget; search then returns 429 `RESOURCE_LIMIT`
+while an already produced `/decompile` Java response is still returned. The
 signed cursor is compact, binds the session, logical revision, publication,
 settings, index generation, normalized query and result snapshot, and is
 verified before interpreting its fields. Tampering or changing filters yields

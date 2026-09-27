@@ -40,8 +40,13 @@ public final class DecompiledSourceService {
 						DecompileResult result = execute(context.decompiler(), catalogs.primary(context), request, context.revisions().sessionId(),
 								context.revisions().logicalRevision(), context.publicationEpoch(), context.settings());
 						if (result.outcome() == SymbolResolution.Outcome.RESOLVED) {
-							var cls = JadxSymbolAdapter.visibleClass(context.decompiler(), request.ref().originalClassDescriptor(), 0);
-							if (cls != null) search.ingest(context, result, JadxSearchAdapter.members(cls));
+							try {
+								var cls = JadxSymbolAdapter.visibleClass(context.decompiler(), request.ref().originalClassDescriptor(), 0);
+								if (cls != null) search.ingest(context, result, JadxSearchAdapter.members(cls));
+							} catch (RuntimeException indexingFailure) {
+								// Search is optional: the already-produced Java result remains authoritative.
+								System.err.println("libjadx: opportunistic search indexing failed: " + indexingFailure);
+							}
 						}
 						return result;
 					});

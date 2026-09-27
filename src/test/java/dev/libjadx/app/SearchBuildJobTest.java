@@ -7,6 +7,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -15,12 +19,111 @@ import java.util.concurrent.TimeUnit;
 import dev.libjadx.core.search.SearchDtos.Page;
 import dev.libjadx.core.search.SearchQuery;
 import dev.libjadx.core.symbols.SymbolCatalog;
+import dev.libjadx.http.HttpApiServer;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.libjadx.scheduler.JobSnapshot;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 class SearchBuildJobTest {
 	@TempDir Path dir;
+
+	@Test
+	void requireCompleteReusesRunningBuildWithoutEnteringTheEngineQueryGate() throws Exception {
+		Path jar = SymbolFixtureSupport.compileFixture(dir);
+		ProjectRuntime runtime = new ProjectRuntime(null, List.of(jar), List.of(dir));
+		CountDownLatch entered = new CountDownLatch(1), release = new CountDownLatch(1);
+		SearchService service = new SearchService(runtime, new SymbolCatalogProvider(SymbolCatalog.newCursorKey()),
+				SymbolCatalog.newCursorKey(), processed -> {
+					if (processed == 1) {
+						entered.countDown();
+						try { if (!release.await(10, TimeUnit.SECONDS)) throw new AssertionError("Latch timed out"); }
+						catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); throw new AssertionError(interrupted); }
+					}
+				});
+		try (HttpApiServer server = new HttpApiServer("127.0.0.1", 0, runtime, null, service)) {
+			server.start();
+			runtime.initializeAsync(null).get(20, TimeUnit.SECONDS);
+			var revision = runtime.projectSnapshot().revisions();
+			List<SearchQuery.Domain> domains = List.of(SearchQuery.Domain.MEMBER_NAME, SearchQuery.Domain.SOURCE_TEXT);
+			JobSnapshot started = (JobSnapshot) service.buildIndex(domains, false);
+			assertTrue(entered.await(10, TimeUnit.SECONDS));
+			SearchQuery query = new SearchQuery("mix", domains, SearchQuery.MatchMode.CONTAINS,
+					true, 50, null, false, true, revision.sessionId(), revision.logicalRevision());
+			assertEquals(started.jobId(), ((JobSnapshot) service.query(query)).jobId());
+			HttpResponse<String> reused = HttpClient.newHttpClient().send(HttpRequest.newBuilder(URI.create(
+					"http://127.0.0.1:" + server.localPort() + "/api/v1/search"))
+					.header("Content-Type", "application/json")
+					.POST(HttpRequest.BodyPublishers.ofString("{\"query\":\"mix\",\"domains\":[\"MEMBER_NAME\",\"SOURCE_TEXT\"],"
+							+ "\"requireComplete\":true,\"expectedSessionId\":\"" + revision.sessionId()
+							+ "\",\"expectedLogicalRevision\":" + revision.logicalRevision() + "}"))
+					.build(), HttpResponse.BodyHandlers.ofString());
+			assertEquals(202, reused.statusCode(), reused.body());
+			assertEquals(started.jobId().toString(), new ObjectMapper().readTree(reused.body()).path("jobId").asText());
+			assertThrows(SearchService.StaleSearchException.class, () -> service.query(new SearchQuery("mix", domains,
+					SearchQuery.MatchMode.CONTAINS, true, 50, null, false, true, revision.sessionId(),
+					revision.logicalRevision() + 1)));
+			assertThrows(dev.libjadx.scheduler.ProjectBusyException.class,
+					() -> service.query(new SearchQuery("mix", domains, SearchQuery.MatchMode.CONTAINS,
+							true, 50, null, false, false, null, null)));
+		} finally { release.countDown(); runtime.close(); }
+	}
+
+	@Test
+	void rejectedForcedBuildPreservesCompleteIndexAndGeneration() throws Exception {
+		Path jar = SymbolFixtureSupport.compileFixture(dir);
+		var defaults = dev.libjadx.scheduler.JobLimits.defaults();
+		var limits = new dev.libjadx.scheduler.JobLimits(1, 1, 16, defaults.maxResultBytes(),
+				defaults.maxTotalResultBytes(), defaults.maxDiagnostics(), defaults.maxDiagnosticBytes(),
+				defaults.maxEventsPerJob(), defaults.maxEventBytes(), defaults.maxSubscribersPerJob(),
+				defaults.maxGlobalSubscribers(), defaults.maxFramesPerSubscriber(), defaults.terminalTtl(),
+				defaults.heartbeatInterval());
+		ProjectRuntime runtime = new ProjectRuntime(null, List.of(jar), List.of(dir), limits);
+		SearchService service = new SearchService(runtime, new SymbolCatalogProvider(SymbolCatalog.newCursorKey()),
+				SymbolCatalog.newCursorKey());
+		CountDownLatch entered = new CountDownLatch(1), release = new CountDownLatch(1);
+		try {
+			runtime.initializeAsync(null).get(20, TimeUnit.SECONDS);
+			List<SearchQuery.Domain> domains = List.of(SearchQuery.Domain.MEMBER_NAME, SearchQuery.Domain.SOURCE_TEXT);
+			JobSnapshot build = (JobSnapshot) service.buildIndex(domains, false);
+			assertEquals(JobSnapshot.State.SUCCEEDED,
+					runtime.jobRegistry().awaitTerminal(build.jobId(), Duration.ofSeconds(10)).state());
+			SearchQuery query = new SearchQuery("mix", domains, SearchQuery.MatchMode.CONTAINS,
+					true, 1, null, true, false, null, null);
+			Page before = (Page) service.query(query);
+			assertTrue(before.coverage().stream().allMatch(c -> "COMPLETE".equals(c.state())));
+			assertTrue(before.nextCursor() != null);
+			var revision = runtime.projectSnapshot().revisions();
+			var blocker = runtime.submitJob(new dev.libjadx.scheduler.JobSpec<>("force-test-blocker",
+				dev.libjadx.scheduler.OperationRequest.temporaryAnalysis("force-test"),
+				new dev.libjadx.scheduler.OperationCoordinator.Admission(revision.sessionId(), revision.logicalRevision()),
+				"force-test", Duration.ofSeconds(30), () -> "copied", (context, copied) -> {
+					entered.countDown();
+					assertTrue(release.await(20, TimeUnit.SECONDS));
+					return new dev.libjadx.scheduler.JobSpec.JobResult("{}",
+							dev.libjadx.scheduler.JobSpec.Completeness.COMPLETE);
+				}));
+			assertTrue(entered.await(10, TimeUnit.SECONDS));
+			var queued = runtime.submitJob(new dev.libjadx.scheduler.JobSpec<>("force-test-queued",
+				dev.libjadx.scheduler.OperationRequest.temporaryAnalysis("queued-test"),
+				new dev.libjadx.scheduler.OperationCoordinator.Admission(revision.sessionId(), revision.logicalRevision()),
+				"queued-test", Duration.ofSeconds(30), () -> "copied", (context, copied) ->
+						new dev.libjadx.scheduler.JobSpec.JobResult("{}",
+								dev.libjadx.scheduler.JobSpec.Completeness.COMPLETE)));
+			assertEquals(JobSnapshot.State.QUEUED, queued.state());
+			assertThrows(dev.libjadx.scheduler.JobRegistry.ResourceLimitException.class,
+					() -> service.buildIndex(domains, true));
+			Page after = (Page) service.query(query);
+			assertEquals(before.indexGeneration(), after.indexGeneration());
+			assertEquals(before.coverage(), after.coverage());
+			assertEquals(before.hits(), after.hits());
+			Page next = (Page) service.query(new SearchQuery("mix", domains, SearchQuery.MatchMode.CONTAINS,
+					true, 1, before.nextCursor(), true, false, null, null));
+			assertEquals(before.resultSnapshotId(), next.resultSnapshotId());
+			release.countDown();
+			runtime.jobRegistry().awaitTerminal(blocker.jobId(), Duration.ofSeconds(10));
+		} finally { release.countDown(); runtime.close(); }
+	}
 
 	@Test
 	void queuedSearchFailsStaleAfterReloadAndQueueCapacityIsBounded() throws Exception {
