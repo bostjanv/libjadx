@@ -15,6 +15,7 @@ import dev.libjadx.project.NativeProjectDocument;
 import dev.libjadx.project.NativeProjectRepository;
 import dev.libjadx.core.ProjectSnapshot;
 import dev.libjadx.core.EffectiveAnalysisConfig;
+import dev.libjadx.core.search.SearchIndexKey;
 import dev.libjadx.jadxadapter.JadxEngineFactory;
 import com.google.gson.JsonObject;
 import java.io.IOException;
@@ -55,6 +56,7 @@ public final class ProjectRuntime implements AutoCloseable {
 	private volatile EffectiveAnalysisConfig effectiveConfig = EffectiveAnalysisConfig.defaults();
 	private long publicationEpoch;
 	private volatile OperationCoordinator.Admission publishedAdmission = new OperationCoordinator.Admission("initializing", 0);
+	private volatile SearchIndexKey publishedSearchIdentity;
 	private final CompletableFuture<Void> fatalRuntimeFailure = new CompletableFuture<>();
 	private boolean initializationStarted;
 	private InitializationTask initializationTask;
@@ -222,6 +224,7 @@ public final class ProjectRuntime implements AutoCloseable {
 									new RuntimeStatus.ApiError("PROJECT_LOAD_FAILED", "Code-data reload failed", null));
 						} else {
 							lifecycle = Lifecycle.READY;
+							publishedAdmission = admission(repository.snapshot());
 							status = status("READY", "READY", new RuntimeStatus.Progress(1, 1, "project"), null);
 						}
 					}
@@ -338,6 +341,7 @@ public final class ProjectRuntime implements AutoCloseable {
 				synchronized (lifecycleLock) {
 					if (lifecycle == Lifecycle.RELOADING) {
 						lifecycle = Lifecycle.READY;
+						publishedAdmission = admission(current.snapshot());
 						status = status("READY", "READY", new RuntimeStatus.Progress(1, 1, "project"), null);
 					}
 				}
@@ -376,6 +380,7 @@ public final class ProjectRuntime implements AutoCloseable {
 		synchronized (lifecycleLock) {
 			if (lifecycle != Lifecycle.SHUTTING_DOWN && lifecycle != Lifecycle.STOPPED) {
 				lifecycle = Lifecycle.FAILED;
+				publishedSearchIdentity = null;
 				status = status("FAILED", "FAILED", status.progress(),
 						new RuntimeStatus.ApiError("INTERNAL_ERROR", "A fatal JVM error interrupted the project runtime", null));
 			}
@@ -413,7 +418,9 @@ public final class ProjectRuntime implements AutoCloseable {
 		return new ProjectNotReadyException(status);
 	}
 
-	private static OperationCoordinator.Admission admission(ProjectSnapshot snapshot) {
+	private OperationCoordinator.Admission admission(ProjectSnapshot snapshot) {
+		publishedSearchIdentity = new SearchIndexKey(snapshot.revisions().sessionId(),
+				snapshot.revisions().logicalRevision(), publicationEpoch, effectiveConfig.fingerprint());
 		return new OperationCoordinator.Admission(snapshot.revisions().sessionId(),
 				snapshot.revisions().logicalRevision());
 	}
@@ -490,6 +497,7 @@ public final class ProjectRuntime implements AutoCloseable {
 			synchronized (lifecycleLock) {
 				if (lifecycle != Lifecycle.READY) throw unavailable();
 				lifecycle = Lifecycle.SHUTTING_DOWN;
+				publishedSearchIdentity = null;
 				status = status("SHUTTING_DOWN", "SHUTTING_DOWN", status.progress(), null);
 				coordinator.stopAdmissions();
 				jobs.stopSubmissions();
@@ -541,6 +549,7 @@ public final class ProjectRuntime implements AutoCloseable {
 			OperationCoordinator.Lease lease = coordinator.tryAdmit(request, publishedAdmission, this::operationCompleted);
 			lifecycle = Lifecycle.RELOADING;
 			publicationEpoch++;
+			publishedSearchIdentity = null;
 			status = status("RELOADING", stage, new RuntimeStatus.Progress(0, 1, "project"), null);
 			return lease;
 		}
@@ -654,6 +663,33 @@ public final class ProjectRuntime implements AutoCloseable {
 	public record PrimarySymbolRead(JadxDecompiler decompiler, dev.libjadx.core.RevisionState revisions,
 			long publicationEpoch, EffectiveAnalysisConfig settings) { }
 
+	SearchIndexKey searchIdentity() { return publishedSearchIdentity; }
+
+	/** Immutable index query gate; excludes all primary-engine publications. */
+	<T> T withSearchSnapshotRead(Function<SearchIndexKey, T> operation) {
+		try (var lease = admit(OperationRequest.queryRead("search-snapshot"))) {
+			SearchIndexKey identity = publishedSearchIdentity;
+			if (identity == null) throw unavailable();
+			T result = operation.apply(identity);
+			if (!identity.equals(publishedSearchIdentity)) throw new JobRegistry.StaleJobSnapshotException();
+			return result;
+		}
+	}
+
+	void assertSearchBuildAvailable() {
+		try (var ignored = admit(OperationRequest.classRead("search-build-admission"))) { }
+	}
+
+	/** Called by an admitted CLASS_READ job; the borrowed engine must not outlive its lease. */
+	PrimarySymbolRead captureSearchRead(SearchIndexKey expected) {
+		synchronized (lifecycleLock) {
+			requireReady();
+			if (!expected.equals(publishedSearchIdentity)) throw new JobRegistry.StaleJobSnapshotException();
+			return new PrimarySymbolRead(activeEngine.decompiler(), repository.snapshot().revisions(),
+					publicationEpoch, effectiveConfig);
+		}
+	}
+
 	private void initialize(NativeProjectDocument nativeProject) {
 		ProjectEngine local = null;
 		NativeProjectRepository localRepository = null;
@@ -736,6 +772,7 @@ public final class ProjectRuntime implements AutoCloseable {
 			}
 			if (lifecycle != Lifecycle.SHUTTING_DOWN) {
 				lifecycle = Lifecycle.SHUTTING_DOWN;
+				publishedSearchIdentity = null;
 				status = status("SHUTTING_DOWN", "SHUTTING_DOWN", status.progress(), null);
 			}
 			coordinator.stopAdmissions();

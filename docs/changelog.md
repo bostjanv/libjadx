@@ -1,5 +1,18 @@
 # Experimental API changelog
 
+## 2026-09-27 — Phase 5.1 incremental search
+
+- Added `POST /api/v1/search` for original and alias class/member names and
+  exact emitted owner Java, with per-domain Jadx-visible coverage and UTF-16
+  source ranges. `strict` rejects incomplete coverage.
+- Added `POST /api/v1/search/build-index` and `requireComplete` submission to
+  the existing process-local job, polling, cancellation and SSE protocol.
+- Added bounded in-memory index generations and authenticated, expiring result
+  cursors. Unsaved native edits, save publication, settings rebuild and reload
+  invalidate old search views. No project data or index is written by search.
+- Source regex uses pinned RE2/J 1.8; string-literal ownership, annotations,
+  resources and original-input census remain unsupported or unverified.
+
 ## 2026-09-26 — Phase 4.3 reference navigation
 
 - Added `POST /api/v1/references/query` for original method callers/callees,

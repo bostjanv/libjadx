@@ -114,7 +114,15 @@ LibJadx currently accepts only `127.0.0.1` as the bind address and provides no a
 
 Class pagination uses an owner-only cursor signing key in `$XDG_STATE_HOME/libjadx/cursor-signing.key` (default `~/.local/state/libjadx/cursor-signing.key`). This is operational state outside native `.jadx` project persistence. See [Phase 4.1 notes](docs/phase-4-symbol-identity.md) for cursor behavior.
 
-Java source is read-only and limited to 4 MiB UTF-8 per request. Source offsets are UTF-16 indices in the exact returned Java text. See [Phase 4.2 notes](docs/phase-4-decompiled-source.md) for method-range proof and metadata limits. Smali, reference-query, and search endpoints are not part of this slice.
+Java source is read-only and limited to 4 MiB UTF-8 per request. Source offsets are UTF-16 indices in the exact returned Java text. See [Phase 4.2 notes](docs/phase-4-decompiled-source.md) for method-range proof and metadata limits. Basic references and incremental search are available; Smali and editing endpoints remain planned.
+
+`POST /api/v1/search` queries class names immediately and member/emitted-Java
+text as classes are processed. It reports partial coverage until every eligible
+Jadx-visible class or owner is indexed. `POST /api/v1/search/build-index`
+starts the complete-index job; `strict` rejects partial results, while
+`requireComplete` returns a job to poll. Safe source regex uses RE2/J.
+Indexes and cursors are memory-only and disappear on restart. See
+[Phase 5.1 search](docs/phase-5-search.md) for exact semantics and limits.
 
 See [`docs/configuration.md`](docs/configuration.md) for startup, path handling, response-state, and shutdown details.
 
@@ -140,7 +148,7 @@ Before contributing, read [`AGENTS.md`](AGENTS.md), [`DESIGN.md`](DESIGN.md), an
 
 The intended architecture separates application lifecycle and HTTP transport from native project persistence, Jadx-version-sensitive integration, analysis, in-memory search, and operation scheduling. The current Gradle application is the initial implementation slice; the full logical architecture is documented in [`DESIGN.md`](DESIGN.md).
 
-Completed early milestones cover native save/reload and external-change detection, revisions, coordinated operations, process-local jobs, shutdown, and original symbol lookup. Next slices cover Java/Smali output and references, incremental search and supported edits, then a generated-transport/handwritten-convenience Python SDK. Extended CFG and resource capabilities depend on further tests against the pinned Jadx release.
+Completed milestones cover native save/reload and external-change detection, revisions, coordinated operations, process-local jobs, shutdown, original symbol lookup, Java source, basic references and incremental search. Next slices cover supported native editing, then a generated-transport/handwritten-convenience Python SDK. Smali, CFG and resource capabilities depend on further tests against the pinned Jadx release.
 
 The long-term design retains **one project per process**, native Jadx persistence, explicit saves, and no HTTP file uploads. Planned endpoints and behavior must not be mistaken for features already delivered.
 
@@ -156,6 +164,7 @@ For implementation sequencing and known technical limits, see [`IMPLEMENTATION.m
 - [`docs/compatibility.md`](docs/compatibility.md) — pinned upstream and build dependencies.
 - [`docs/feasibility-matrix.md`](docs/feasibility-matrix.md) — tested Jadx behavior, limitations, and follow-up probes.
 - [`docs/phase-4-symbol-identity.md`](docs/phase-4-symbol-identity.md) — original identity, paging, provenance, and pinned-source evidence.
+- [`docs/phase-5-search.md`](docs/phase-5-search.md) — incremental search, coverage, jobs, cursors and pinned-source evidence.
 
 ## License and attribution
 

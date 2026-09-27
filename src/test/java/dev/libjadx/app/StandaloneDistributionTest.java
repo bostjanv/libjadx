@@ -19,6 +19,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -27,6 +28,68 @@ class StandaloneDistributionTest {
 	private static final ObjectMapper JSON = new ObjectMapper();
 	private static final HttpClient HTTP = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build();
 	@TempDir Path dir;
+
+	@Test
+	void installedSearchBuildsMemoryOnlyIndexAndRestartInvalidatesCursor() throws Exception {
+		Path script = Path.of(System.getProperty("libjadx.distributionScript")
+				+ (System.getProperty("os.name").startsWith("Windows") ? ".bat" : ""));
+		Path project = Path.of("tests/fixtures/native-project/sample.jar.jadx").toAbsolutePath();
+		byte[] projectBefore = Files.readAllBytes(project);
+		byte[] inputBefore = Files.readAllBytes(project.getParent().resolve("sample.jar"));
+		byte[] mappingBefore = Files.readAllBytes(project.getParent().resolve("sample.tiny"));
+		int port;
+		try (ServerSocket socket = new ServerSocket(0)) { port = socket.getLocalPort(); }
+		var schema = new ObjectMapper(new YAMLFactory()).readTree(Path.of("openapi/openapi.yaml").toFile());
+		String cursor;
+		Process first = start(script, project, port, "search-first");
+		try {
+			awaitReady(first, port);
+			String classQuery = "{\"query\":\"probe\",\"domains\":[\"CLASS_NAME\"],\"pageSize\":1}";
+			HttpResponse<String> classResponse = post(port, "/api/v1/search", classQuery);
+			assertEquals(200, classResponse.statusCode(), classResponse.body());
+			OpenApiExampleValidator.assertValid(schema, "SearchPage", body(classResponse));
+			cursor = body(classResponse).path("nextCursor").asText();
+			assertFalse(cursor.isBlank());
+			HttpResponse<String> cold = post(port, "/api/v1/search",
+					"{\"query\":\"class\",\"domains\":[\"SOURCE_TEXT\"]}");
+			assertEquals(200, cold.statusCode(), cold.body());
+			assertEquals("PARTIAL", body(cold).path("coverage").get(0).path("state").asText());
+			OpenApiExampleValidator.assertValid(schema, "SearchPage", body(cold));
+			HttpResponse<String> accepted = post(port, "/api/v1/search/build-index",
+					"{\"domains\":[\"MEMBER_NAME\",\"SOURCE_TEXT\"]}");
+			assertEquals(202, accepted.statusCode(), accepted.body());
+			assertTrue(accepted.headers().firstValue("Location").orElseThrow().startsWith("/api/v1/jobs/"));
+			OpenApiExampleValidator.assertValid(schema, "Job", body(accepted));
+			String jobId = body(accepted).path("jobId").asText();
+			long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(20);
+			JsonNode terminal = null;
+			while (System.nanoTime() < deadline) {
+				terminal = body(get(port, "/api/v1/jobs/" + jobId));
+				if (terminal.path("state").asText().equals("SUCCEEDED")) break;
+				if (terminal.path("state").asText().equals("FAILED")) throw new AssertionError(terminal.toPrettyString());
+				Thread.sleep(20);
+			}
+			assertEquals("SUCCEEDED", terminal.path("state").asText());
+			HttpResponse<String> complete = post(port, "/api/v1/search",
+					"{\"query\":\"class\",\"domains\":[\"SOURCE_TEXT\"],\"strict\":true}");
+			assertEquals(200, complete.statusCode(), complete.body());
+			assertEquals("COMPLETE", body(complete).path("coverage").get(0).path("state").asText());
+			OpenApiExampleValidator.assertValid(schema, "SearchPage", body(complete));
+			HttpResponse<String> invalid = post(port, "/api/v1/search", "{\"query\":\"x\",\"domains\":[\"STRING_LITERAL\"]}");
+			assertError(invalid, 422, "UNSUPPORTED_CAPABILITY");
+			OpenApiExampleValidator.assertValid(schema, "ErrorEnvelope", body(invalid));
+		} finally { stop(first, port); }
+		org.junit.jupiter.api.Assertions.assertArrayEquals(projectBefore, Files.readAllBytes(project));
+		org.junit.jupiter.api.Assertions.assertArrayEquals(inputBefore, Files.readAllBytes(project.getParent().resolve("sample.jar")));
+		org.junit.jupiter.api.Assertions.assertArrayEquals(mappingBefore, Files.readAllBytes(project.getParent().resolve("sample.tiny")));
+		Process second = start(script, project, port, "search-second");
+		try {
+			awaitReady(second, port);
+			assertError(post(port, "/api/v1/search",
+					"{\"query\":\"probe\",\"domains\":[\"CLASS_NAME\"],\"pageSize\":1,\"cursor\":\"" + cursor + "\"}"),
+					409, "STALE_REVISION");
+		} finally { stop(second, port); }
+	}
 
 	@Test
 	void installedServiceLoadsClassesAndAuthenticatesCursorsAcrossRestart() throws Exception {
@@ -96,6 +159,10 @@ class StandaloneDistributionTest {
 		return HTTP.send(HttpRequest.newBuilder(uri(port, "/api/v1/references/query"))
 				.header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofString(body)).build(),
 				HttpResponse.BodyHandlers.ofString());
+	}
+	private static HttpResponse<String> post(int port, String path, String body) throws Exception {
+		return HTTP.send(HttpRequest.newBuilder(uri(port, path)).header("Content-Type", "application/json")
+				.POST(HttpRequest.BodyPublishers.ofString(body)).build(), HttpResponse.BodyHandlers.ofString());
 	}
 
 	private Process start(Path script, Path project, int port, String name) throws Exception {

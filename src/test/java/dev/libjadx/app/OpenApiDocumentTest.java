@@ -112,6 +112,14 @@ class OpenApiDocumentTest {
 				.path("responses").path("200").path("content").path("application/json").path("schema").path("$ref").asText());
 		for (String file : List.of("references-method.json", "references-field.json", "references-class.json", "references-sites.json"))
 			OpenApiExampleValidator.assertValid(yaml, "ReferencePage", json.readTree(Path.of("openapi/examples", file).toFile()));
+		assertEquals("#/components/schemas/SearchPage", yaml.path("paths").path("/search").path("post")
+				.path("responses").path("200").path("content").path("application/json").path("schema").path("$ref").asText());
+		assertEquals("#/components/schemas/SearchIndexStatus", yaml.path("paths").path("/search/build-index").path("post")
+				.path("responses").path("200").path("content").path("application/json").path("schema").path("$ref").asText());
+		OpenApiExampleValidator.assertValid(yaml, "SearchRequest", json.readTree(Path.of("openapi/examples/search-request.json").toFile()));
+		for (String file : List.of("search-partial.json", "search-complete.json"))
+			OpenApiExampleValidator.assertValid(yaml, "SearchPage", json.readTree(Path.of("openapi/examples", file).toFile()));
+		OpenApiExampleValidator.assertValid(yaml, "Job", json.readTree(Path.of("openapi/examples/search-job-queued.json").toFile()));
 
 		OpenApiExampleValidator.assertValid(yaml, "ReferenceQuery", json.readTree(Path.of("openapi/examples/references-query.json").toFile()));
 		var methodExample = json.readTree(Files.readString(Path.of("openapi/examples/decompile-method.json")));

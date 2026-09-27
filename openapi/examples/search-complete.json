@@ -1,0 +1,45 @@
+{
+  "sessionId": "8ffedccd-107a-4b05-8345-ad7155feb6b9",
+  "logicalRevision": 0,
+  "settingsFingerprint": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "indexSnapshotId": "example-index-1",
+  "indexGeneration": 1,
+  "resultSnapshotId": "example-search-result-2",
+  "coverage": [
+    {
+      "domain": "CLASS_NAME",
+      "availability": "SUPPORTED",
+      "state": "COMPLETE",
+      "scope": "JADX_VISIBLE_ELIGIBLE",
+      "sourceInputCoverage": "UNVERIFIED",
+      "eligible": 2,
+      "indexed": 2,
+      "pending": 0,
+      "skipped": 0,
+      "failed": 0,
+      "evicted": 0,
+      "diagnostics": []
+    }
+  ],
+  "hits": [
+    {
+      "domain": "CLASS_NAME",
+      "ref": {
+        "kind": "CLASS",
+        "originalClassDescriptor": "Lprobe/SymbolFixture;",
+        "inputIdentity": null,
+        "originalName": null,
+        "originalDescriptor": null
+      },
+      "sourceOwnerRef": null,
+      "displayName": "probe.SymbolFixture",
+      "matchedText": "probe.SymbolFixture",
+      "matchMode": "CONTAINS",
+      "range": null,
+      "sourceSnapshotId": null
+    }
+  ],
+  "nextCursor": null,
+  "pageComplete": true,
+  "diagnostics": []
+}

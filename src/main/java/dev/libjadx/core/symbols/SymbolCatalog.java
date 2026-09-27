@@ -64,6 +64,7 @@ public final class SymbolCatalog {
 	public long logicalRevision() { return logicalRevision; }
 	public long publicationEpoch() { return publicationEpoch; }
 	public List<Entry> matching(String descriptor) { return byDescriptor.getOrDefault(descriptor, List.of()); }
+	public List<Entry> entries() { return entries; }
 
 	public ClassPage page(ClassQuery query) {
 		Cursor start = query.cursor() == null ? null : decode(query.cursor(), query);

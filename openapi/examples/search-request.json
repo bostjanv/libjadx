@@ -1,0 +1,11 @@
+{
+  "query": "mix",
+  "domains": [
+    "SOURCE_TEXT"
+  ],
+  "matchMode": "CONTAINS",
+  "caseSensitive": true,
+  "pageSize": 25,
+  "strict": false,
+  "requireComplete": false
+}
