@@ -1,6 +1,6 @@
 # Compatibility and pinned dependencies
 
-Status: Phase 5.2 native editing slice, updated 2026-09-28.
+Status: Phase 5.2 internal hierarchy verification prerequisite, updated 2026-09-29.
 
 ## Jadx pin
 
@@ -37,6 +37,16 @@ The source archive was fetched from the `v1.5.6` tag and inspected at the commit
 - [`JadxError.java`](https://github.com/skylot/jadx/blob/28ff15e4ae69950aebea110a13e5ab895d234dfc/jadx-core/src/main/java/jadx/core/dex/attributes/nodes/JadxError.java) and [`JadxCommentsAttr.java`](https://github.com/skylot/jadx/blob/28ff15e4ae69950aebea110a13e5ab895d234dfc/jadx-core/src/main/java/jadx/core/dex/attributes/nodes/JadxCommentsAttr.java): pinned internal class/method diagnostics; exception causes and stack traces are not copied to HTTP responses.
 
 ## Non-Jadx build dependencies
+
+PR #15 also uses the already shipped `jadx-java-input:1.5.6` and
+`jadx-dex-input:1.5.6` at compile time. Only their compile/test-compile lock
+membership changes; artifact versions and runtime distribution dependencies do
+not change. The isolated adapter calls pinned internal `JavaClassReader` and
+`DexFileLoader` and copies public input-API `IClassData` / `IMethodRef` metadata.
+JVM class files, two-input JARs, direct DEX and DEX entries in JAR envelopes are
+exercised. APK, nested archives, Smali/conversion and bundle census coverage are
+unsupported; normal service input support is unaffected. See
+[exact source, limits and subset](phase-5-hierarchy-verifier.md).
 
 | Dependency | Version | Scope / reason |
 |---|---:|---|

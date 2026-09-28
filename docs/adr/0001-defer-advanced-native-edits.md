@@ -77,3 +77,25 @@ follow-up is a bounded original-input census and independent hierarchy verifier,
 followed by all-owner conflicts, group-private staging and actual propagated
 service/GUI persistence gates. No architecture, native format or dependency
 change is approved or needed by this evidence-only slice. Locals remain deferred.
+
+## PR #15 independent verification prerequisite
+
+Status: bounded original-input census and independent completeness verifier
+implemented for the documented class/JAR/DEX subset. The owned independent
+interface family has four seed-independent original declarations, and comparison
+detects the pinned candidate omission. Strict individual pinned input readers
+avoid bulk loader exception swallowing and retain every duplicate definition.
+Configured origins remain internal; public SymbolRef provenance is unchanged.
+
+The verifier rejects bridge/synthetic and covariant families pending a separate
+editability/native/GUI proof. Missing/external/duplicate branches, parse failures
+and exhausted limits never expose a complete group. java.lang.Object is an
+explicitly modeled terminal only for signatures absent from its pinned classpath
+method table; its own method signatures remain external and unverifiable.
+No inheritance branch is inferred from generated source.
+
+This fits the existing architecture and adds no persistence format. Existing
+input dependencies gain compile visibility without an upgrade. Propagation stays
+UNSUPPORTED until PR #16 proves group admission, collision/staging/failure
+semantics and actual propagated service/native/restart/GUI behavior. See
+[the exact subset and evidence](../phase-5-hierarchy-verifier.md).

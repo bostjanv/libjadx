@@ -1,5 +1,18 @@
 # Experimental API changelog
 
+## 2026-09-29 — PR #15 original-input hierarchy verification
+
+- Added bounded immutable class/JAR/DEX declaration census using pinned Jadx input
+  readers before duplicate collapse, preserving configured input origins internally.
+- Added independent closed-input override-family verification, exact original
+  refs, visibility/exclusion rules, conservative bridge/covariance refusal,
+  missing/external/duplicate statuses and deterministic resource limits.
+- Comparison detects PR #14's four-versus-three/empty candidate omission.
+  Initialization/reload rebuild derived state; fingerprints invalidate changed
+  inputs. Verification has no source generation or persistence side effects.
+- Public OpenAPI and mutation behavior are unchanged. Propagation and local
+  editing remain unsupported; group transactions and persistence are PR #16.
+
 ## 2026-09-28 — PR #14 related-method negative feasibility evidence
 
 - Preserved explicit propagation rejection and added owned closed-hierarchy,

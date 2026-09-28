@@ -13,6 +13,11 @@ propagation remain unsupported; PR #14 preserves executable completeness
 counterexamples in [related propagation evidence](phase-5-related-propagation.md).
 Phase 5.2 is incomplete.
 
+PR #15 adds the independent original-input verification prerequisite, including
+the complete four-declaration local interface family omitted by Jadx. It adds
+no mutation admission: ordinary RENAME, empty affectedRefs and propagation
+rejection remain unchanged. See [hierarchy rules and next gates](phase-5-hierarchy-verifier.md).
+
 Ordinary method RENAME retains pinned Jadx's implicit candidate alias propagation.
 It may change related aliases, but the existing empty affectedRefs does not certify
 a complete group. Explicit propagateRelated is rejected before staging, including

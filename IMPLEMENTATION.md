@@ -230,6 +230,16 @@ The Python high-level API should supply `expected_revision` automatically from t
 
 **Tests:** single rename and native save; related override propagation where native-supported; unsupported local rename rejected; prevalidation failure no edits; forced mid-batch failure accurately describes partial application; stale logical revision; source/cache invalidation; restart discards unsaved edits; GUI round-trip after explicit save.
 
+PR #15 completes the bounded original-input census and independent hierarchy
+completeness prerequisite after PR #14's negative candidate evidence. The
+class/JAR/DEX subset, deterministic budgets and immutable lifecycle are documented
+in [hierarchy verifier evidence](docs/phase-5-hierarchy-verifier.md). This is an
+internal verification slice, with no accepted propagation contract. PR #16 must
+consume only COMPLETE results, prove all-owner collision preflight, group-private
+native staging, exact affectedRefs, prefix/failure behavior and actual propagated
+service/save/restart/GUI gates before enabling any subset. Bridge/covariant and
+external/duplicate families remain excluded. Phase 5.2 remains incomplete.
+
 ## 7. Phase 6 — Python SDK and end-to-end experimental release
 
 ### P6.1 Generated and handwritten layers
