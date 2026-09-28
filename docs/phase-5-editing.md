@@ -5,6 +5,10 @@ method and field declarations. `RENAME` changes a display alias and
 `SET_COMMENT` upserts one native `LINE` declaration comment. Edits remain in
 memory until `/api/v1/project/save` or an accepted shutdown with `save`.
 The native `.jadx` file, input JARs and mapping file are untouched by a batch.
+Strict mapping [export](phase-5-mapping-export.md) and
+[import](phase-5-mapping-import.md) have separate contracts and evidence.
+Parameter/local editing and related-method propagation remain unsupported;
+Phase 5.2 is incomplete.
 
 ## Request and identity
 
@@ -15,17 +19,21 @@ uses the revision admitted by its exclusive lease. Supplying stale values
 returns `409 STALE_REVISION` without retrying. The public `SymbolRef` always
 contains an original JVM class descriptor and, for members, the original
 name and complete descriptor. A method's return type is part of that key.
-Aliases never become keys, and per-input identity is rejected because Jadx's
-duplicate-definition origin is unverified.
+Aliases never become keys. Exact per-input identity is rejected because Jadx
+can collapse duplicate definitions and their original input provenance is
+unavailable.
 
 An alias is a nonreserved ASCII Java identifier up to 128 characters. This is
 intentionally narrower than all Java identifiers until Unicode, `$`, and
 inner-class behavior are probed across supported inputs. Constructors, class
 initializers, synthetic and bridge methods, and synthetic fields/classes are
-not renameable. The service rejects visible package, owner-field and
-same-argument method alias collisions against the proposed final batch state.
+not editable through this endpoint. The service rejects visible package,
+owner-field and same-argument method alias collisions against the proposed
+final batch state.
 `LINE` comments are one line, at most 4096 code points and 16 KiB UTF-8; control
-characters, block-comment delimiters and other native styles are rejected. An upsert matches the native
+characters, format characters, line/paragraph separators, unpaired surrogates,
+block-comment delimiters and other native styles are rejected. An upsert matches
+the native
 `(nodeRef, codeRef=null, style=LINE)` key and retains comments of other styles.
 If an existing project has multiple renames or LINE comments with the same
 native declaration key, the edit is rejected as ambiguous without mutation.
@@ -33,9 +41,9 @@ native declaration key, the edit is rejected as ambiguous without mutation.
 Prevalidation resolves all original refs inside one exclusive runtime
 admission and rejects malformed, duplicate, missing, ambiguous, unsupported,
 stale or conflicting items before native code-data replacement. Class alias
-collisions use the lightweight class catalog. Only owners requested by member
-edits have their member declarations loaded; class-only edits do not load
-members. Pinned Jadx may decompile a requested member owner and its dependencies,
+collisions use the lightweight class catalog. During prevalidation, only owners
+requested by member edits have their member declarations loaded; class-only
+edits do not load members. Pinned Jadx may decompile a requested member owner and its dependencies,
 but the service does not enumerate members of unrelated classes. For example,
 a valid first rename followed by `newName:"bad-name"` returns `400
 INVALID_REQUEST`, `itemErrors[0].index:1`, with revision 0, dirty false and
@@ -44,9 +52,9 @@ the native file unchanged. The
 error shape. No-op requests return `NO_CHANGE` and `SKIPPED/NO_CHANGE`, with
 unchanged logical/index revisions and dirty state.
 
-Normal effective batches use one native replacement and one Jadx code-data
-notification followed by unloading generated owner code caches;
-logical and index revisions each advance once. A deterministic test hook
+Normal effective batches use one native replacement, unload generated owner
+code caches, clear declaration comment attributes, then notify Jadx code-data
+listeners once. Logical and index revisions each advance once. A deterministic test hook
 throws before staging item 1 after item 0 was staged. The service commits only
 that safe prefix and returns `PARTIAL` with `APPLIED`, `FAILED`, `SKIPPED`,
 revision 0→1, and only the first alias in pending native code data. This is
@@ -82,7 +90,13 @@ This extra unload is necessary because pinned
 only notifies code-data listeners. A pre-decompiled class otherwise returned
 old Java after a successful edit. `EditBatchEndpointsTest` now decompiles
 before and after the batch and checks the updated aliases/comment plus a stale
-old source snapshot.
+old source snapshot. Caches are unloaded before listener replay so attached
+mapping comments can be reapplied after unloading clears their attributes.
+PR #12 also clears declaration `CODE_COMMENTS` on cold class/method/field nodes:
+pinned `ClassNode.unloadCode()` skips that cleanup for a `NOT_LOADED` class.
+Without the explicit cleanup, repeated replay duplicates attached comments.
+The real-Jadx attached/native comment regression and pinned source evidence
+are recorded in [mapping import](phase-5-mapping-import.md).
 
 `EditBatchEndpointsTest` exercises real Jadx on `SymbolFixture.java` and on
 the two-relative-input `sample.jar.jadx` fixture. It proves explicit save,
@@ -119,7 +133,11 @@ load and save compatibility; it does not assert a screenshot or inspect GUI
 widgets for every declaration. The installed distribution test starts the
 production launch script without a GUI JAR, edits, saves and restarts.
 
-## Review verification — 2026-09-28
+## Historical PR #10 verification — 2026-09-28
+
+The counts in this section apply to native-edit review head
+`aa48efc70ab5a2d5844f22aa6aaced8aa0f14362`. Current regression results, including
+mapping export/import, are recorded separately below.
 
 The two findings in [PR #10's review](https://github.com/bostjanv/libjadx/pull/10#pullrequestreview-5332178341)
 are covered by the owner-scoped catalog and no-applied staging-failure tests
@@ -131,47 +149,102 @@ suite, search invalidation, isolated temporary analysis, native restart/conflict
 checks, operation coordination and job cancellation tests. The launcher and
 classpath/selector files are temporary verification artifacts, not project state.
 
-Commands run for direct verification (logs in `build/review-verification/`):
-
-```bash
-javac --release 21 -encoding UTF-8 -cp "$(cat /tmp/libjadx-review-classpath)" -d build/review-verification/main @build/review-verification/main-sources.txt
-javac --release 21 -encoding UTF-8 -cp "build/review-verification/main:$(cat /tmp/libjadx-review-classpath)" -d build/review-verification/test @build/review-verification/test-sources.txt
-javac --release 21 -cp "$(cat /tmp/libjadx-review-classpath)" -d build/review-verification /tmp/LibJadxReviewTests.java
-java -Duser.home=/tmp/libjadx-review-home -Djava.awt.headless=true -cp "build/review-verification:build/review-verification/main:build/review-verification/test:$(cat /tmp/libjadx-review-classpath)" LibJadxReviewTests $(cat /tmp/libjadx-review-selected-tests)
-PYTHONPATH=/tmp/libjadx-review-python /home/alice/projects/delavnica3/.venv/bin/python tests/validate-edit-contract.py
-git diff --check
-```
-
-OpenAPI 3.1 validation passed for six reviewed edit examples and four newly
-captured, serialized fault-injection results. The validator also accepted the
+In that restricted run, OpenAPI 3.1 validation passed for six reviewed edit
+examples and four newly captured, serialized fault-injection results. The validator also accepted the
 ten **retained** HTTP captures from the previous implementation; those are not
-fresh HTTP evidence for this patch. `git diff --check` passed.
+fresh HTTP evidence for that review head. `git diff --check` passed.
 
 The attempted focused Gradle command was
 `./gradlew test --offline --tests dev.libjadx.app.EditBatchServiceTest --tests dev.libjadx.app.EditBatchEndpointsTest`.
-The updated sandbox prevents writing the normal Gradle cache. Retrying with
+The earlier sandbox prevented writing the normal Gradle cache. Retrying with
 `GRADLE_USER_HOME=/tmp/libjadx-review-gradle`, `--no-daemon` and
 `-Dorg.gradle.jvmargs=` failed before task execution because Gradle's lock
 coordination cannot open a socket (`Could not determine a usable wildcard IP`).
 A loopback bind probe confirmed `PermissionError: Operation not permitted`.
 Seventeen HTTP/lifecycle/actual-GUI test classes were therefore excluded from
-the direct run. Gradle `check`, fresh live HTTP/installed-distribution tests and
-actual matching-GUI round trips remain to be rerun in an environment permitting
-sockets. The native edit fixture was explicitly saved again through the service;
-the earlier GUI evidence above has not been renewed for this patch.
+that direct run. The native edit fixture was explicitly saved again through the
+service, but that run did not renew the GUI evidence. The socket-capable rerun
+below completes the previously blocked verification.
+
+### Socket-capable rerun — 2026-09-28
+
+The socket-capable rerun completed the verification requested in the
+[follow-up review](https://github.com/bostjanv/libjadx/pull/10#pullrequestreview-5337529071)
+on exact head `aa48efc70ab5a2d5844f22aa6aaced8aa0f14362`, using JDK
+`21.0.12.1` and Gradle `8.14.3`. No production code, public contract or dependency
+locks changed. `clean` removed the retained HTTP captures before this run, so
+all responses below were freshly generated on this head.
+
+| Command | Outcome |
+|---|---|
+| `./gradlew clean check --offline --rerun-tasks` | Passed in 3m 28s; 46 test classes, 190 tests discovered, 187 passed, zero failures/errors, three opt-in GUI skips. |
+| `JADX_GUI=/tmp/libjadx-rerun-jadx-1.5.6/bin/jadx-gui ./gradlew guiRoundTripTest rawGuiRoundTripTest nativeEditGuiRoundTripTest --offline` | Passed in 47s; all three previously skipped tests ran, one per task, zero failures/errors/skips. The ordinary test task reused the successful clean run; all six GUI save/test tasks executed. |
+| `/tmp/libjadx-rerun-contract-venv/bin/python tests/validate-edit-contract.py` | OpenAPI 3.1 valid; six reviewed examples, ten fresh live HTTP responses and four fresh injected service results validated. HTTP statuses: 200/400/403/404/409/415/422/429/503. |
+| `/tmp/libjadx-rerun-contract-venv/bin/python tests/validate-search-contract.py` | OpenAPI 3.1 valid; four reviewed examples and 33 fresh live HTTP responses validated. HTTP statuses: 200/202/400/403/409/415/422/429/503. |
+| `git diff --check` | Passed after recording these results. |
+
+The full check rebuilt `installDist` and passed all four
+`StandaloneDistributionTest` cases against newly launched packaged services,
+including native edits, explicit save/restart, search jobs and stale cursors.
+HTTP, lifecycle, concurrency/cancellation, malformed input, stale revisions,
+native external-change/restart and owner-scoping/staging-failure regressions
+ran through the normal Gradle suite. Together with the dedicated GUI tasks,
+all 190 distinct tests executed successfully; no test remains unexecuted from
+this suite.
+
+The GUI executable came from the upstream `v1.5.6` release archive,
+`jadx-1.5.6.zip`; `bin/jadx --version` returned `1.5.6`. Its downloaded SHA-256
+`545ea2be9c242511bc145755cf4bda2485ade42966e096f8b4d3da2a230e8974`
+matched the digest published in the upstream release metadata. Xvfb and
+xdotool drove actual GUI open/save operations. The GUI-resaved native, raw-input
+and declaration-edit fixtures were then reopened headlessly. The edit test
+verified class/method/field native rename keys, all three declaration comments
+and emitted Java after the matching GUI resave. These checks establish the
+existing fixture round trips, with the GUI inspection limits described above.
+
+That rerun generated reports in
+`build/reports/tests/{test,guiRoundTripTest,rawGuiRoundTripTest,nativeEditGuiRoundTripTest}/index.html`,
+with machine-readable results under `build/test-results/`, captures under
+`build/edit-contract-responses/`, `build/edit-service-results/` and
+`build/search-contract-responses/`, and GUI-resaved projects under
+`build/native-roundtrip-fixture/`, `build/raw-roundtrip-fixture/` and
+`build/edit-gui-fixture/`. These build paths are reused: subsequent clean checks
+replace the historical artifacts with results from the newer code.
+The temporary Python 3.14 environment used PyYAML `6.0.3`, jsonschema `4.26.0`
+and openapi-spec-validator `0.9.0`. No remote CI, Windows or macOS result is
+claimed.
 
 The advanced Phase 5.2 gates below remain the next work; these review fixes do
 not introduce a design change or claim the complete milestone passed.
 
+## Current regression verification — PR #12
+
+The mapping-import implementation at
+`dc89572d018d790e692c2e90763187f4acb54715` passed a fresh
+`./gradlew clean check --offline --rerun-tasks`: 267 tests discovered, 262 passed,
+five opt-in GUI skips and zero failures/errors. A subsequent matching Jadx 1.5.6
+GUI run reran the ordinary suite and executed all five dedicated GUI tests
+without failures or skips, including `nativeEditGuiRoundTripTest`. Together,
+all 267 distinct tests executed successfully. The edit validator accepted six
+examples, ten fresh live HTTP responses and four injected service results.
+These are subsequent regression results, not replacements for the historical
+PR #10 head's counts.
+
+Exact final-code commands, environment versions, HTTP counts, fixture hashes
+and artifact paths are in [PR #12 validation](pr-12-review.md). This documentation
+update changes no production code or public contract and does not constitute a
+new execution of those suites.
+
 ## Remaining Phase 5.2 gates
 
-Native mapping **attachment** remains available through `/project/settings`.
-Strict safe Tiny v2 **export** now has a separate endpoint and evidence in
-[mapping export](phase-5-mapping-export.md). It creates a new output without
-saving or attaching it. Bounded conflict-safe Tiny v2 import now has separate
-evidence in [mapping import](phase-5-mapping-import.md). Parameter/local identities, native
-persistence and stale source behavior are not proven. Related-method
-propagation is not enabled because candidate enumeration is not a proof of
+Native mapping **attachment** is available through `/project/settings`.
+Strict Tiny v2 **export** creates a new output without saving or attaching it;
+bounded conflict-safe **import** stages native edits without saving or attaching
+its source. Their separate evidence is linked above.
+
+Parameter/local identities, their native persistence and rejection of stale
+variable snapshots are not proven. Related-method propagation is not enabled
+because candidate enumeration is not a proof of
 complete GUI-compatible edits. See
 [ADR 0001](adr/0001-defer-advanced-native-edits.md).
 These remain Phase 5.2 exit criteria; this slice does not declare the overall

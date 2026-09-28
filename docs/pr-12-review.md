@@ -96,7 +96,3 @@ Captured responses: `build/mapping-import-contract-responses/`,
 Phase 5.2 remains incomplete: variable/parameter editing, scoped renames and
 related-method propagation are the next native-edit work; Phase 6 SDK generation
 remains separate. No human decision blocks this bounded import slice.
-
-Publication uses branch `phase5-2-safe-mapping-import` against `main`. The
-pre-existing verification-report edits in `docs/phase-5-editing.md` are preserved
-locally; this PR includes only the import-status paragraph change in that file.
