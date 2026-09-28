@@ -214,21 +214,29 @@ public final class JadxMappingExportAdapter {
 
 	/** Tiny's reader deliberately skips unknown records: fail closed before that normalization. */
 	private static void validateRecords(String text) {
-		String[] lines = text.split("\n", -1);
-		String[] header = lines[0].split("\t", -1);
+		int headerEnd = text.indexOf('\n');
+		if (headerEnd < 0) headerEnd = text.length();
+		if (headerEnd > MAX_STRING * 2 + 32) throw limit();
+		String[] header = text.substring(0, headerEnd).split("\t", -1);
 		if (header.length != 5 || !header[0].equals("tiny") || !header[1].equals("2") || !header[2].equals("0")
 				|| header[3].isBlank() || header[4].isBlank() || header[3].equals(header[4])) throw unsupported("MAPPING_NAMESPACES_OR_FORMAT");
 		int declarationDepth = -1;
-		for (int i = 1; i < lines.length; i++) {
-			String line = lines[i];
-			if (line.isEmpty() && i == lines.length - 1) continue;
-			if (line.length() > MAX_STRING * 5) throw limit();
+		int lineNumber = 0;
+		int records = 0;
+		for (int start = headerEnd + 1; start < text.length();) {
+			lineNumber++;
+			if (++records > MAX_ENTRIES + 1) throw limit();
+			int end = text.indexOf('\n', start);
+			if (end < 0) end = text.length();
+			if (end - start > MAX_STRING * 5) throw limit();
+			String line = text.substring(start, end);
+			start = end + 1;
 			String[] columns = line.split("\t", -1);
 			boolean valid = (columns.length == 3 && columns[0].equals("c"))
 					|| (columns.length == 5 && columns[0].isEmpty() && (columns[1].equals("m") || columns[1].equals("f")))
 					|| (columns.length == 3 && columns[0].isEmpty() && columns[1].equals("c"))
 					|| (columns.length == 4 && columns[0].isEmpty() && columns[1].isEmpty() && columns[2].equals("c"))
-					|| (i == 1 && line.equals("\tescaped-names"));
+					|| (lineNumber == 1 && line.equals("\tescaped-names"));
 			if (!valid) throw unsupported("UNKNOWN_OR_UNSUPPORTED_MAPPING_RECORD");
 			if (columns[0].equals("c")) declarationDepth = 0;
 			else if (columns.length == 5) {
