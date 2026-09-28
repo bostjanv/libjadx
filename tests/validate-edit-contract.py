@@ -1,6 +1,6 @@
 """Validate the reviewed editing contract and captured real HTTP responses.
 
-Run EditBatchEndpointsTest first. Requires PyYAML, jsonschema and
+Run EditBatchEndpointsTest and EditBatchServiceTest first. Requires PyYAML, jsonschema and
 openapi-spec-validator in the selected Python environment.
 """
 import json
@@ -19,6 +19,7 @@ examples = {
     "edit-batch-applied.json": "EditBatchResult",
     "edit-batch-no-change.json": "EditBatchResult",
     "edit-batch-partial.json": "EditBatchResult",
+    "edit-batch-partial-no-applied.json": "EditBatchResult",
     "edit-batch-rejected.json": "ErrorEnvelope",
 }
 for name, schema in examples.items():
@@ -36,4 +37,9 @@ for path in responses:
 
 required = {200, 400, 403, 404, 409, 415, 422, 429, 503}
 assert required <= statuses, (required - statuses, statuses)
-print(f"OpenAPI 3.1 valid; {len(examples)} edit examples and {len(responses)} live HTTP responses valid; statuses={sorted(statuses)}")
+failures = sorted((root / "build/edit-service-results").glob("partial-*.json"))
+assert len(failures) == 4, "Run EditBatchServiceTest to capture both failure positions with clean/dirty state"
+for path in failures:
+    document = {"$ref": "#/components/schemas/EditBatchResult", "components": spec["components"]}
+    Draft202012Validator(document).validate(json.loads(path.read_text()))
+print(f"OpenAPI 3.1 valid; {len(examples)} edit examples, {len(responses)} live HTTP responses and {len(failures)} injected service results valid; statuses={sorted(statuses)}")

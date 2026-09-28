@@ -122,7 +122,8 @@ class OpenApiDocumentTest {
 		assertEquals("#/components/schemas/EditBatchRequest", yaml.path("paths").path("/edits/batch").path("post")
 				.path("requestBody").path("content").path("application/json").path("schema").path("$ref").asText());
 		OpenApiExampleValidator.assertValid(yaml, "EditBatchRequest", json.readTree(Path.of("openapi/examples/edit-batch-request.json").toFile()));
-		for (String file : List.of("edit-batch-applied.json", "edit-batch-no-change.json", "edit-batch-partial.json")) {
+		for (String file : List.of("edit-batch-applied.json", "edit-batch-no-change.json", "edit-batch-partial.json",
+				"edit-batch-partial-no-applied.json")) {
 			OpenApiExampleValidator.assertValid(yaml, "EditBatchResult", json.readTree(Path.of("openapi/examples", file).toFile()));
 		}
 		OpenApiExampleValidator.assertValid(yaml, "ErrorEnvelope", json.readTree(Path.of("openapi/examples/edit-batch-rejected.json").toFile()));

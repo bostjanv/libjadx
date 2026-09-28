@@ -60,9 +60,8 @@ public final class EditBatchService {
 		JadxCodeData admitted = context.codeDataCopy();
 		SymbolCatalog catalog = new SymbolCatalog(JadxSymbolAdapter.classes(context.decompiler()), session,
 				revision, 0, SymbolCatalog.newCursorKey());
-		List<Target> visible = JadxNativeEditAdapter.visibleTargets(context.decompiler());
-		Map<SymbolRef, List<Target>> byRef = new HashMap<>();
-		for (Target target : visible) byRef.computeIfAbsent(target.ref(), ignored -> new ArrayList<>()).add(target);
+		List<Target> visibleMembers = new ArrayList<>();
+		Map<String, List<Target>> memberOwners = new HashMap<>();
 		List<Planned> plan = new ArrayList<>();
 		Set<String> editedKeys = new HashSet<>();
 		for (int i = 0; i < request.items().size(); i++) {
@@ -81,7 +80,21 @@ public final class EditBatchService {
 			if (resolution.outcome() == SymbolResolution.Outcome.AMBIGUOUS) {
 				throw rejected(422, "INVALID_ENTITY_ID", i, "Original declaration is ambiguous");
 			}
-			List<Target> matches = byRef.getOrDefault(ref, List.of());
+			var cls = JadxSymbolAdapter.visibleClass(context.decompiler(), ref.originalClassDescriptor(),
+					catalog.matching(ref.originalClassDescriptor()).getFirst().occurrence());
+			List<Target> matches;
+			if (ref.kind() == SymbolRef.Kind.CLASS) {
+				Target target = cls == null ? null : JadxNativeEditAdapter.classTarget(cls);
+				matches = target == null ? List.of() : List.of(target);
+			} else {
+				List<Target> members = memberOwners.computeIfAbsent(ref.originalClassDescriptor(), ignored -> {
+					List<Target> targets = cls == null ? List.of() : JadxNativeEditAdapter.memberTargets(cls);
+					if (visibleMembers.size() + targets.size() > 200_000) throw new JadxNativeEditAdapter.EditLimitException();
+					visibleMembers.addAll(targets);
+					return targets;
+				});
+				matches = members.stream().filter(target -> target.ref().equals(ref)).toList();
+			}
 			if (matches.isEmpty()) throw rejected(422, "UNSUPPORTED_CAPABILITY", i, "Visible declaration has no verified native edit key");
 			if (matches.size() != 1) throw rejected(422, "INVALID_ENTITY_ID", i, "Original declaration is ambiguous");
 			Target target = matches.getFirst();
@@ -109,7 +122,7 @@ public final class EditBatchService {
 			}
 			plan.add(new Planned(i, item, target, changed));
 		}
-		validateCollisions(visible, plan);
+		validateCollisions(catalog, visibleMembers, plan);
 		JadxCodeData working = NativeProjectDocument.copyCodeData(admitted);
 		List<ItemResult> results = new ArrayList<>();
 		int failedAt = -1;
@@ -134,18 +147,19 @@ public final class EditBatchService {
 			for (int i = failedAt + 1; i < plan.size(); i++) results.add(result(plan.get(i), "SKIPPED", "NOT_EXECUTED"));
 		}
 		boolean effective = results.stream().anyMatch(item -> item.status().equals("APPLIED"));
-		if (failedAt >= 0 && !effective) throw new IllegalStateException("Native edit staging failed before any safe prefix");
 		ProjectSnapshot after = effective ? context.commit(working) : before;
 		return new Result(failedAt >= 0 ? "PARTIAL" : effective ? "APPLIED" : "NO_CHANGE", session,
 				revision, after.revisions().logicalRevision(), after.revisions().indexRevision(), after.dirty(), false,
-				results, failedAt >= 0 ? List.of("A verified prefix was committed; later items were not executed") : List.of());
+				results, failedAt >= 0 ? List.of(effective
+						? "A verified prefix was committed; later items were not executed"
+						: "No edits were committed; later items were not executed") : List.of());
 	}
 
 	private static ItemResult result(Planned planned, String status, String message) {
 		return new ItemResult(planned.index(), status, planned.operation().kind(), planned.operation().target(), List.of(), message);
 	}
 
-	private static void validateCollisions(List<Target> visible, List<Planned> plan) {
+	private static void validateCollisions(SymbolCatalog catalog, List<Target> visibleMembers, List<Planned> plan) {
 		Map<SymbolRef, String> renamed = new HashMap<>();
 		for (Planned item : plan) {
 			if (item.operation().kind() == EditDtos.Kind.RENAME && item.changed()) {
@@ -156,7 +170,18 @@ public final class EditBatchService {
 			if (item.operation().kind() != EditDtos.Kind.RENAME || !item.changed()) continue;
 			Target target = item.target();
 			String candidate = item.operation().newName();
-			for (Target other : visible) {
+			if (target.ref().kind() == SymbolRef.Kind.CLASS) {
+				for (SymbolCatalog.Entry entry : catalog.entries()) {
+					var other = entry.info();
+					if (!other.ref().equals(target.ref())
+							&& JadxNativeEditAdapter.classCollisionScope(other.ref()).equals(target.collisionScope())
+							&& candidate.equals(renamed.getOrDefault(other.ref(), other.displayName()))) {
+						throw rejected(400, "INVALID_REQUEST", item.index(), "Alias collides with another visible declaration");
+					}
+				}
+				continue;
+			}
+			for (Target other : visibleMembers) {
 				if (other == target || other.ref().equals(target.ref())) continue;
 				if (other.ref().kind() != target.ref().kind()
 						|| !other.collisionScope().equals(target.collisionScope())) continue;

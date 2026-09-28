@@ -1,6 +1,6 @@
 # Compatibility and pinned dependencies
 
-Status: Phase 5.2 native editing slice, updated 2026-09-27.
+Status: Phase 5.2 native editing slice, updated 2026-09-28.
 
 ## Jadx pin
 
@@ -57,6 +57,11 @@ The Phase 5.2 declaration editing slice uses pinned `JadxNodeRef.forJavaNode`,
 The last API only notifies listeners in 1.5.6; LibJadx also unloads generated
 owner code caches after a committed edit so a previously read class cannot
 return stale Java.
+Pinned `JavaClass.getMethods()` and `getFields()` call `load()`, which can
+decompile their owner. Review fixes restrict these calls to requested member
+owners and use lightweight class metadata for class edits/collisions.
+The owned `EditOwner.java` regression checks unrelated classes before edit
+publication as well as after effective, rejected and no-op batches.
 Real HTTP, installed-distribution and matching-GUI resave checks are recorded
 in [editing evidence](phase-5-editing.md). Native mapping export remains
 unavailable for the safety reasons in [ADR 0001](adr/0001-defer-advanced-native-edits.md).

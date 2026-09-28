@@ -1,5 +1,15 @@
 # Experimental API changelog
 
+## 2026-09-28 — Phase 5.2 review fixes
+
+- Edit batches resolve class collisions from the lightweight catalog and load
+  members only for requested declaring owners, retaining original-identity and
+  ambiguity checks. Unrelated classes stay unprocessed during validation.
+- `PARTIAL` now retains itemized staging failures even without an applied
+  prefix. In that case logical/index revisions and dirty state are unchanged;
+  earlier no-op items remain `SKIPPED/NO_CHANGE`. The result schema and outcome
+  enum are unchanged. The generated Python transport remains a Phase 6 deliverable.
+
 ## 2026-09-27 — Phase 5.2 native declaration editing slice
 
 - Added `POST /api/v1/edits/batch` for validated native class, method and

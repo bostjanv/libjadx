@@ -1,0 +1,15 @@
+{
+  "outcome": "PARTIAL",
+  "sessionId": "00000000-0000-4000-8000-000000000001",
+  "logicalRevisionBefore": 7,
+  "logicalRevisionAfter": 7,
+  "indexRevisionAfter": 7,
+  "dirty": true,
+  "saved": false,
+  "items": [
+    { "index": 0, "status": "SKIPPED", "kind": "RENAME", "target": { "kind": "CLASS", "originalClassDescriptor": "Lprobe/Example;", "inputIdentity": null, "originalName": null, "originalDescriptor": null }, "affectedRefs": [], "message": "NO_CHANGE" },
+    { "index": 1, "status": "FAILED", "kind": "RENAME", "target": { "kind": "METHOD", "originalClassDescriptor": "Lprobe/Example;", "inputIdentity": null, "originalName": "work", "originalDescriptor": "(I)V" }, "affectedRefs": [], "message": "Native edit staging failed" },
+    { "index": 2, "status": "SKIPPED", "kind": "SET_COMMENT", "target": { "kind": "FIELD", "originalClassDescriptor": "Lprobe/Example;", "inputIdentity": null, "originalName": "flag", "originalDescriptor": "Z" }, "affectedRefs": [], "message": "NOT_EXECUTED" }
+  ],
+  "diagnostics": ["No edits were committed; later items were not executed"]
+}

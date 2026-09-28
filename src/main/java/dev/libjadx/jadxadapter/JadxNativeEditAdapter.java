@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Objects;
 
 import dev.libjadx.core.symbols.SymbolRef;
-import jadx.api.JadxDecompiler;
 import jadx.api.JavaClass;
 import jadx.api.JavaField;
 import jadx.api.JavaMethod;
@@ -26,34 +25,39 @@ public final class JadxNativeEditAdapter {
 	public record Target(SymbolRef ref, JadxNodeRef nativeRef, String displayName,
 			String collisionScope, String argumentDescriptor, boolean editable) { }
 
-	public static List<Target> visibleTargets(JadxDecompiler jadx) {
+	/** Class metadata and native keys do not require loading its members or Java source. */
+	public static Target classTarget(JavaClass cls) {
+		return target(cls);
+	}
+
+	/** May decompile this owner; callers must select only owners requested by the batch. */
+	public static List<Target> memberTargets(JavaClass cls) {
 		List<Target> result = new ArrayList<>();
-		for (JavaClass cls : jadx.getClassesWithInners()) {
-			if (result.size() >= 200_000) throw new EditLimitException();
-			add(result, cls);
-			for (JavaMethod method : cls.getMethods()) {
-				if (result.size() >= 200_000) throw new EditLimitException();
-				add(result, method);
-			}
-			for (JavaField field : cls.getFields()) {
-				if (result.size() >= 200_000) throw new EditLimitException();
-				add(result, field);
-			}
-		}
+		for (JavaMethod method : cls.getMethods()) add(result, method);
+		for (JavaField field : cls.getFields()) add(result, field);
 		return List.copyOf(result);
 	}
 
-	public static final class EditLimitException extends RuntimeException {
-		public EditLimitException() { super("Jadx-visible edit catalog exceeds 200000 declarations"); }
+	public static String classCollisionScope(SymbolRef ref) {
+		String rawOwner = ref.originalClassDescriptor().substring(1, ref.originalClassDescriptor().length() - 1);
+		int slash = rawOwner.lastIndexOf('/');
+		int inner = rawOwner.lastIndexOf('$');
+		return rawOwner.substring(0, Math.max(slash, inner) + 1);
 	}
 
 	private static void add(List<Target> result, JavaNode node) {
+		if (result.size() >= 200_000) throw new EditLimitException();
+		Target target = target(node);
+		if (target != null) result.add(target);
+	}
+
+	private static Target target(JavaNode node) {
 		SymbolRef ref;
 		try { ref = JadxSymbolAdapter.originalRef(node); }
-		catch (IllegalArgumentException unrepresentable) { return; }
-		if (ref == null) return;
+		catch (IllegalArgumentException unrepresentable) { return null; }
+		if (ref == null) return null;
 		JadxNodeRef nativeRef = JadxNodeRef.forJavaNode(node);
-		if (nativeRef == null) return;
+		if (nativeRef == null) return null;
 		String rawOwner = ref.originalClassDescriptor().substring(1, ref.originalClassDescriptor().length() - 1);
 		String expectedShortId = switch (ref.kind()) {
 			case CLASS -> null;
@@ -61,13 +65,11 @@ public final class JadxNativeEditAdapter {
 			case FIELD -> ref.originalName() + ":" + ref.originalDescriptor();
 		};
 		if (!rawOwner.replace('/', '.').equals(nativeRef.getDeclaringClass())
-				|| !Objects.equals(expectedShortId, nativeRef.getShortId())) return;
+				|| !Objects.equals(expectedShortId, nativeRef.getShortId())) return null;
 		String scope;
 		String args = "";
 		if (ref.kind() == SymbolRef.Kind.CLASS) {
-			int slash = rawOwner.lastIndexOf('/');
-			int inner = rawOwner.lastIndexOf('$');
-			scope = rawOwner.substring(0, Math.max(slash, inner) + 1);
+			scope = classCollisionScope(ref);
 		} else {
 			scope = rawOwner;
 			if (ref.kind() == SymbolRef.Kind.METHOD) {
@@ -83,7 +85,11 @@ public final class JadxNativeEditAdapter {
 		} else if (node instanceof JavaClass javaClass) {
 			editable = !javaClass.getAccessInfo().isSynthetic();
 		}
-		result.add(new Target(ref, nativeRef, node.getName(), scope, args, editable));
+		return new Target(ref, nativeRef, node.getName(), scope, args, editable);
+	}
+
+	public static final class EditLimitException extends RuntimeException {
+		public EditLimitException() { super("Requested edit owners exceed 200000 member declarations"); }
 	}
 
 	public static boolean sameKey(IJavaNodeRef left, IJavaNodeRef right) {

@@ -235,7 +235,9 @@ paths:
         omission means unconditional admission against the current revision.
         A complete no-op retains all revisions and dirty state. A successful
         edit remains memory-only until explicit native save. An unexpected
-        staging failure may commit a verified prefix and return PARTIAL.
+        staging failure returns PARTIAL with itemized FAILED and SKIPPED results,
+        committing a verified applied prefix when one exists. If no item was
+        applied, logical/index revisions and dirty state remain unchanged.
         Only LINE declaration comments are currently accepted. No automatic
         override propagation, mapping export, parameter or local editing.
       requestBody:
@@ -247,7 +249,7 @@ paths:
               renameAndComment: { externalValue: ./examples/edit-batch-request.json }
       responses:
         '200':
-          description: Applied, no change, or truthful committed-prefix result.
+          description: Applied, no change, or itemized staging failure with any committed prefix.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/EditBatchResult' }
@@ -255,6 +257,7 @@ paths:
                 applied: { externalValue: ./examples/edit-batch-applied.json }
                 noChange: { externalValue: ./examples/edit-batch-no-change.json }
                 partial: { externalValue: ./examples/edit-batch-partial.json }
+                partialNoApplied: { externalValue: ./examples/edit-batch-partial-no-applied.json }
         '400': { $ref: '#/components/responses/ApiErrorResponse' }
         '403': { $ref: '#/components/responses/ApiErrorResponse' }
         '404': { $ref: '#/components/responses/ApiErrorResponse' }
@@ -691,7 +694,13 @@ components:
       additionalProperties: false
       required: [outcome, sessionId, logicalRevisionBefore, logicalRevisionAfter, indexRevisionAfter, dirty, saved, items, diagnostics]
       properties:
-        outcome: { type: string, enum: [APPLIED, NO_CHANGE, PARTIAL] }
+        outcome:
+          type: string
+          enum: [APPLIED, NO_CHANGE, PARTIAL]
+          description: >-
+            PARTIAL reports a staging failure, including failure before any
+            APPLIED item. Inspect items and logicalRevisionAfter for the exact
+            committed state; no applied items means revisions/dirty are unchanged.
         sessionId: { type: string }
         logicalRevisionBefore: { type: integer, format: int64, minimum: 0 }
         logicalRevisionAfter: { type: integer, format: int64, minimum: 0 }
