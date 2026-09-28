@@ -130,6 +130,12 @@ Parameters use native original-method `MTH_ARG` keys and source-snapshot admissi
 AUTO/RESTRUCTURE plain concrete signatures are the supported subset. Generic,
 annotated, skipped/transformed, bodyless and synthetic/special forms fail closed.
 Existing GUI VAR renames on the same method are conservatively ambiguous.
+Unused catch arguments can be emitted as NamedArg without VarNode metadata
+(`BlockExceptionHandler.fixMoveExceptionInsn`, `RegionGen.makeCatchBlock`).
+The owned `UnusedCatch.smali` probe proves the gap and native name reassignment
+in AUTO/RESTRUCTURE. Parameter support now requires verified catch declaration
+tokens within the same emitted method range; affected methods fail closed before
+batch staging. Verified catch declarations keep parameter support.
 Merged locals change emitted SSA metadata under SIMPLE, and FALLBACK emits no
 variable declarations; local renames remain unsupported. See
 [scoped editing evidence](phase-5-scoped-editing.md) for commands and matching-GUI

@@ -14,6 +14,8 @@ import jadx.api.data.impl.*;
 import jadx.api.metadata.annotations.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 class JadxVariableProbeTest {
 	@TempDir Path dir;
@@ -32,6 +34,29 @@ class JadxVariableProbeTest {
 			}
 		}
 		return result;
+	}
+
+	@ParameterizedTest @EnumSource(value = DecompilationMode.class, names = {"AUTO", "RESTRUCTURE"})
+	void unusedCatchNameHasNoVarNodeAndNativeParameterRenameChangesIt(DecompilationMode mode) throws Exception {
+		Path jar = SymbolFixtureSupport.unusedCatchFixture(dir);
+		try (var engine = open(jar, new JadxCodeData(), mode)) {
+			var cls = engine.searchJavaClassByOrigFullName("probe.UnusedCatch");
+			String source = cls.getCode();
+			String catchHeader = "catch (NumberFormatException unused)";
+			assertTrue(source.contains(catchHeader), source);
+			int catchName = source.indexOf(catchHeader) + catchHeader.indexOf("unused");
+			assertNull(cls.getCodeInfo().getCodeMetadata().getAsMap().get(catchName));
+			var method = cls.getMethods().stream().filter(m -> m.getName().equals("unusedCatch")).findFirst().orElseThrow();
+			assertEquals(1, method.getMethodNode().getArgRegs().size());
+			assertTrue(variables(cls).values().stream().noneMatch(v -> v.getMth() == method.getMethodNode() && v.getName().equals("unused")));
+			var codeData = new JadxCodeData();
+			codeData.setRenames(List.of(new JadxCodeRename(JadxNodeRef.forMth(method), JadxCodeRef.forMthArg(0), "unused")));
+			engine.getArgs().setCodeData(codeData); cls.unload(); engine.reloadCodeData();
+			String renamed = cls.getCode();
+			assertTrue(renamed.contains("unusedCatch(int unused)"), renamed);
+			assertFalse(renamed.contains(catchHeader), renamed);
+			assertTrue(renamed.contains("catch (NumberFormatException unused2)"), renamed);
+		}
 	}
 
 	@Test void positionalArgumentsExcludeThisAndWideSlotsAndSurviveNativeReopen() throws Exception {

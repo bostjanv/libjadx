@@ -54,10 +54,12 @@ public final class JadxVariableAdapter {
 			int start = -1;
 			int end = -1;
 			boolean supported = false;
+			SourceCoordinates.Range methodRange = null;
 			if (methodDeclaration != null && !javaMethod.isConstructor() && !javaMethod.isClassInit()) {
 				int nameOffset = methodDeclaration.getKey();
 				var range = MethodRangeVerifier.verify(source, nameOffset, javaMethod.getName(), metadata,
 						methodDeclaration.getValue(), NodeEnd.VALUE, snapshot);
+				methodRange = range;
 				start = nameOffset + javaMethod.getName().length();
 				// Fail closed for annotations/nested parameter syntax, skipped/transformed signatures,
 				// bodyless methods, partial code and nonstructured modes.
@@ -83,6 +85,14 @@ public final class JadxVariableAdapter {
 				if (declaration.offset() > start && declaration.offset() < end) parameterCount++;
 			}
 			supported &= exact && parameterCount == method.getMethodInfo().getArgumentsTypes().size();
+			if (supported) {
+				Map<Integer, String> names = new HashMap<>();
+				for (Declaration declaration : declarations) names.put(declaration.offset(), declaration.variable().getName());
+				// RegionGen emits NamedArg catch names without VarNode definitions. The partial
+				// variables list cannot prove collision safety for such methods, so reject them.
+				supported = MethodRangeVerifier.catchDeclarationsVerified(source, methodRange.startOffsetUtf16(),
+						methodRange.endOffsetUtf16(), names);
+			}
 			int parameterIndex = 0;
 			for (Declaration declaration : declarations) {
 				String name = declaration.variable().getName();

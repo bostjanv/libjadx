@@ -33,7 +33,8 @@ class ScopedParameterEndpointsTest {
 
 	@Test void capturesLiveScopedSuccessErrorsAndSourceSearchInvalidation() throws Exception {
 		Path jar = SymbolFixtureSupport.compileVariableFixture(dir);
-		var runtime = new ProjectRuntime(null, List.of(jar), List.of(dir));
+		Path smali = SymbolFixtureSupport.unusedCatchFixture(dir);
+		var runtime = new ProjectRuntime(null, List.of(jar, smali), List.of(dir));
 		Path captures = Files.createDirectories(Path.of("build/scoped-edit-contract-responses"));
 		try (var server = new HttpApiServer("127.0.0.1", 0, runtime)) {
 			server.start();
@@ -43,6 +44,20 @@ class ScopedParameterEndpointsTest {
 			capture(captures, "200-source", sourceResponse, 200, "DecompileResult");
 			JsonNode source = body(sourceResponse);
 			assertTrue(source.path("variables").size() > 4);
+			var catchSourceResponse = post(server, "/decompile", "{\"ref\":{\"kind\":\"CLASS\",\"originalClassDescriptor\":\"Lprobe/UnusedCatch;\"}}");
+			capture(captures, "200-catch-source", catchSourceResponse, 200, "DecompileResult");
+			var catchSource = body(catchSourceResponse);
+			assertTrue(catchSource.path("source").asText().contains("catch (NumberFormatException unused)"));
+			assertEquals("UNSUPPORTED", catchSource.path("variables").get(0).path("persistability").asText());
+			assertTrue(catchSource.path("variables").get(0).path("parameterIndex").isNull());
+			var catchBatch = batch(catchSource, 0, "unused");
+			((ObjectNode) catchBatch.path("items").get(0)).set("method", JSON.valueToTree(new dev.libjadx.core.symbols.SymbolRef(
+					dev.libjadx.core.symbols.SymbolRef.Kind.METHOD, "Lprobe/UnusedCatch;", null, "unusedCatch", "(I)I")));
+			var catchRejection = post(server, "/edits/batch", catchBatch.toString());
+			capture(captures, "422-catch", catchRejection, 422, "ErrorEnvelope");
+			assertEquals("UNSUPPORTED_CAPABILITY", body(catchRejection).path("error").path("code").asText());
+			assertEquals(0, runtime.projectSnapshot().revisions().logicalRevision());
+			assertFalse(runtime.projectSnapshot().dirty());
 			var valid = batch(source, 1, "wideCount");
 			var invalidName = batch(source, 1, "class");
 			capture(captures, "400-name", post(server, "/edits/batch", invalidName.toString()), 400, "ErrorEnvelope");

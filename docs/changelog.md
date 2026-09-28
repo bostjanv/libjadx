@@ -1,5 +1,14 @@
 # Experimental API changelog
 
+## 2026-09-28 — PR #13 catch-declaration collision fix
+
+- Parameter targets now fail closed when an emitted catch declaration has no
+  verified variable metadata. Jadx's unannotated unused catch arguments can no
+  longer bypass collision preflight and silently acquire a different name.
+- Affected parameters report `UNSUPPORTED` with null `parameterIndex`; batches
+  return `422 UNSUPPORTED_CAPABILITY` before staging. Verified catch declarations
+  retain parameter support. Wire schemas and native persistence formats are unchanged.
+
 ## 2026-09-28 — PR #13 scoped parameter renames
 
 - Added snapshot-bound `RENAME_PARAMETER` to edit batches, with mandatory

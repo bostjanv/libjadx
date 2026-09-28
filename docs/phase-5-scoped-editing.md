@@ -54,7 +54,14 @@ retry or name-based target lookup exists.
 
 All declared variable names within the containing method are conservatively
 considered overlapping. Existing parameter/local names and proposed parameter
-names must be unique. Name swaps into an occupied name are rejected even if a
+names must be unique. Because `variables` is partial metadata, each emitted catch
+header is also checked lexically inside the verified method range. Its exact name
+token must match a same-method VarNode declaration. Missing metadata or unfamiliar
+catch syntax marks all parameters in that method `UNSUPPORTED` with null indexes;
+parameter batches reject them with `422 UNSUPPORTED_CAPABILITY` before staging.
+Verified catch declarations remain supported. Comments, quoted literals and text
+blocks are skipped; names are never inferred as native edit identities.
+Name swaps into an occupied name are rejected even if a
 complete batch would free it: a staging failure could otherwise commit an unsafe
 prefix. Field shadowing is allowed and the fixture checks emitted `this.field`.
 Names use shared nonreserved ASCII Java identifier validation (128 characters).
@@ -99,6 +106,17 @@ change.
 
 Exact source is locally available at `/tmp/libjadx-pr13-source`:
 
+- [`BlockExceptionHandler`](https://github.com/skylot/jadx/blob/28ff15e4ae69950aebea110a13e5ab895d234dfc/jadx-core/src/main/java/jadx/core/dex/visitors/blocks/BlockExceptionHandler.java)
+  `fixMoveExceptionInsn` creates `NamedArg("unused", ...)` when the handler has
+  no move-exception instruction. [`RegionGen`](https://github.com/skylot/jadx/blob/28ff15e4ae69950aebea110a13e5ab895d234dfc/jadx-core/src/main/java/jadx/core/codegen/RegionGen.java)
+  `makeCatchBlock` attaches VarNode definitions for RegisterArg only; NamedArg
+  is emitted via `NameGen.assignNamedArg` without variable metadata. The owned
+  `UnusedCatch.smali` fixture discards the exception value without a move-exception.
+  `JadxVariableProbeTest` verifies missing metadata and the silent `unused2`
+  reassignment after a raw native parameter rename in AUTO and RESTRUCTURE.
+  `ScopedParameterServiceTest` verifies full mixed-batch rejection without native,
+  revision, pending-edit, source or unrelated-owner changes; HTTP captures verify
+  unsupported parameter metadata and the structured rejection.
 - [`JadxCodeRef`](https://github.com/skylot/jadx/blob/28ff15e4ae69950aebea110a13e5ab895d234dfc/jadx-core/src/main/java/jadx/api/data/impl/JadxCodeRef.java)
   and `JadxCodeRename`: native MTH_ARG/VAR encoding and node-plus-code identity.
 - [`CodeRenameVisitor`](https://github.com/skylot/jadx/blob/28ff15e4ae69950aebea110a13e5ab895d234dfc/jadx-core/src/main/java/jadx/core/dex/visitors/rename/CodeRenameVisitor.java):

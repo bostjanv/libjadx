@@ -49,7 +49,7 @@ for path in failures:
 print(f"OpenAPI 3.1 valid; {len(examples)} edit examples, {len(responses)} live HTTP responses and {len(failures)} injected service results valid; statuses={sorted(statuses)}")
 
 scoped = sorted((root / "build/scoped-edit-contract-responses").glob("*.json"))
-assert len(scoped) == 16, "Run ScopedParameterEndpointsTest to capture all fresh HTTP responses"
+assert len(scoped) == 18, "Run ScopedParameterEndpointsTest to capture all fresh HTTP responses"
 scoped_statuses = set()
 for path in scoped:
     record = json.loads(path.read_text())
@@ -60,6 +60,12 @@ assert {200, 400, 404, 409, 415, 422, 429, 503, 500} <= scoped_statuses
 for name in ("409-revision", "409-snapshot"):
     assert json.loads((root / f"build/scoped-edit-contract-responses/{name}.json").read_text())["body"]["error"]["code"] == "STALE_REVISION"
 assert json.loads((root / "build/scoped-edit-contract-responses/422-ambiguous.json").read_text())["body"]["error"]["code"] == "INVALID_ENTITY_ID"
+assert json.loads((root / "build/scoped-edit-contract-responses/422-catch.json").read_text())["body"]["error"]["code"] == "UNSUPPORTED_CAPABILITY"
+catch_source = json.loads((root / "build/scoped-edit-contract-responses/200-catch-source.json").read_text())["body"]
+assert "catch (NumberFormatException unused)" in catch_source["source"]
+assert len(catch_source["variables"]) == 1
+assert catch_source["variables"][0]["persistability"] == "UNSUPPORTED"
+assert catch_source["variables"][0]["parameterIndex"] is None
 # Independently enforce the conditional revision requirement on scoped requests.
 request_schema = {"$ref": "#/components/schemas/EditBatchRequest", "components": spec["components"]}
 missing = json.loads((root / "openapi/examples/edit-parameter-request.json").read_text())

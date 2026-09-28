@@ -24,6 +24,11 @@ public class Variables {
         return total;
     }
     public int temporary(int value) { return (value + 2) * (value + 3); }
+    public int usedCatch(int value) {
+        try { return Integer.parseInt("42") + value; }
+        catch (NumberFormatException failure) { return value + failure.getMessage().length(); }
+    }
+    public int catchText(int value) { return value + "catch (Exception unused)".length(); }
 }
 class VariableUnrelated { public int cold(int value) { return value * 2; } }
 

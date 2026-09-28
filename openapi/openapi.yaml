@@ -372,6 +372,9 @@ paths:
         require current session/revision and source snapshot preconditions.
         Targets come from decompile.variables. Only verified plain concrete
         AUTO/RESTRUCTURE signatures are supported; locals remain unsupported.
+        Methods with unverified catch declarations (including Jadx's unannotated
+        unused catch arguments) have unsupported parameter targets and return
+        UNSUPPORTED_CAPABILITY before staging any batch item.
         All declared method variables are conservatively considered overlapping,
         including current and proposed names, so no staged prefix creates a name
         collision. No-op batches preserve revisions and source identity.
@@ -918,6 +921,8 @@ components:
       description: >-
         Snapshot-bound rename of a concrete nonsynthetic ordinary method parameter
         in AUTO/RESTRUCTURE Java with a verified complete unannotated signature.
+        All emitted catch declarations must also have verified variable metadata;
+        methods with unannotated catch arguments are unsupported.
         Zero-based original semantic parameter index excludes this and counts wide
         arguments once. Obtain targets from decompile.variables; display names are
         not identities. Batch expectedSessionId and expectedLogicalRevision are
@@ -1369,7 +1374,9 @@ components:
         and have null parameterIndex; unsupported positional identities also use null.
         No stable local ID is offered. Scope collision
         validation conservatively treats all declared variables in a method as
-        overlapping. No register or SSA identity is part of this contract.
+        overlapping. Parameters in methods with unverified catch declarations
+        are UNSUPPORTED with null parameterIndex. No register or SSA identity
+        is part of this contract.
       properties:
         kind: { type: string, enum: [PARAMETER, LOCAL] }
         method: { $ref: '#/components/schemas/MethodSymbolRef' }

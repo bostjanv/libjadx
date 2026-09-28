@@ -236,6 +236,8 @@ Indexes count original parameters from zero, excluding `this`; `long` and
 reload, settings rebuild, save publication or restart cannot authorize an edit.
 All declared variable names in a method are conservatively treated as overlapping.
 Local renames, constructors, synthetic/bridge methods, bodyless/annotated or
-transformed signatures and unproved generic forms fail closed. Changes remain
+transformed signatures and unproved generic forms fail closed. Methods with
+unverified catch declarations, including Jadx's unannotated unused catch arguments,
+also expose unsupported parameter targets and reject edits before staging. Changes remain
 in memory until explicit native save. Tiny export continues to reject scoped
 code refs. See [evidence and limits](docs/phase-5-scoped-editing.md).

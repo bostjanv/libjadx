@@ -73,6 +73,51 @@ public final class MethodRangeVerifier {
 		return null;
 	}
 
+	/** Checks pinned Jadx's plain catch headers inside an already verified method range.
+	 * Missing metadata or unfamiliar syntax fails closed; trivia never declares a name. */
+	public static boolean catchDeclarationsVerified(String source, int from, int to, Map<Integer, String> declarations) {
+		if (from < 0 || to > source.length() || from >= to) return false;
+		for (int i = from; i < to; i++) {
+			char ch = source.charAt(i);
+			if (source.startsWith("//", i)) {
+				i = source.indexOf('\n', i + 2);
+				if (i < 0 || i >= to) return false;
+				continue;
+			}
+			if (source.startsWith("/*", i)) {
+				i = source.indexOf("*/", i + 2);
+				if (i < 0 || i + 1 >= to) return false;
+				i++;
+				continue;
+			}
+			if (ch == '"' || ch == '\'') {
+				i = source.startsWith("\"\"\"", i) ? skipTextBlock(source, i + 3) : skipQuoted(source, i + 1, ch);
+				if (i < 0 || i >= to) return false;
+				continue;
+			}
+			if (!Character.isJavaIdentifierStart(ch)) continue;
+			int tokenStart = i++;
+			while (i < to && Character.isJavaIdentifierPart(source.charAt(i))) i++;
+			if (!source.substring(tokenStart, i).equals("catch")) { i--; continue; }
+			while (i < to && Character.isWhitespace(source.charAt(i))) i++;
+			if (i >= to || source.charAt(i++) != '(') return false;
+			int nameStart = -1;
+			int nameEnd = -1;
+			while (i < to && source.charAt(i) != ')') {
+				ch = source.charAt(i);
+				if (Character.isJavaIdentifierStart(ch)) {
+					nameStart = i++;
+					while (i < to && Character.isJavaIdentifierPart(source.charAt(i))) i++;
+					nameEnd = i;
+				} else if (Character.isWhitespace(ch) || ch == '.' || ch == '|') i++;
+				else return false;
+			}
+			if (i >= to || nameStart < 0 || !source.substring(nameStart, nameEnd).equals(declarations.get(nameStart)))
+				return false;
+		}
+		return true;
+	}
+
 	private static int skipQuoted(String source, int from, char quote) {
 		for (int i = from; i < source.length(); i++) {
 			if (source.charAt(i) == '\\') i++;

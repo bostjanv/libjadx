@@ -30,9 +30,12 @@ class ScopedParameterServiceTest {
 
 	static DecompileResult source(ProjectRuntime runtime) throws Exception { return source(runtime, null); }
 	static DecompileResult source(ProjectRuntime runtime, String mode) throws Exception {
+		return source(runtime, mode, OWNER);
+	}
+	static DecompileResult source(ProjectRuntime runtime, String mode, SymbolRef owner) throws Exception {
 		var catalogs = new SymbolCatalogProvider(new byte[32]);
 		return new DecompiledSourceService(runtime, catalogs, new SearchService(runtime, catalogs, new byte[32]))
-				.decompile(new DecompileRequest(OWNER, mode, true, false, false, null, null, null));
+				.decompile(new DecompileRequest(owner, mode, true, false, false, null, null, null));
 	}
 	static EditDtos.Operation rename(DecompileResult source, SymbolRef method, int index, String name) {
 		return new EditDtos.Operation(EditDtos.Kind.RENAME_PARAMETER, method, name, null, null, index, source.sourceSnapshotId());
@@ -99,6 +102,64 @@ class ScopedParameterServiceTest {
 					rename(source, INSTANCE, 0, "same"), rename(source, INSTANCE, 1, "same")))).code());
 			assertEquals("INVALID_REQUEST", assertThrows(EditBatchService.Rejected.class, () -> service.apply(request(source,
 					rename(source, INSTANCE, 0, "first"), rename(source, INSTANCE, 0, "other")))).code());
+		}
+	}
+	@Test void unannotatedCatchDeclarationRejectsEntireBatchWithoutChangingState() throws Exception {
+		Path jar = SymbolFixtureSupport.compileVariableFixture(dir);
+		Path smali = SymbolFixtureSupport.unusedCatchFixture(dir);
+		var owner = SymbolRef.classRef("Lprobe/UnusedCatch;");
+		Path project = dir.resolve("catch.jadx");
+		NativeProjectDocument.newFromInputs(project, List.of(jar, smali)).save();
+		String nativeBefore = Files.readString(project);
+		try (var runtime = new ProjectRuntime(project, List.of(jar, smali), List.of(dir))) {
+			runtime.initializeAsync(NativeProjectDocument.open(project)).get(20, TimeUnit.SECONDS);
+			var source = source(runtime, null, owner);
+			var target = new SymbolRef(SymbolRef.Kind.METHOD, owner.originalClassDescriptor(), null, "unusedCatch", "(I)I");
+			assertTrue(source.source().contains("catch (NumberFormatException unused)"), source.source());
+			assertTrue(source.variables().stream().noneMatch(v -> v.method().equals(target) && v.displayName().equals("unused")));
+			var parameter = source.variables().stream().filter(v -> v.method().equals(target) && v.kind().equals("PARAMETER"))
+					.findFirst().orElseThrow();
+			assertEquals("UNSUPPORTED", parameter.persistability());
+			assertNull(parameter.parameterIndex());
+			var before = runtime.projectSnapshot();
+			String pending = runtime.pendingEdits().toString();
+			var stages = new java.util.concurrent.atomic.AtomicInteger();
+			var service = new EditBatchService(runtime, i -> stages.incrementAndGet());
+			for (String name : List.of("unused", "otherwiseSafe")) {
+				var rejection = assertThrows(EditBatchService.Rejected.class, () -> service.apply(request(source,
+						new EditDtos.Operation(EditDtos.Kind.RENAME, OWNER, "NeverApplied", null, null),
+						rename(source, target, 0, name))));
+				assertEquals("UNSUPPORTED_CAPABILITY", rejection.code());
+				assertEquals(422, rejection.status());
+				assertEquals(1, rejection.itemErrors().getFirst().index());
+				assertEquals(0, stages.get());
+				assertEquals(before, runtime.projectSnapshot());
+				assertEquals(pending, runtime.pendingEdits().toString());
+				assertEquals(nativeBefore, Files.readString(project));
+				assertEquals(source, source(runtime, null, owner));
+				assertColdUnrelated(runtime);
+			}
+		}
+	}
+	@Test void verifiedCatchAndCatchTextKeepParameterSupport() throws Exception {
+		try (var runtime = raw()) {
+			var source = source(runtime);
+			var used = method("usedCatch", "(I)I");
+			var text = method("catchText", "(I)I");
+			for (var target : List.of(used, text)) {
+				var parameter = source.variables().stream().filter(v -> v.method().equals(target) && v.kind().equals("PARAMETER"))
+						.findFirst().orElseThrow();
+				assertEquals("SUPPORTED", parameter.persistability());
+				assertEquals(0, parameter.parameterIndex());
+			}
+			var catchVariable = source.variables().stream().filter(v -> v.method().equals(used) && v.kind().equals("LOCAL"))
+					.findFirst().orElseThrow();
+			var service = new EditBatchService(runtime);
+			assertEquals("INVALID_REQUEST", assertThrows(EditBatchService.Rejected.class, () -> service.apply(request(source,
+					rename(source, used, 0, catchVariable.displayName())))).code());
+			assertEquals("APPLIED", service.apply(request(source, rename(source, used, 0, "safeValue"),
+					rename(source, text, 0, "safeValue"))).outcome());
+			assertTrue(source(runtime).source().contains("catch (NumberFormatException " + catchVariable.displayName() + ")"));
 		}
 	}
 	@Test void missingMethodOutOfRangeIndexAndMissingRevisionReject() throws Exception {
