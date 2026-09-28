@@ -241,3 +241,13 @@ unverified catch declarations, including Jadx's unannotated unused catch argumen
 also expose unsupported parameter targets and reject edits before staging. Changes remain
 in memory until explicit native save. Tiny export continues to reject scoped
 code refs. See [evidence and limits](docs/phase-5-scoped-editing.md).
+
+### Related-method propagation (PR #14 evidence)
+
+Explicit propagation remains unsupported: pinned Jadx omits a resolved interface
+branch from an owned related-method fixture. Any `propagateRelated` field returns
+`422 UNSUPPORTED_CAPABILITY` before staging, including `false`; omit it for legacy
+renames. Ordinary method rename retains Jadx's implicit candidate alias behavior,
+without an exhaustive affected-group guarantee. See [counterexamples, native replay
+and actual GUI diagnostics](docs/phase-5-related-propagation.md). Phase 5.2 remains
+incomplete; local-variable feasibility is separate.

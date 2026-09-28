@@ -1,5 +1,17 @@
 # Experimental API changelog
 
+## 2026-09-28 — PR #14 related-method negative feasibility evidence
+
+- Preserved explicit propagation rejection and added owned closed-hierarchy,
+  missing-parent, duplicate-input and bridge counterexamples. Pinned Jadx omits
+  one resolved interface branch; native one-seed replay also varies with hot state.
+- Added two native/actual-GUI diagnostic strategies, rejection captures and
+  independent contract checks. Capability remains UNSUPPORTED; its evidence is
+  now INCOMPLETE_PINNED_OVERRIDE_GROUP. Error messages identify the blocker.
+- Clarified ordinary method RENAME's existing implicit candidate alias behavior
+  and empty affectedRefs. No accepted edit schema or native format expanded.
+  Phase 5.2 and local-variable feasibility remain incomplete.
+
 ## 2026-09-28 — PR #13 catch-declaration collision fix
 
 - Parameter targets now fail closed when an emitted catch declaration has no

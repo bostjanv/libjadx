@@ -1,0 +1,15 @@
+{
+  "expectedSessionId": "11111111-1111-4111-8111-111111111111",
+  "expectedLogicalRevision": 0,
+  "items": [{
+    "kind": "RENAME",
+    "target": {
+      "kind": "METHOD",
+      "originalClassDescriptor": "Lrelated/Hierarchy$Joined;",
+      "originalName": "joined",
+      "originalDescriptor": "(I)I"
+    },
+    "newName": "renamedJoined",
+    "propagateRelated": true
+  }]
+}

@@ -227,3 +227,37 @@ tasks.register<Test>("scopedEditGuiRoundTripTest") {
     filter { includeTestsMatching("dev.libjadx.probes.ScopedEditGuiReverseRoundTripTest") }
     environment("LIBJADX_SCOPED_GUI_SAVED_PROJECT", scopedGuiSavedProject.get().asFile.absolutePath)
 }
+
+// PR #14 evidence-only diagnostics: neither strategy enables API propagation.
+val relatedGuiRoot = layout.buildDirectory.dir("related-gui-fixture")
+for (strategy in listOf("seed", "members")) {
+    tasks.register<Exec>("saveRelated${strategy.replaceFirstChar { it.uppercase() }}WithMatchingGui") {
+        dependsOn(tasks.test)
+        val guiPath = providers.environmentVariable("JADX_GUI")
+        doFirst {
+            if (!guiPath.isPresent) throw GradleException("Set JADX_GUI to the matching jadx-gui executable")
+        }
+        commandLine(
+            "bash", "tests/gui-round-trip.sh", guiPath.orNull ?: "",
+            relatedGuiRoot.get().file("$strategy/diagnostic.jadx").asFile.absolutePath,
+            relatedGuiRoot.get().file("$strategy/gui-resaved.jadx").asFile.absolutePath,
+        )
+        doLast {
+            copy {
+                from("/tmp/libjadx-gui-roundtrip.log")
+                into(relatedGuiRoot.get().dir(strategy))
+                rename { "actual-gui.log" }
+            }
+        }
+    }
+}
+// The existing GUI harness uses one shared log; serialize these actual GUI runs.
+tasks.named("saveRelatedMembersWithMatchingGui") { mustRunAfter("saveRelatedSeedWithMatchingGui") }
+tasks.register<Test>("relatedPropagationGuiRoundTripTest") {
+    dependsOn("saveRelatedSeedWithMatchingGui", "saveRelatedMembersWithMatchingGui")
+    useJUnitPlatform()
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    filter { includeTestsMatching("dev.libjadx.probes.RelatedPropagationGuiReverseProbeTest") }
+    environment("LIBJADX_RELATED_GUI_ROOT", relatedGuiRoot.get().asFile.absolutePath)
+}

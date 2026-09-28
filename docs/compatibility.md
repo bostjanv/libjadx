@@ -141,3 +141,13 @@ variable declarations; local renames remain unsupported. See
 [scoped editing evidence](phase-5-scoped-editing.md) for commands and matching-GUI
 results. GUI serialization drops unknown JSON fields, as established in Phase 0;
 LibJadx's native codec preserves them before the GUI resave.
+
+## PR #14 related-method evidence
+
+The same exact 1.5.6 source archive, Maven artifacts and JDK/toolchain are used;
+no dependencies or locks changed. A fully resolved owned interface branch is
+omitted from MethodOverrideAttr, and one-seed native replay differs between hot
+and fresh engines. Original duplicate definitions remain collapsed. Explicit
+propagation remains UNSUPPORTED. See [pinned paths, fixtures, native strategies
+and actual GUI diagnostics](phase-5-related-propagation.md) and
+[exact validation outcomes](pr-14-review.md).

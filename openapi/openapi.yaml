@@ -366,8 +366,13 @@ paths:
         staging failure returns PARTIAL with itemized FAILED and SKIPPED results,
         committing a verified applied prefix when one exists. If no item was
         applied, logical/index revisions and dirty state remain unchanged.
-        Only LINE declaration comments are currently accepted. No automatic
-        override propagation or local editing. Mapping import/export have separate routes.
+        Only LINE declaration comments are currently accepted. Explicit related-method
+        propagation and local editing are unsupported. Any propagateRelated field
+        (including false or a malformed value) returns 422 UNSUPPORTED_CAPABILITY
+        before batch staging; it is not part of an accepted request schema. Omit it
+        for legacy declaration behavior. Ordinary method RENAME retains pinned Jadx
+        implicit candidate alias propagation; it does not guarantee exhaustive
+        related membership and its affectedRefs is empty. Mapping import/export have separate routes.
         Scoped parameter renames use original semantic parameter indexes and
         require current session/revision and source snapshot preconditions.
         Targets come from decompile.variables. Only verified plain concrete
@@ -402,7 +407,13 @@ paths:
         '404': { $ref: '#/components/responses/ApiErrorResponse' }
         '409': { $ref: '#/components/responses/ApiErrorResponse' }
         '415': { $ref: '#/components/responses/ApiErrorResponse' }
-        '422': { $ref: '#/components/responses/ApiErrorResponse' }
+        '422':
+          description: Unsupported edit, including any propagateRelated field; no items staged.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              examples:
+                relatedUnsupported: { externalValue: ./examples/edit-related-unsupported.json }
         '429': { $ref: '#/components/responses/ApiErrorResponse' }
         '503': { $ref: '#/components/responses/ApiErrorResponse' }
         '500': { $ref: '#/components/responses/ApiErrorResponse' }
