@@ -127,6 +127,31 @@ class JadxMappingExportProbeTest {
 	}
 
 	@Test
+	void namespaceInversionAndMultipleDestinationsCannotBeExportedAsVerifiedOriginalKeys() throws Exception {
+		Path jar = SymbolFixtureSupport.compileFixture(root);
+		Path mapping = root.resolve("inverted.tiny");
+		Files.writeString(mapping, "tiny\t2\t0\toriginal\tmapped\nc\tprobe/SymbolFixture\tprobe/MappedFixture\n");
+		JadxArgs args = new JadxArgs(); args.getInputFiles().add(jar.toFile()); args.setUserRenamesMappingsPath(mapping);
+		args.getPluginOptions().put("rename-mappings.invert", "yes");
+		try (var engine = new JadxDecompiler(args)) {
+			engine.load();
+			assertEquals("mapped", RenameMappingsData.getTree(engine.getRoot()).getSrcNamespace());
+			var failure = assertThrows(dev.libjadx.core.mappings.MappingExportDtos.Problem.class,
+					() -> new dev.libjadx.jadxadapter.JadxMappingExportAdapter().encode(engine, new JadxCodeData(), Files.readAllBytes(mapping)));
+			assertEquals(422, failure.status());
+		}
+		Files.writeString(mapping, "tiny\t2\t0\toriginal\tfirst\tsecond\nc\tprobe/SymbolFixture\tprobe/First\tprobe/Second\n");
+		// Pinned Jadx logs the prepare-pass error and continues without a loaded tree.
+		// The exporter must reject the source itself; load() returning is no proof of acceptance.
+		try (var engine = engine(jar, mapping, new JadxCodeData())) {
+			assertNull(RenameMappingsData.getTree(engine.getRoot()));
+			var failure = assertThrows(dev.libjadx.core.mappings.MappingExportDtos.Problem.class,
+					() -> new dev.libjadx.jadxadapter.JadxMappingExportAdapter().encode(engine, new JadxCodeData(), Files.readAllBytes(mapping)));
+			assertEquals(422, failure.status());
+		}
+	}
+
+	@Test
 	void readerNormalizesDuplicateDeclarationsAndIgnoresUnknownRecords() throws Exception {
 		MemoryMappingTree tree = new MemoryMappingTree();
 		MappingReader.read(new StringReader("tiny\t2\t0\toriginal\tmapped\n"

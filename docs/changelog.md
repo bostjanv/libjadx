@@ -1,5 +1,19 @@
 # Experimental API changelog
 
+## 2026-09-28 — Phase 5.2 safe Tiny v2 export
+
+- Added `POST /api/v1/project/mappings/export` with required session/revision
+  preconditions, strict JSON and same-origin validation, bounded declarations
+  and LINE comments, codec read-back and observed counts/digest.
+- Export combines accepted attached Tiny v2 data with unsaved native edits,
+  rejects unsupported/ambiguous sources, and publishes a new allowed-root
+  file with no-clobber hard-link creation. It never saves or attaches output.
+- Native code-data replay now unloads owner caches before notifying listeners,
+  preserving attached mapping comments after edits. Mapping import and
+  scoped/propagated edits remain separate follow-ups; Phase 5.2 is incomplete.
+- The new contract, examples and live response validator ship together.
+  Python transport generation remains scheduled for Phase 6.
+
 ## 2026-09-28 — Phase 5.2 review fixes
 
 - Edit batches resolve class collisions from the lightweight catalog and load

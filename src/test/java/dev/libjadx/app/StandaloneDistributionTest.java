@@ -55,6 +55,17 @@ class StandaloneDistributionTest {
 					.path("codeData").toString().contains("DistAlias"));
 			assertTrue(body(get(port, "/api/v1/project")).path("dirty").asBoolean());
 			org.junit.jupiter.api.Assertions.assertArrayEquals(before, Files.readAllBytes(project));
+			JsonNode projectBeforeExport = body(get(port, "/api/v1/project"));
+			Path exportedMapping = dir.resolve("distribution-export.tiny");
+			String exportRequest = JSON.writeValueAsString(java.util.Map.of("targetPath", exportedMapping.toString(), "format", "TINY_V2",
+					"expectedSessionId", projectBeforeExport.path("revisions").path("sessionId").asText(),
+					"expectedLogicalRevision", projectBeforeExport.path("revisions").path("logicalRevision").asLong()));
+			var exported = post(port, "/api/v1/project/mappings/export", exportRequest);
+			assertEquals(200, exported.statusCode(), exported.body());
+			assertEquals(dev.libjadx.project.FileFingerprint.of(exportedMapping).sha256(), body(exported).path("sha256").asText());
+			assertEquals(projectBeforeExport, body(get(port, "/api/v1/project")));
+			org.junit.jupiter.api.Assertions.assertArrayEquals(before, Files.readAllBytes(project));
+			assertError(post(port, "/api/v1/project/mappings/export", exportRequest), 409, "EXTERNAL_MODIFICATION_CONFLICT");
 			assertEquals(200, post(port, "/api/v1/project/save", "{}").statusCode());
 			assertFalse(body(get(port, "/api/v1/project")).path("dirty").asBoolean());
 		} finally { stop(first, port); }

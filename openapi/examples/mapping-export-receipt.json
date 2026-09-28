@@ -1,0 +1,18 @@
+{
+  "format": "TINY_V2",
+  "targetPath": "/allowed/aliases.tiny",
+  "sessionId": "e0653bba-4d93-4645-9633-28fb47c39e27",
+  "logicalRevision": 3,
+  "source": "CURRENT_IN_MEMORY_WITH_ATTACHED_MAPPINGS",
+  "completeness": "VERIFIED_DECLARATIONS",
+  "exported": {
+    "classes": 2,
+    "methods": 1,
+    "fields": 1,
+    "comments": 3
+  },
+  "bytes": 482,
+  "sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "omissions": [],
+  "projectMutated": false
+}

@@ -18,7 +18,7 @@ The implementation currently includes:
 - Explicit native save, reload, mapping-path updates, transient pending-edit export, bounded job polling/cancellation/SSE, and requested shutdown policies.
 - Bounded listing of Jadx-visible classes and exact lookup of classes, methods, and fields by original JVM descriptors. Current aliases are separate from identity.
 - Class-oriented Java source with validated token annotations, source snapshots, and method excerpts only where the pinned Jadx metadata and boundary checks agree. Per-request mode overrides use an isolated engine.
-- Validated in-memory batches for original class/method/field renames and single-line native declaration comments. Explicit save is required for durability; mapping export, parameter/local edits and override propagation are unsupported.
+- Validated in-memory batches for original class/method/field renames and single-line native declaration comments. Explicit save is required for durability. Safe Tiny v2 export creates a new local artifact; mapping import, parameter/local edits and override propagation remain unsupported.
 - Controlled startup/shutdown behavior, including bounded waiting for loader cleanup on ordinary shutdown and separate handling of fatal startup errors.
 
 Native declaration edits and a matching-GUI save/reopen round trip are exercised by real Jadx tests. The capability endpoint identifies narrower support and remaining unverified edit forms.
@@ -29,6 +29,7 @@ Native declaration edits and a matching-GUI save/reopen round trip are exercised
 | `GET /api/v1/status` | Current project lifecycle (`LOADING`, `READY`, `FAILED`, and shutdown states), progress, and safe error details. |
 | `GET /api/v1/capabilities` | Jadx version and evidence-backed capability status. |
 | `GET /api/v1/project`, `POST /api/v1/project/save`, `POST /api/v1/project/reload`, `GET/PATCH /api/v1/project/settings`, `POST /api/v1/project/pending-edits/export` | Native project state, explicit persistence, reload, mapping configuration, and transient edit export. |
+| `POST /api/v1/project/mappings/export` | Strict verified Tiny v2 declaration export to a new local file, without changing project state. |
 | `GET /api/v1/jobs/{id}`, `POST /api/v1/jobs/{id}/cancel`, `GET /api/v1/jobs/{id}/events` | Process-local job polling, cooperative cancellation, and SSE. |
 | `POST /api/v1/shutdown` | Graceful local shutdown with `discard` (default), `save`, or `refuse_if_dirty`; active work returns `PROJECT_BUSY`. |
 | `GET /api/v1/classes`, `POST /api/v1/symbols/resolve` | Jadx-visible class pages and exact original class/member lookup. Input provenance may be unavailable. |
@@ -133,6 +134,14 @@ Prevalidation failure changes nothing, and a no-op leaves revisions unchanged.
 See [Phase 5.2 editing](docs/phase-5-editing.md) for a request example, native
 identity rules, persistence proof and unsupported cases.
 
+To export current aliases and LINE declaration comments, including unsaved
+edits and accepted attached Tiny v2 mappings, send `targetPath`, `format:
+"TINY_V2"`, `expectedSessionId` and `expectedLogicalRevision` to
+`POST /api/v1/project/mappings/export`. The absolute `.tiny` destination must
+be new, with an existing nonsymlink parent under allowed roots. Unsupported or
+ambiguous source entries fail before publication. Export does not save or
+attach the file. See [mapping export evidence and limits](docs/phase-5-mapping-export.md).
+
 See [`docs/configuration.md`](docs/configuration.md) for startup, path handling, response-state, and shutdown details.
 
 ## Development and tests
@@ -148,6 +157,7 @@ The repository includes unit/HTTP lifecycle tests, Jadx feasibility probes, and 
 ```bash
 JADX_GUI=/absolute/path/to/jadx-gui ./gradlew guiRoundTripTest
 JADX_GUI=/absolute/path/to/jadx-gui ./gradlew nativeEditGuiRoundTripTest
+JADX_GUI=/absolute/path/to/jadx-gui ./gradlew mappingExportGuiRoundTripTest
 ```
 
 The opt-in GUI test is not part of a normal `./gradlew test` run. Results from the small fixture and GUI round-trip probes do not establish correctness for all Jadx-supported input formats or all edit types.
@@ -158,7 +168,7 @@ Before contributing, read [`AGENTS.md`](AGENTS.md), [`DESIGN.md`](DESIGN.md), an
 
 The intended architecture separates application lifecycle and HTTP transport from native project persistence, Jadx-version-sensitive integration, analysis, in-memory search, and operation scheduling. The current Gradle application is the initial implementation slice; the full logical architecture is documented in [`DESIGN.md`](DESIGN.md).
 
-Completed slices cover native save/reload and external-change detection, revisions, coordinated operations, process-local jobs, shutdown, original symbol lookup, Java source, basic references, incremental search and native declaration editing. Remaining Phase 5.2 gates are mapping export, scoped variable editing and related-method propagation; the Python SDK follows in Phase 6. Smali, CFG and resource capabilities depend on further tests against the pinned Jadx release.
+Completed slices cover native save/reload and external-change detection, revisions, coordinated operations, process-local jobs, shutdown, original symbol lookup, Java source, basic references, incremental search, native declaration editing and strict Tiny v2 export. Remaining Phase 5.2 gates are mapping import, scoped variable editing and related-method propagation; the Python SDK follows in Phase 6. Smali, CFG and resource capabilities depend on further tests against the pinned Jadx release.
 
 The long-term design retains **one project per process**, native Jadx persistence, explicit saves, and no HTTP file uploads. Planned endpoints and behavior must not be mistaken for features already delivered.
 

@@ -1,0 +1,6 @@
+{
+  "targetPath": "/allowed/aliases.tiny",
+  "format": "TINY_V2",
+  "expectedSessionId": "e0653bba-4d93-4645-9633-28fb47c39e27",
+  "expectedLogicalRevision": 3
+}
