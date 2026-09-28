@@ -203,3 +203,27 @@ tasks.register<Test>("mappingImportGuiRoundTripTest") {
     filter { includeTestsMatching("dev.libjadx.probes.MappingImportGuiReverseRoundTripTest") }
     environment("LIBJADX_IMPORT_GUI_SAVED_PROJECT", importGuiSavedProject.get().asFile.absolutePath)
 }
+
+val scopedGuiSavedProject = layout.buildDirectory.file("scoped-edit-gui-fixture/gui-resaved.jadx")
+
+tasks.register<Exec>("saveScopedEditsWithMatchingGui") {
+    dependsOn(tasks.test)
+    val guiPath = providers.environmentVariable("JADX_GUI")
+    doFirst {
+        if (!guiPath.isPresent) throw GradleException("Set JADX_GUI to the matching jadx-gui executable")
+    }
+    commandLine(
+        "bash", "tests/gui-round-trip.sh", guiPath.orNull ?: "",
+        layout.buildDirectory.file("scoped-edit-gui-fixture/scoped.jadx").get().asFile.absolutePath,
+        scopedGuiSavedProject.get().asFile.absolutePath,
+    )
+}
+
+tasks.register<Test>("scopedEditGuiRoundTripTest") {
+    dependsOn("saveScopedEditsWithMatchingGui")
+    useJUnitPlatform()
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    filter { includeTestsMatching("dev.libjadx.probes.ScopedEditGuiReverseRoundTripTest") }
+    environment("LIBJADX_SCOPED_GUI_SAVED_PROJECT", scopedGuiSavedProject.get().asFile.absolutePath)
+}

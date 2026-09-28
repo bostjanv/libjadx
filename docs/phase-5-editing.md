@@ -7,15 +7,18 @@ memory until `/api/v1/project/save` or an accepted shutdown with `save`.
 The native `.jadx` file, input JARs and mapping file are untouched by a batch.
 Strict mapping [export](phase-5-mapping-export.md) and
 [import](phase-5-mapping-import.md) have separate contracts and evidence.
-Parameter/local editing and related-method propagation remain unsupported;
+PR #13 adds snapshot-bound parameter editing for its verified signature subset;
+see [scoped editing](phase-5-scoped-editing.md). Local editing and related-method
+propagation remain unsupported;
 Phase 5.2 is incomplete.
 
 ## Request and identity
 
 The [reviewed request](../openapi/examples/edit-batch-request.json) supplies
 1–64 ordered items. A body is limited to 64 KiB. `expectedSessionId` and
-`expectedLogicalRevision` must appear together; omission means the operation
-uses the revision admitted by its exclusive lease. Supplying stale values
+`expectedLogicalRevision` must appear together; omission in a declaration-only batch means the operation
+uses the revision admitted by its exclusive lease. Scoped parameter batches require
+both preconditions plus each item's current source snapshot. Supplying stale values
 returns `409 STALE_REVISION` without retrying. The public `SymbolRef` always
 contains an original JVM class descriptor and, for members, the original
 name and complete descriptor. A method's return type is part of that key.
@@ -245,8 +248,10 @@ Strict Tiny v2 **export** creates a new output without saving or attaching it;
 bounded conflict-safe **import** stages native edits without saving or attaching
 its source. Their separate evidence is linked above.
 
-Parameter/local identities, their native persistence and rejection of stale
-variable snapshots are not proven. Related-method propagation is not enabled
+PR #13 adds original positional parameter identities with source-snapshot
+admission and matching-GUI native persistence for verified plain signatures;
+see [scoped editing](phase-5-scoped-editing.md). Local editing remains unsupported
+after the merged-SSA mode-variation probe. Related-method propagation is not enabled
 because candidate enumeration is not a proof of
 complete GUI-compatible edits. See
 [ADR 0001](adr/0001-defer-advanced-native-edits.md).

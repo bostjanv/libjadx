@@ -356,24 +356,32 @@ paths:
     post:
       tags: [Project]
       operationId: applyEditBatch
-      summary: Apply native declaration edits to the in-memory project
+      summary: Apply native declaration and scoped parameter edits to the in-memory project
       description: >-
         Validates every item under one exclusive admission before changing native
-        code data. Preconditions are either both supplied or both omitted;
-        omission means unconditional admission against the current revision.
+        code data. Declaration-only batches may supply both revision preconditions or
+        omit both for unconditional admission against the current revision.
         A complete no-op retains all revisions and dirty state. A successful
         edit remains memory-only until explicit native save. An unexpected
         staging failure returns PARTIAL with itemized FAILED and SKIPPED results,
         committing a verified applied prefix when one exists. If no item was
         applied, logical/index revisions and dirty state remain unchanged.
         Only LINE declaration comments are currently accepted. No automatic
-        override propagation, mapping export, parameter or local editing.
+        override propagation or local editing. Mapping import/export have separate routes.
+        Scoped parameter renames use original semantic parameter indexes and
+        require current session/revision and source snapshot preconditions.
+        Targets come from decompile.variables. Only verified plain concrete
+        AUTO/RESTRUCTURE signatures are supported; locals remain unsupported.
+        All declared method variables are conservatively considered overlapping,
+        including current and proposed names, so no staged prefix creates a name
+        collision. No-op batches preserve revisions and source identity.
       requestBody:
         required: true
         content:
           application/json:
             schema: { $ref: '#/components/schemas/EditBatchRequest' }
             examples:
+              parameters: { externalValue: ./examples/edit-parameter-request.json }
               renameAndComment: { externalValue: ./examples/edit-batch-request.json }
       responses:
         '200':
@@ -854,6 +862,16 @@ components:
       type: object
       additionalProperties: false
       required: [items]
+      if:
+        properties:
+          items:
+            contains:
+              type: object
+              required: [kind]
+              properties:
+                kind: { const: RENAME_PARAMETER }
+      then:
+        required: [expectedSessionId, expectedLogicalRevision]
       dependentRequired:
         expectedSessionId: [expectedLogicalRevision]
         expectedLogicalRevision: [expectedSessionId]
@@ -869,11 +887,13 @@ components:
       oneOf:
         - $ref: '#/components/schemas/RenameOperation'
         - $ref: '#/components/schemas/SetCommentOperation'
+        - $ref: '#/components/schemas/RenameParameterOperation'
       discriminator:
         propertyName: kind
         mapping:
           RENAME: '#/components/schemas/RenameOperation'
           SET_COMMENT: '#/components/schemas/SetCommentOperation'
+          RENAME_PARAMETER: '#/components/schemas/RenameParameterOperation'
     RenameOperation:
       type: object
       additionalProperties: false
@@ -891,6 +911,33 @@ components:
         target: { $ref: '#/components/schemas/SymbolRef' }
         comment: { type: string, minLength: 1, maxLength: 4096 }
         style: { const: LINE }
+    RenameParameterOperation:
+      type: object
+      additionalProperties: false
+      required: [kind, method, parameterIndex, sourceSnapshotId, newName]
+      description: >-
+        Snapshot-bound rename of a concrete nonsynthetic ordinary method parameter
+        in AUTO/RESTRUCTURE Java with a verified complete unannotated signature.
+        Zero-based original semantic parameter index excludes this and counts wide
+        arguments once. Obtain targets from decompile.variables; display names are
+        not identities. Batch expectedSessionId and expectedLogicalRevision are
+        mandatory when this kind is present. Locals remain unsupported.
+      properties:
+        kind: { const: RENAME_PARAMETER }
+        method: { $ref: '#/components/schemas/MethodSymbolRef' }
+        parameterIndex: { type: integer, minimum: 0, maximum: 254 }
+        sourceSnapshotId: { type: string, pattern: '^sha256:[0-9a-f]{64}$' }
+        newName: { type: string, minLength: 1, maxLength: 128 }
+    MethodSymbolRef:
+      type: object
+      additionalProperties: false
+      required: [kind, originalClassDescriptor, originalName, originalDescriptor]
+      properties:
+        kind: { const: METHOD }
+        originalClassDescriptor: { type: string, maxLength: 1024, pattern: '^L(?:[^./;\[\]<>\s]+/)*[^./;\[\]<>\s]+;$' }
+        inputIdentity: { type: [string, 'null'], maxLength: 256 }
+        originalName: { type: string, maxLength: 512 }
+        originalDescriptor: { type: string, maxLength: 2048 }
     EditBatchResult:
       type: object
       additionalProperties: false
@@ -925,8 +972,10 @@ components:
       properties:
         index: { type: integer, minimum: 0, maximum: 63 }
         status: { type: string, enum: [APPLIED, FAILED, SKIPPED] }
-        kind: { type: string, enum: [RENAME, SET_COMMENT] }
+        kind: { type: string, enum: [RENAME, SET_COMMENT, RENAME_PARAMETER] }
         target: { $ref: '#/components/schemas/SymbolRef' }
+        parameterIndex: { type: [integer, 'null'], minimum: 0, maximum: 254 }
+        sourceSnapshotId: { type: [string, 'null'], pattern: '^sha256:[0-9a-f]{64}$' }
         affectedRefs:
           type: array
           maxItems: 64
@@ -1310,12 +1359,31 @@ components:
       properties:
         decompilationMode: { type: string, enum: [AUTO, RESTRUCTURE, SIMPLE, FALLBACK] }
         fingerprint: { type: string, pattern: '^sha256:[0-9a-f]{64}$' }
+    SourceVariable:
+      type: object
+      additionalProperties: false
+      required: [kind, method, parameterIndex, displayName, range, sourceSnapshotId, persistability]
+      description: >-
+        Exact declaration token from this emitted source snapshot. This is partial
+        discovery, not an original-variable census. LOCAL entries are read-only
+        and have null parameterIndex; unsupported positional identities also use null.
+        No stable local ID is offered. Scope collision
+        validation conservatively treats all declared variables in a method as
+        overlapping. No register or SSA identity is part of this contract.
+      properties:
+        kind: { type: string, enum: [PARAMETER, LOCAL] }
+        method: { $ref: '#/components/schemas/MethodSymbolRef' }
+        parameterIndex: { type: [integer, 'null'], minimum: 0, maximum: 254 }
+        displayName: { type: string }
+        range: { $ref: '#/components/schemas/SourceRange' }
+        sourceSnapshotId: { type: string, pattern: '^sha256:[0-9a-f]{64}$' }
+        persistability: { type: string, enum: [SUPPORTED, UNSUPPORTED] }
     DecompileResult:
       type: object
       additionalProperties: false
       required: [outcome, queriedRef, sourceOwnerRef, candidates, sessionId, logicalRevision, sourceSnapshotId,
         effectiveSettings, status, representation, source, methodRangeAvailable, methodRange, methodSource,
-        annotations, rawDebugLines, classErrorCount, diagnostics, capabilities]
+        annotations, variables, rawDebugLines, classErrorCount, diagnostics, capabilities]
       properties:
         outcome: { type: string, enum: [RESOLVED, NOT_FOUND, AMBIGUOUS, PROVENANCE_UNAVAILABLE] }
         queriedRef: { $ref: '#/components/schemas/SymbolRef' }
@@ -1338,6 +1406,7 @@ components:
             - { type: 'null' }
         methodSource: { type: [string, 'null'] }
         annotations: { type: array, maxItems: 20000, items: { $ref: '#/components/schemas/SourceAnnotation' } }
+        variables: { type: array, maxItems: 20000, items: { $ref: '#/components/schemas/SourceVariable' } }
         rawDebugLines: { type: 'null', description: Original debug line mapping is unproved in Jadx 1.5.6. }
         classErrorCount: { type: 'null', description: A class-local error count is not available from verified public APIs. }
         diagnostics: { type: array, maxItems: 16, items: { type: string, maxLength: 512 } }

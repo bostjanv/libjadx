@@ -7,8 +7,13 @@ import dev.libjadx.core.symbols.SymbolRef;
 /** Transport-independent batch edit request and immutable public result. */
 public final class EditDtos {
 	private EditDtos() { }
-	public enum Kind { RENAME, SET_COMMENT }
-	public record Operation(Kind kind, SymbolRef target, String newName, String comment, String style) { }
+	public enum Kind { RENAME, SET_COMMENT, RENAME_PARAMETER }
+	public record Operation(Kind kind, SymbolRef target, String newName, String comment, String style,
+			Integer parameterIndex, String sourceSnapshotId) {
+		public Operation(Kind kind, SymbolRef target, String newName, String comment, String style) {
+			this(kind, target, newName, comment, style, null, null);
+		}
+	}
 	public record Request(String expectedSessionId, Long expectedLogicalRevision, List<Operation> items) {
 		public Request {
 			if ((expectedSessionId == null) != (expectedLogicalRevision == null)) {
@@ -18,7 +23,7 @@ public final class EditDtos {
 		}
 	}
 	public record ItemResult(int index, String status, Kind kind, SymbolRef target,
-			List<SymbolRef> affectedRefs, String message) {
+			List<SymbolRef> affectedRefs, String message, Integer parameterIndex, String sourceSnapshotId) {
 		public ItemResult { affectedRefs = List.copyOf(affectedRefs); }
 	}
 	public record Result(String outcome, String sessionId, long logicalRevisionBefore,

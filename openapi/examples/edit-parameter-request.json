@@ -1,0 +1,19 @@
+{
+  "expectedSessionId": "492c49fe-db69-4dd2-a5da-d81e4b75e8d7",
+  "expectedLogicalRevision": 0,
+  "items": [
+    {
+      "kind": "RENAME_PARAMETER",
+      "method": {
+        "kind": "METHOD",
+        "originalClassDescriptor": "Lprobe/Variables;",
+        "inputIdentity": null,
+        "originalName": "instance",
+        "originalDescriptor": "(IJDLjava/lang/String;)I"
+      },
+      "parameterIndex": 1,
+      "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac",
+      "newName": "wideCount"
+    }
+  ]
+}

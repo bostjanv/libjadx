@@ -18,7 +18,7 @@ The implementation currently includes:
 - Explicit native save, reload, mapping-path updates, transient pending-edit export, bounded job polling/cancellation/SSE, and requested shutdown policies.
 - Bounded listing of Jadx-visible classes and exact lookup of classes, methods, and fields by original JVM descriptors. Current aliases are separate from identity.
 - Class-oriented Java source with validated token annotations, source snapshots, and method excerpts only where the pinned Jadx metadata and boundary checks agree. Per-request mode overrides use an isolated engine.
-- Validated in-memory batches for original class/method/field renames and single-line native declaration comments. Explicit save is required for durability. Safe Tiny v2 export creates a new local artifact; mapping import, parameter/local edits and override propagation remain unsupported.
+- Validated in-memory batches for original class/method/field renames and single-line native declaration comments. Explicit save is required for durability. Safe Tiny v2 export creates a new local artifact, bounded Tiny v2 import stages pending edits, and verified parameter targets support snapshot-bound renames. Local edits and override propagation remain unsupported.
 - Controlled startup/shutdown behavior, including bounded waiting for loader cleanup on ordinary shutdown and separate handling of fatal startup errors.
 
 Native declaration edits and a matching-GUI save/reopen round trip are exercised by real Jadx tests. The capability endpoint identifies narrower support and remaining unverified edit forms.
@@ -159,6 +159,7 @@ The repository includes unit/HTTP lifecycle tests, Jadx feasibility probes, and 
 JADX_GUI=/absolute/path/to/jadx-gui ./gradlew guiRoundTripTest
 JADX_GUI=/absolute/path/to/jadx-gui ./gradlew nativeEditGuiRoundTripTest
 JADX_GUI=/absolute/path/to/jadx-gui ./gradlew mappingExportGuiRoundTripTest
+JADX_GUI=/absolute/path/to/jadx-gui ./gradlew scopedEditGuiRoundTripTest
 ```
 
 The opt-in GUI test is not part of a normal `./gradlew test` run. Results from the small fixture and GUI round-trip probes do not establish correctness for all Jadx-supported input formats or all edit types.
@@ -169,7 +170,7 @@ Before contributing, read [`AGENTS.md`](AGENTS.md), [`DESIGN.md`](DESIGN.md), an
 
 The intended architecture separates application lifecycle and HTTP transport from native project persistence, Jadx-version-sensitive integration, analysis, in-memory search, and operation scheduling. The current Gradle application is the initial implementation slice; the full logical architecture is documented in [`DESIGN.md`](DESIGN.md).
 
-Completed slices cover native save/reload and external-change detection, revisions, coordinated operations, process-local jobs, shutdown, original symbol lookup, Java source, basic references, incremental search, native declaration editing and strict Tiny v2 export/import. Remaining Phase 5.2 gates are scoped variable editing and related-method propagation; the Python SDK follows in Phase 6. Smali, CFG and resource capabilities depend on further tests against the pinned Jadx release.
+Completed slices cover native save/reload and external-change detection, revisions, coordinated operations, process-local jobs, shutdown, original symbol lookup, Java source, basic references, incremental search, native declaration editing and strict Tiny v2 export/import. Snapshot-bound parameter renames are available for the proved AUTO/RESTRUCTURE signature subset. Local editing and related-method propagation remain outstanding; the Python SDK follows in Phase 6. Smali, CFG and resource capabilities depend on further tests against the pinned Jadx release.
 
 The long-term design retains **one project per process**, native Jadx persistence, explicit saves, and no HTTP file uploads. Planned endpoints and behavior must not be mistaken for features already delivered.
 
@@ -187,6 +188,7 @@ For implementation sequencing and known technical limits, see [`IMPLEMENTATION.m
 - [`docs/phase-4-symbol-identity.md`](docs/phase-4-symbol-identity.md) — original identity, paging, provenance, and pinned-source evidence.
 - [`docs/phase-5-search.md`](docs/phase-5-search.md) — incremental search, coverage, jobs, cursors and pinned-source evidence.
 - [`docs/phase-5-editing.md`](docs/phase-5-editing.md) — native declaration editing, batch semantics, GUI evidence and remaining gates.
+- [`docs/phase-5-scoped-editing.md`](docs/phase-5-scoped-editing.md) — snapshot-bound parameter targets, native persistence and unsupported local forms.
 
 ## License and attribution
 
@@ -218,3 +220,22 @@ or valid header-only file returns `NO_CHANGE` without invalidating caches.
 The receipt distinguishes parsed records from effective alias/comment edits.
 Import neither attaches nor writes the source, and requires explicit native
 save for persistence. See [supported semantics and gates](docs/phase-5-mapping-import.md).
+
+### Scoped parameter renames (PR #13)
+
+`/decompile` returns `variables` with exact declaration ranges, original method
+refs, parameter indexes and explicit persistability. Use a `SUPPORTED` parameter
+entry in `/edits/batch`:
+
+```json
+{"expectedSessionId":"<current UUID>","expectedLogicalRevision":0,"items":[{"kind":"RENAME_PARAMETER","method":{"kind":"METHOD","originalClassDescriptor":"Lprobe/Variables;","originalName":"instance","originalDescriptor":"(IJDLjava/lang/String;)I"},"parameterIndex":1,"sourceSnapshotId":"<current sha256 snapshot>","newName":"wideCount"}]}
+```
+
+Indexes count original parameters from zero, excluding `this`; `long` and
+`double` each count once. A snapshot from an override or before a mutation,
+reload, settings rebuild, save publication or restart cannot authorize an edit.
+All declared variable names in a method are conservatively treated as overlapping.
+Local renames, constructors, synthetic/bridge methods, bodyless/annotated or
+transformed signatures and unproved generic forms fail closed. Changes remain
+in memory until explicit native save. Tiny export continues to reject scoped
+code refs. See [evidence and limits](docs/phase-5-scoped-editing.md).

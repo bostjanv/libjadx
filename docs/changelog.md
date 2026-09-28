@@ -1,5 +1,20 @@
 # Experimental API changelog
 
+## 2026-09-28 — PR #13 scoped parameter renames
+
+- Added snapshot-bound `RENAME_PARAMETER` to edit batches, with mandatory
+  session/revision preconditions and original semantic indexes excluding `this`.
+- Added `decompile.variables` with exact emitted declaration ranges and explicit
+  persistability. The field is now required; reviewed examples and validators
+  changed together. Python transport generation remains Phase 6.
+- Preserved full prevalidation, one native commit, no-op semantics, itemized
+  staging failures and explicit-save behavior. Collisions conservatively include
+  all declared variables in the same method, including pending batch names.
+- Probed wide/static/instance/overloaded arguments, native persistence and GUI
+  resave. Merged local SSA metadata differs between modes; local renames and
+  propagation remain unsupported. Phase 5.2 is incomplete.
+
+
 ## 2026-09-28 — Phase 5.2 bounded Tiny v2 import/merge
 
 - Added `/project/mappings/import` with mandatory source/format/mode/session/revision,

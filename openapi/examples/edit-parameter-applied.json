@@ -1,0 +1,28 @@
+{
+  "outcome": "APPLIED",
+  "sessionId": "492c49fe-db69-4dd2-a5da-d81e4b75e8d7",
+  "logicalRevisionBefore": 0,
+  "logicalRevisionAfter": 1,
+  "indexRevisionAfter": 1,
+  "dirty": true,
+  "saved": false,
+  "items": [
+    {
+      "index": 0,
+      "status": "APPLIED",
+      "kind": "RENAME_PARAMETER",
+      "target": {
+        "kind": "METHOD",
+        "originalClassDescriptor": "Lprobe/Variables;",
+        "inputIdentity": null,
+        "originalName": "instance",
+        "originalDescriptor": "(IJDLjava/lang/String;)I"
+      },
+      "affectedRefs": [],
+      "message": null,
+      "parameterIndex": 1,
+      "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac"
+    }
+  ],
+  "diagnostics": []
+}

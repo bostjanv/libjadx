@@ -16,6 +16,8 @@ import jadx.api.data.IJavaNodeRef;
 import jadx.api.data.impl.JadxCodeComment;
 import jadx.api.data.impl.JadxCodeData;
 import jadx.api.data.impl.JadxCodeRename;
+import jadx.api.data.impl.JadxCodeRef;
+import jadx.api.data.IJavaCodeRef;
 import jadx.api.data.impl.JadxNodeRef;
 
 /** Jadx 1.5.6 native edit conversion. Native keys are original node refs, never aliases. */
@@ -100,7 +102,8 @@ public final class JadxNativeEditAdapter {
 	}
 
 	public static final class EditLimitException extends RuntimeException {
-		public EditLimitException() { super("Requested edit owners exceed 200000 member declarations"); }
+		public EditLimitException() { this("Requested edit owners exceed 200000 member declarations"); }
+		public EditLimitException(String message) { super(message); }
 	}
 
 	public static boolean sameKey(IJavaNodeRef left, IJavaNodeRef right) {
@@ -145,6 +148,33 @@ public final class JadxNativeEditAdapter {
 			}
 		}
 		renames.add(new JadxCodeRename(key, name));
+		code.setRenames(renames);
+	}
+
+	public static JadxCodeRef parameterKey(int index) { return JadxCodeRef.forMthArg(index); }
+
+	public static long scopedRenameCount(JadxCodeData code, IJavaNodeRef key, IJavaCodeRef scope) {
+		return code.getRenames().stream().filter(r -> sameKey(r.getNodeRef(), key)
+				&& Objects.equals(r.getCodeRef(), scope)).count();
+	}
+
+	public static String existingScopedRename(JadxCodeData code, IJavaNodeRef key, IJavaCodeRef scope) {
+		return code.getRenames().stream().filter(r -> sameKey(r.getNodeRef(), key)
+				&& Objects.equals(r.getCodeRef(), scope)).map(ICodeRename::getNewName).findFirst().orElse(null);
+	}
+
+	/** GUI VAR renames can also address parameters. Without a proved translation,
+	 * reject competing VAR/other scoped records on the method rather than silently override them. */
+	public static boolean hasOtherScopedRenames(JadxCodeData code, IJavaNodeRef key) {
+		return code.getRenames().stream().anyMatch(r -> sameKey(r.getNodeRef(), key) && r.getCodeRef() != null
+				&& r.getCodeRef().getAttachType() != jadx.api.data.CodeRefType.MTH_ARG);
+	}
+
+	public static void renameParameter(JadxCodeData code, IJavaNodeRef key, int index, String name) {
+		var scope = parameterKey(index);
+		List<ICodeRename> renames = new ArrayList<>(code.getRenames());
+		renames.removeIf(r -> sameKey(r.getNodeRef(), key) && Objects.equals(r.getCodeRef(), scope));
+		renames.add(new JadxCodeRename(key, scope, name));
 		code.setRenames(renames);
 	}
 
