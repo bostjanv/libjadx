@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.CsvSource;
 
 class MappingImportServiceTest {
 	@TempDir Path dir;
@@ -68,6 +69,69 @@ class MappingImportServiceTest {
 			try (var fresh = new ProjectRuntime(saved.getProjectPath(), saved.getInputFiles(), List.of(dir))) {
 				fresh.initializeAsync(saved).get(20, TimeUnit.SECONDS); assertEquals(code, source(fresh));
 			}
+		}
+	}
+
+	@ParameterizedTest
+	@CsvSource({"Inner, ATTACHED", "Inner$Deep, ATTACHED", "Inner, NATIVE", "Inner$Deep, NATIVE"})
+	void implicitDescendantAliasCollisionRejectsWholePlanBeforeStaging(String descendant, String aliasSource) throws Exception {
+		try (var runtime = hierarchyProject("NewOuter$" + descendant, aliasSource.equals("NATIVE"))) {
+			var other = runtime.decompiler().getRoot().resolveRawClass("pkg.Other");
+			assertEquals("pkg.NewOuter$" + descendant, other.getClassInfo().makeAliasRawFullName());
+			assertNull(other.getClassInfo().getParentClass());
+			for (boolean dirty : List.of(false, true)) {
+				if (dirty) new EditBatchService(runtime).apply(new EditDtos.Request(null, null, List.of(
+						new EditDtos.Operation(EditDtos.Kind.SET_COMMENT, SymbolRef.classRef("Lpkg/Other;"), null, "retained comment", "LINE"))));
+				var before = runtime.projectSnapshot(); var identity = runtime.searchIdentity(); var pending = runtime.pendingEdits();
+				var classes = runtime.decompiler().getClassesWithInners();
+				var aliases = classes.stream().map(cls -> cls.getClassNode().getClassInfo().makeAliasRawFullName()).toList();
+				var states = classes.stream().map(cls -> cls.getClassNode().getState()).toList();
+				var projectHash = FileFingerprint.of(dir.resolve("hierarchy.jadx"));
+				var inputHash = FileFingerprint.of(dir.resolve("hierarchy.jar"));
+				var attachedHash = aliasSource.equals("ATTACHED") ? FileFingerprint.of(dir.resolve("attached.tiny")) : null;
+				Path input = write(HEADER + "c\tpkg/Outer\tpkg/NewOuter\n\tc\tincoming outer comment\n");
+				var mappingHash = FileFingerprint.of(input);
+				AtomicInteger stages = new AtomicInteger();
+				var error = assertThrows(MappingImportDtos.Problem.class, () -> new MappingImportService(runtime, stage -> {
+					if (stage.startsWith("STAGE_")) stages.incrementAndGet();
+				}).importMappings(request(runtime, input)));
+				assertEquals(409, error.status()); assertEquals("MAPPING_MERGE_CONFLICT", error.code());
+				assertEquals("ALIAS_COLLISION", error.details().get("category"));
+				assertEquals(0, stages.get()); assertEquals(before, runtime.projectSnapshot());
+				assertEquals(pending, runtime.pendingEdits()); assertSame(identity, runtime.searchIdentity());
+				assertEquals(aliases, classes.stream().map(cls -> cls.getClassNode().getClassInfo().makeAliasRawFullName()).toList());
+				assertEquals(states, classes.stream().map(cls -> cls.getClassNode().getState()).toList());
+				assertEquals(projectHash, FileFingerprint.of(dir.resolve("hierarchy.jadx")));
+				assertEquals(inputHash, FileFingerprint.of(dir.resolve("hierarchy.jar")));
+				if (attachedHash != null) assertEquals(attachedHash, FileFingerprint.of(dir.resolve("attached.tiny")));
+				assertEquals(mappingHash, FileFingerprint.of(input)); assertEquals("READY", runtime.status().state());
+			}
+		}
+	}
+
+	@Test void collisionFreeParentRenameRequalifiesAllDescendantsAndSurvivesExplicitSave() throws Exception {
+		try (var runtime = hierarchyProject(null, false)) {
+			var classes = runtime.decompiler().getClassesWithInners();
+			var states = classes.stream().map(cls -> cls.getClassNode().getState()).toList();
+			Path input = write(HEADER + "c\tpkg/Outer\tpkg/NewOuter\n");
+			var receipt = new MappingImportService(runtime).importMappings(request(runtime, input));
+			assertEquals("APPLIED", receipt.outcome()); assertEquals(new MappingImportDtos.EditCounts(1, 0), receipt.applied());
+			assertEquals(1, receipt.afterLogicalRevision()); assertEquals(1, receipt.afterIndexRevision());
+			assertEquals(states, classes.stream().map(cls -> cls.getClassNode().getState()).toList());
+			for (String suffix : List.of("", "$Inner", "$Inner$Deep")) assertEquals("pkg.NewOuter" + suffix,
+					runtime.decompiler().getRoot().resolveRawClass("pkg.Outer" + suffix).getClassInfo().makeAliasRawFullName());
+			var identity = runtime.searchIdentity(); var before = runtime.projectSnapshot();
+			assertEquals("NO_CHANGE", new MappingImportService(runtime).importMappings(request(runtime, input)).outcome());
+			assertSame(identity, runtime.searchIdentity()); assertEquals(before, runtime.projectSnapshot());
+			runtime.saveProject(null, null);
+		}
+		var saved = NativeProjectDocument.open(dir.resolve("hierarchy.jadx"));
+		assertEquals(1, saved.getCodeData().getRenames().size());
+		assertEquals("pkg.Outer", saved.getCodeData().getRenames().getFirst().getNodeRef().getDeclaringClass());
+		try (var fresh = new ProjectRuntime(dir.resolve("hierarchy.jadx"), saved.getInputFiles(), List.of(dir))) {
+			fresh.initializeAsync(saved).get(20, TimeUnit.SECONDS);
+			for (String suffix : List.of("", "$Inner", "$Inner$Deep")) assertEquals("pkg.NewOuter" + suffix,
+					fresh.decompiler().getRoot().resolveRawClass("pkg.Outer" + suffix).getClassInfo().makeAliasRawFullName());
 		}
 	}
 
@@ -346,6 +410,21 @@ class MappingImportServiceTest {
 		var document = NativeProjectDocument.newFromInputs(path, List.of(jar));
 		if (mapping != null) { Path attached = dir.resolve("attached.tiny"); Files.writeString(attached, mapping); document = document.withMappingsPath(attached); }
 		document.save(); var runtime = new ProjectRuntime(path, List.of(jar), List.of(dir)); runtime.initializeAsync(document).get(20, TimeUnit.SECONDS); return runtime;
+	}
+	private ProjectRuntime hierarchyProject(String alias, boolean nativeAlias) throws Exception {
+		Path jar = SymbolFixtureSupport.compileMappingHierarchyFixture(dir); Path path = dir.resolve("hierarchy.jadx");
+		var document = NativeProjectDocument.newFromInputs(path, List.of(jar));
+		if (alias != null) {
+			if (nativeAlias) {
+				var data = new JadxCodeData(); data.setRenames(List.of(new JadxCodeRename(JadxNodeRef.forCls("pkg.Other"), alias)));
+				document.setCodeData(data);
+			} else {
+				Path attached = dir.resolve("attached.tiny"); Files.writeString(attached, HEADER + "c\tpkg/Other\tpkg/" + alias + "\n");
+				document = document.withMappingsPath(attached);
+			}
+		}
+		document.save(); var runtime = new ProjectRuntime(path, List.of(jar), List.of(dir));
+		runtime.initializeAsync(document).get(20, TimeUnit.SECONDS); return runtime;
 	}
 	private ProjectRuntime raw(Path jar) throws Exception { var runtime = new ProjectRuntime(null, List.of(jar), List.of(dir)); runtime.initializeAsync(null).get(20, TimeUnit.SECONDS); return runtime; }
 	private Path write(String text) throws Exception { Path path = dir.resolve("incoming.tiny"); Files.writeString(path, text); return path; }

@@ -21,6 +21,10 @@ public final class SymbolFixtureSupport {
 		return compile(root, Path.of("tests/fixtures/edits/EditOwner.java"), "edits.jar");
 	}
 
+	public static Path compileMappingHierarchyFixture(Path root) throws IOException {
+		return compile(root, Path.of("tests/fixtures/mappings/Outer.java"), "hierarchy.jar");
+	}
+
 	static Path compileSourceFixture(Path root) throws IOException {
 		return compile(root, Path.of("tests/fixtures/source/SourceFixture.java"), "source.jar");
 	}

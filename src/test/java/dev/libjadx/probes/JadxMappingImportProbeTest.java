@@ -13,6 +13,8 @@ import jadx.api.data.IJavaNodeRef.RefType;
 import jadx.api.data.impl.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /** Pinned 1.5.6: a Tiny composite is exactly representable as attached prefix + one native LINE. */
 class JadxMappingImportProbeTest {
@@ -57,6 +59,32 @@ class JadxMappingImportProbeTest {
 			assertEquals(state, owner.getState());
 			assertEquals("intValue", owner.searchMethodByShortId("value()I").getMethodInfo().getAlias());
 			assertEquals("stringValue", owner.searchMethodByShortId("value()Ljava/lang/String;").getMethodInfo().getAlias());
+		}
+	}
+	@ParameterizedTest @ValueSource(strings = {"Inner", "Inner$Deep"})
+	void parentNativeRenameRequalifiesUntouchedDescendantsIntoAnAttachedAlias(String descendant) throws Exception {
+		Path jar = SymbolFixtureSupport.compileMappingHierarchyFixture(root);
+		Path attached = root.resolve("attached.tiny");
+		Files.writeString(attached, "tiny\t2\t0\toriginal\tmapped\n"
+				+ "c\tpkg/Other\tpkg/NewOuter$" + descendant + "\n");
+		try (var engine = engine(jar, attached, new JadxCodeData())) {
+			var outer = engine.getRoot().resolveRawClass("pkg.Outer");
+			var inner = engine.getRoot().resolveRawClass("pkg.Outer$" + descendant);
+			var other = engine.getRoot().resolveRawClass("pkg.Other");
+			var state = inner.getState();
+			assertNull(other.getClassInfo().getParentClass(), "Attached alias retains a top-level original identity");
+			assertEquals("pkg.Outer$" + descendant, inner.getClassInfo().makeAliasRawFullName());
+			assertEquals("pkg.NewOuter$" + descendant, other.getClassInfo().makeAliasRawFullName());
+			var data = new JadxCodeData();
+			data.setRenames(List.of(new JadxCodeRename(JadxNodeRef.forCls("pkg.Outer"), "NewOuter")));
+			engine.getArgs().setCodeData(data); engine.reloadCodeData();
+			assertEquals("pkg.NewOuter", outer.getClassInfo().makeAliasRawFullName());
+			assertEquals(other.getClassInfo().makeAliasRawFullName(), inner.getClassInfo().makeAliasRawFullName());
+			assertEquals(state, inner.getState(), "Replay needs no generated descendant source");
+			try (var fresh = engine(jar, attached, data)) {
+				assertEquals("pkg.NewOuter$" + descendant,
+						fresh.getRoot().resolveRawClass("pkg.Outer$" + descendant).getClassInfo().makeAliasRawFullName());
+			}
 		}
 	}
 	private static JadxDecompiler engine(Path jar, Path mapping, JadxCodeData data) {

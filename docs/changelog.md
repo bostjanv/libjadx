@@ -11,6 +11,10 @@
 - Fixed duplicate attached comments on cold-owner code-data replay in the Jadx
   adapter. Added HTTP, distribution, external-process race and matching-GUI
   save/reopen tests plus independent contract validation.
+- Fixed import preflight for parent renames: all prospective visible qualified
+  class aliases, including untouched inner/nested descendants, must be unique
+  before staging. Descendant collisions return `409 MAPPING_MERGE_CONFLICT`;
+  receipt/error schemas and the unsupported direct-inner-edit boundary are unchanged.
 - Scoped/variable editing, propagation and Python SDK generation remain deferred;
   Phase 5.2 is incomplete. See `phase-5-mapping-import.md` for final gate outcomes.
 

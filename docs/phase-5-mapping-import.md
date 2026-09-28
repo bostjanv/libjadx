@@ -67,6 +67,15 @@ the current package. Package moves, changed inner aliases and inner alias
 records with a concurrently changed enclosing class fail unsupported. Native
 synthetic/bridge/special targets fail closed.
 
+When a class rename is proposed, preflight requires uniqueness across all
+resulting visible qualified class aliases, including inner and nested descendants
+whose names change only through their enclosing class. The prospective alias
+catalog is charged to the existing aggregate memory/string budget. A collision
+rejects the entire plan with `409 MAPPING_MERGE_CONFLICT` / `ALIAS_COLLISION`
+before staging, preserving both clean and already-dirty state. This check does
+not run for a class-alias no-op or an import containing only member/comment
+changes. It does not enable direct inner-class alias editing.
+
 Identical effective comment text is unchanged. A new comment must be one
 representable native LINE (4096 code points/16 KiB UTF-8, no controls, format or
 line separators, block delimiters or empty text). A composite can be staged
@@ -131,6 +140,13 @@ Sources inspected at the commit above (local copies under
   `TypeGen`: original native keys and actual effective alias paths.
   `fullOriginalKeysResolveWithoutGeneratingOwnerSource` proves separate
   return-only keys and metadata state retention.
+- [`ClassInfo.makeAliasRawFullName`](https://github.com/skylot/jadx/blob/28ff15e4ae69950aebea110a13e5ab895d234dfc/jadx-core/src/main/java/jadx/core/dex/info/ClassInfo.java)
+  recursively uses the parent's alias; `UserRenames.applyRename` applies the
+  outer's native short name without adding descendant rename records.
+  `parentNativeRenameRequalifiesUntouchedDescendantsIntoAnAttachedAlias` proves
+  the review fixture's collision for `Outer$Inner` and `Outer$Inner$Deep` on
+  replay and fresh load, without generating source. The owned fixture is
+  `tests/fixtures/mappings/Outer.java`.
 - [`ClassNode`](https://github.com/skylot/jadx/blob/28ff15e4ae69950aebea110a13e5ab895d234dfc/jadx-core/src/main/java/jadx/core/dex/nodes/ClassNode.java),
   `JavaClass`, `AttrNode` and `CodeComment`: a cold `NOT_LOADED` class skips
   `unloadCode`, leaving attached attributes across listeners. The initial

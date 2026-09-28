@@ -217,9 +217,9 @@ claimed.
 The advanced Phase 5.2 gates below remain the next work; these review fixes do
 not introduce a design change or claim the complete milestone passed.
 
-## Current regression verification — PR #12
+## PR #12 regression verification
 
-The mapping-import implementation at
+The initial mapping-import implementation at
 `dc89572d018d790e692c2e90763187f4acb54715` passed a fresh
 `./gradlew clean check --offline --rerun-tasks`: 267 tests discovered, 262 passed,
 five opt-in GUI skips and zero failures/errors. A subsequent matching Jadx 1.5.6
@@ -230,10 +230,13 @@ examples, ten fresh live HTTP responses and four injected service results.
 These are subsequent regression results, not replacements for the historical
 PR #10 head's counts.
 
-Exact final-code commands, environment versions, HTTP counts, fixture hashes
-and artifact paths are in [PR #12 validation](pr-12-review.md). This documentation
-update changes no production code or public contract and does not constitute a
-new execution of those suites.
+The subsequent P2 review fix extends import preflight to detect collisions
+caused by untouched descendants of a renamed outer class. Pinned-Jadx probes
+and clean/dirty service regressions cover inner and nested descendants with
+attached or native aliases, and the GUI reverse test checks the untouched
+inner's qualified alias after resave. Exact final-code commands, environment
+versions, current counts, fixture hashes and artifact paths are in
+[PR #12 validation](pr-12-review.md); those gates are renewed after the fix.
 
 ## Remaining Phase 5.2 gates
 

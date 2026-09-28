@@ -108,6 +108,29 @@ class MappingImportEndpointsTest {
 		}
 	}
 
+	@Test void parentRenameWithImplicitDescendantCollisionReturns409WithoutMutation() throws Exception {
+		Path jar = SymbolFixtureSupport.compileMappingHierarchyFixture(dir);
+		Path mapping = dir.resolve("attached.tiny");
+		Files.writeString(mapping, MappingImportServiceTest.HEADER + "c\tpkg/Other\tpkg/NewOuter$Inner\n");
+		Path nativePath = dir.resolve("hierarchy.jadx");
+		var document = dev.libjadx.project.NativeProjectDocument.newFromInputs(nativePath, List.of(jar)).withMappingsPath(mapping);
+		document.save();
+		Path input = dir.resolve("incoming.tiny");
+		Files.writeString(input, MappingImportServiceTest.HEADER + "c\tpkg/Outer\tpkg/NewOuter\n\tc\tincoming outer comment\n");
+		try (var runtime = new ProjectRuntime(nativePath, List.of(jar), List.of(dir));
+				var server = new HttpApiServer("127.0.0.1", 0, runtime)) {
+			server.start(); runtime.initializeAsync(document).get(20, TimeUnit.SECONDS);
+			var before = runtime.projectSnapshot(); var identity = runtime.searchIdentity(); var pending = runtime.pendingEdits();
+			var nativeHash = FileFingerprint.of(nativePath); var mappingHash = FileFingerprint.of(mapping); var inputHash = FileFingerprint.of(input);
+			JsonNode error = capture("implicit-descendant-collision", send(server, ROUTE, request(runtime, input), null, null), 409).path("error");
+			assertEquals("MAPPING_MERGE_CONFLICT", error.path("code").asText());
+			assertEquals("ALIAS_COLLISION", error.path("details").path("category").asText());
+			assertEquals(before, runtime.projectSnapshot()); assertEquals(pending, runtime.pendingEdits()); assertSame(identity, runtime.searchIdentity());
+			assertEquals("pkg.Outer$Inner", runtime.decompiler().getRoot().resolveRawClass("pkg.Outer$Inner").getClassInfo().makeAliasRawFullName());
+			assertEquals(nativeHash, FileFingerprint.of(nativePath)); assertEquals(mappingHash, FileFingerprint.of(mapping)); assertEquals(inputHash, FileFingerprint.of(input));
+		}
+	}
+
 	@Test void externalNativeAndMappingConflictsAndZeroByteAttachedRegressionAreCaptured() throws Exception {
 		Path jar = SymbolFixtureSupport.compileEditFixture(dir); Path mapping = dir.resolve("attached.tiny"); Files.writeString(mapping, MappingImportServiceTest.HEADER);
 		Path nativePath = dir.resolve("project.jadx"); var document = dev.libjadx.project.NativeProjectDocument.newFromInputs(nativePath, List.of(jar)).withMappingsPath(mapping); document.save();

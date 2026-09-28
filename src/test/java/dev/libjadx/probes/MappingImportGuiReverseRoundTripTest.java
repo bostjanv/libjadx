@@ -22,6 +22,8 @@ class MappingImportGuiReverseRoundTripTest {
 		try (var engine = new JadxDecompiler(args)) {
 			engine.load(); var cls = engine.searchJavaClassByOrigFullName("probe.SymbolFixture");
 			assertEquals("probe.ImportedFixture", cls.getFullName());
+			assertEquals("probe.ImportedFixture$Inner",
+					engine.getRoot().resolveRawClass("probe.SymbolFixture$Inner").getClassInfo().makeAliasRawFullName());
 			assertEquals("importedMix", cls.getClassNode().searchMethodByShortId("mix(I)I").getMethodInfo().getAlias());
 			assertEquals("importedCount", cls.getClassNode().searchFieldByShortId("count:I").getFieldInfo().getAlias());
 			assertEquals("probe.MappedSecond", engine.searchJavaClassByOrigFullName("probe.Second").getFullName());

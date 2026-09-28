@@ -96,7 +96,7 @@ public final class JadxMappingImportAdapter {
 				}
 			}
 		}
-		validateCollisions(owners, members, changes);
+		validateCollisions(owners, members, changes, budget);
 		return new Plan(counts(incoming), new EditCounts(applied[0], applied[1]), new EditCounts(unchanged[0], unchanged[1]), changes);
 	}
 	private static void budgetRef(Budget budget, jadx.api.data.IJavaNodeRef ref) {
@@ -215,25 +215,29 @@ public final class JadxMappingImportAdapter {
 	}
 	private static String shortClassName(String path) { return path.substring(Math.max(path.lastIndexOf('/'), path.lastIndexOf('$')) + 1); }
 
-	private static void validateCollisions(Map<String, ClassNode> owners, Map<String, List<Target>> members, List<Change> changes) {
+	private static void validateCollisions(Map<String, ClassNode> owners, Map<String, List<Target>> members,
+			List<Change> changes, Budget budget) {
 		Map<SymbolRef, String> renamed = new HashMap<>();
 		for (var change : changes) if (change.alias() != null) renamed.put(change.target(), change.alias());
+		if (renamed.keySet().stream().anyMatch(ref -> ref.kind() == SymbolRef.Kind.CLASS)) {
+			// A parent rename also requalifies untouched descendants. Check the entire
+			// prospective catalog, rather than comparing only explicitly renamed classes.
+			Map<String, SymbolRef> classNames = new HashMap<>();
+			for (var entry : owners.entrySet()) {
+				var ref = SymbolRef.classRef("L" + entry.getKey() + ";");
+				String candidate = finalClassName(entry.getValue().getClassInfo(), renamed);
+				budget.bytes(128); budget.string(candidate);
+				if (classNames.putIfAbsent(candidate, ref) != null) throw conflict("ALIAS_COLLISION", key(ref));
+			}
+		}
 		for (var change : changes) {
-			if (change.alias() == null) continue;
+			if (change.alias() == null || change.target().kind() == SymbolRef.Kind.CLASS) continue;
 			var ref = change.target();
-			if (ref.kind() == SymbolRef.Kind.CLASS) {
-				String candidate = finalClassName(owners.get(ref.originalClassDescriptor().substring(1, ref.originalClassDescriptor().length() - 1)).getClassInfo(), renamed);
-				for (var entry : owners.entrySet()) {
-					var other = SymbolRef.classRef("L" + entry.getKey() + ";");
-					if (!ref.equals(other) && candidate.equals(finalClassName(entry.getValue().getClassInfo(), renamed))) throw conflict("ALIAS_COLLISION", key(ref));
-				}
-			} else {
-				String path = ref.originalClassDescriptor().substring(1, ref.originalClassDescriptor().length() - 1);
-				for (var other : members.get(path)) {
-					if (other.ref().equals(ref) || other.ref().kind() != ref.kind()) continue;
-					if (ref.kind() == SymbolRef.Kind.METHOD && !arguments(ref).equals(arguments(other.ref()))) continue;
-					if (change.alias().equals(renamed.getOrDefault(other.ref(), other.effectiveAlias()))) throw conflict("ALIAS_COLLISION", key(ref));
-				}
+			String path = ref.originalClassDescriptor().substring(1, ref.originalClassDescriptor().length() - 1);
+			for (var other : members.get(path)) {
+				if (other.ref().equals(ref) || other.ref().kind() != ref.kind()) continue;
+				if (ref.kind() == SymbolRef.Kind.METHOD && !arguments(ref).equals(arguments(other.ref()))) continue;
+				if (change.alias().equals(renamed.getOrDefault(other.ref(), other.effectiveAlias()))) throw conflict("ALIAS_COLLISION", key(ref));
 			}
 		}
 	}

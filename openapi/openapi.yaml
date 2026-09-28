@@ -194,6 +194,9 @@ paths:
         New names follow declaration edit ASCII identifier rules. Class renames
         preserve the current package; package moves, changed inner aliases and inner
         alias records with a concurrently renamed enclosing class are unsupported.
+        Class renames require uniqueness across all resulting visible qualified
+        aliases, including untouched descendants requalified by an enclosing class
+        rename. A descendant collision rejects the entire import before native staging.
         Comments are representable single LINE values. A composite is supported only
         as an exact accepted attached prefix plus a newline and one new native LINE
         suffix, when no native declaration comment conflicts. Other changed comments
