@@ -168,7 +168,8 @@ not introduce a design change or claim the complete milestone passed.
 Native mapping **attachment** remains available through `/project/settings`.
 Strict safe Tiny v2 **export** now has a separate endpoint and evidence in
 [mapping export](phase-5-mapping-export.md). It creates a new output without
-saving or attaching it. Mapping import/merge remains deferred. Parameter/local identities, native
+saving or attaching it. Bounded conflict-safe Tiny v2 import now has separate
+evidence in [mapping import](phase-5-mapping-import.md). Parameter/local identities, native
 persistence and stale source behavior are not proven. Related-method
 propagation is not enabled because candidate enumeration is not a proof of
 complete GUI-compatible edits. See

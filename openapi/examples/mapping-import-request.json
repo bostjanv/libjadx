@@ -1,0 +1,7 @@
+{
+  "sourcePath": "/work/incoming.tiny",
+  "format": "TINY_V2",
+  "mode": "MERGE_FAIL_ON_CONFLICT",
+  "expectedSessionId": "34b91bba-873b-4c32-9b88-b71af1b3d8d1",
+  "expectedLogicalRevision": 3
+}

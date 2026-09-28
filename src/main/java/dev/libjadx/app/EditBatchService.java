@@ -1,6 +1,5 @@
 package dev.libjadx.app;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -11,6 +10,7 @@ import java.util.Set;
 
 import dev.libjadx.core.ProjectSnapshot;
 import dev.libjadx.core.edits.EditDtos;
+import dev.libjadx.core.edits.NativeDeclarationValidation;
 import dev.libjadx.core.edits.EditDtos.ItemError;
 import dev.libjadx.core.edits.EditDtos.ItemResult;
 import dev.libjadx.core.edits.EditDtos.Operation;
@@ -29,12 +29,6 @@ import jadx.api.data.impl.JadxCodeData;
 /** Validates and stages one native declaration batch under a single exclusive runtime lease. */
 public final class EditBatchService {
 	@FunctionalInterface interface StageHook { void beforeItem(int index); }
-	private static final Set<String> JAVA_RESERVED = Set.of("abstract", "assert", "boolean", "break", "byte", "case", "catch",
-			"char", "class", "const", "continue", "default", "do", "double", "else", "enum", "extends", "final",
-			"finally", "float", "for", "goto", "if", "implements", "import", "instanceof", "int", "interface",
-			"long", "native", "new", "package", "private", "protected", "public", "return", "short", "static",
-			"strictfp", "super", "switch", "synchronized", "this", "throw", "throws", "transient", "try", "void",
-			"volatile", "while", "true", "false", "null", "_", "var", "yield", "record", "sealed", "permits");
 
 	private final ProjectRuntime runtime;
 	private final StageHook hook;
@@ -195,8 +189,7 @@ public final class EditBatchService {
 	}
 
 	private static void validateName(String name, int index) {
-		if (name == null || name.length() > 128 || name.isEmpty() || JAVA_RESERVED.contains(name)
-				|| !name.matches("[A-Za-z_][A-Za-z0-9_]*")) {
+		if (!NativeDeclarationValidation.validName(name)) {
 			throw rejected(400, "INVALID_REQUEST", index, "newName must be a nonreserved ASCII Java identifier of at most 128 characters");
 		}
 	}
@@ -204,13 +197,7 @@ public final class EditBatchService {
 	private static void validateComment(Operation item, int index) {
 		String value = item.comment();
 		if (!"LINE".equals(item.style())) throw rejected(422, "UNSUPPORTED_CAPABILITY", index, "Only LINE declaration comments are supported");
-		if (value == null || value.isEmpty() || value.contains("/*") || value.contains("*/")
-				|| value.codePointCount(0, value.length()) > 4096
-				|| value.getBytes(StandardCharsets.UTF_8).length > 16384 || value.codePoints().anyMatch(cp ->
-					Character.isISOControl(cp) || Character.getType(cp) == Character.FORMAT
-							|| Character.getType(cp) == Character.LINE_SEPARATOR
-							|| Character.getType(cp) == Character.PARAGRAPH_SEPARATOR
-							|| Character.getType(cp) == Character.SURROGATE)) {
+		if (!NativeDeclarationValidation.validLineComment(value)) {
 			throw rejected(400, "INVALID_REQUEST", index, "comment must be one nonempty line within 4096 code points and 16 KiB");
 		}
 	}

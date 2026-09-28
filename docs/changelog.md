@@ -1,5 +1,20 @@
 # Experimental API changelog
 
+## 2026-09-28 — Phase 5.2 bounded Tiny v2 import/merge
+
+- Added `/project/mappings/import` with mandatory source/format/mode/session/revision,
+  strict captured-source validation and a parsed/applied/unchanged receipt.
+- Added conservative effective-state alias/comment merge, full original descriptor
+  resolution and entire-plan prevalidation/private staging before one native commit.
+- Added bounded read-only file capture and final source/native/attached checks;
+  no file writes, attachments or autosaves. No-ops preserve cache identity.
+- Fixed duplicate attached comments on cold-owner code-data replay in the Jadx
+  adapter. Added HTTP, distribution, external-process race and matching-GUI
+  save/reopen tests plus independent contract validation.
+- Scoped/variable editing, propagation and Python SDK generation remain deferred;
+  Phase 5.2 is incomplete. See `phase-5-mapping-import.md` for final gate outcomes.
+
+
 ## 2026-09-28 — Phase 5.2 safe Tiny v2 export
 
 - Added `POST /api/v1/project/mappings/export` with required session/revision

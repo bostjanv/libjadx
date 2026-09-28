@@ -1,0 +1,12 @@
+{
+  "error": {
+    "code": "MAPPING_MERGE_CONFLICT",
+    "message": "Incoming mapping conflicts with current logical state",
+    "retryable": false,
+    "requestId": "98b6d873-9674-4849-adef-cfb2a40e4d1d",
+    "details": {
+      "category": "EXISTING_ALIAS",
+      "originalKey": "Lprobe/EditOwner;"
+    }
+  }
+}
