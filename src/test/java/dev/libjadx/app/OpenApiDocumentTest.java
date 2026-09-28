@@ -140,5 +140,12 @@ class OpenApiDocumentTest {
 		assertEquals(methodExample.path("methodSource").asText(), methodExample.path("source").asText().substring(
 				exampleRange.path("startOffsetUtf16").asInt(), exampleRange.path("endOffsetUtf16").asInt()));
 		assertEquals(methodExample.path("sourceSnapshotId").asText(), exampleRange.path("sourceSnapshotId").asText());
+		assertEquals("#/components/schemas/MappingImportRequest", yaml.path("paths").path("/project/mappings/import").path("post")
+				.path("requestBody").path("content").path("application/json").path("schema").path("$ref").asText());
+		OpenApiExampleValidator.assertValid(yaml, "MappingImportRequest", json.readTree(Path.of("openapi/examples/mapping-import-request.json").toFile()));
+		for (String file : List.of("mapping-import-applied.json", "mapping-import-no-change.json"))
+			OpenApiExampleValidator.assertValid(yaml, "MappingImportReceipt", json.readTree(Path.of("openapi/examples", file).toFile()));
+		OpenApiExampleValidator.assertValid(yaml, "ErrorEnvelope", json.readTree(Path.of("openapi/examples/mapping-import-conflict.json").toFile()));
+
 	}
 }

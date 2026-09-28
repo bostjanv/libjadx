@@ -1,0 +1,31 @@
+{
+  "format": "TINY_V2",
+  "mode": "MERGE_FAIL_ON_CONFLICT",
+  "sourcePath": "/work/incoming.tiny",
+  "sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "bytes": 242,
+  "parsed": {
+    "classes": 1,
+    "methods": 1,
+    "fields": 1,
+    "comments": 3
+  },
+  "applied": {
+    "aliases": 3,
+    "comments": 3
+  },
+  "unchanged": {
+    "aliases": 0,
+    "comments": 0
+  },
+  "sessionId": "34b91bba-873b-4c32-9b88-b71af1b3d8d1",
+  "beforeLogicalRevision": 3,
+  "afterLogicalRevision": 4,
+  "beforeIndexRevision": 3,
+  "afterIndexRevision": 4,
+  "dirty": true,
+  "saved": false,
+  "mappingAttached": false,
+  "outcome": "APPLIED",
+  "omissions": []
+}

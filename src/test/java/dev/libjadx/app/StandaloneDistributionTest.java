@@ -82,6 +82,43 @@ class StandaloneDistributionTest {
 	}
 
 	@Test
+	void installedMappingImportRemainsUnsavedUntilExplicitSaveAndSurvivesRestart() throws Exception {
+		Path script = Path.of(System.getProperty("libjadx.distributionScript"));
+		Path jar = SymbolFixtureSupport.compileEditFixture(dir);
+		Path project = dir.resolve("import.jadx");
+		dev.libjadx.project.NativeProjectDocument.newFromInputs(project, java.util.List.of(jar)).saveNew();
+		Path mapping = dir.resolve("incoming.tiny"); Files.writeString(mapping, MappingImportServiceTest.HAPPY);
+		byte[] before = Files.readAllBytes(project); byte[] source = Files.readAllBytes(mapping);
+		assertFalse(Files.exists(script.getParent().getParent().resolve("lib/jadx-gui-1.5.6.jar")));
+		int port; try (ServerSocket socket = new ServerSocket(0)) { port = socket.getLocalPort(); }
+		for (int run = 0; run < 3; run++) {
+			Process process = start(script, project, port, "mapping-import-" + run);
+			try {
+				awaitReady(process, port);
+				JsonNode state = body(get(port, "/api/v1/project"));
+				String request = JSON.writeValueAsString(java.util.Map.of("sourcePath", mapping.toString(), "format", "TINY_V2",
+						"mode", "MERGE_FAIL_ON_CONFLICT", "expectedSessionId", state.path("revisions").path("sessionId").asText(),
+						"expectedLogicalRevision", state.path("revisions").path("logicalRevision").asLong()));
+				if (run < 2) {
+					assertFalse(body(post(port, "/api/v1/decompile", "{\"ref\":" + MappingImportEndpointsTest.CLASS + "}")).path("source").asText().contains("ImportedOwner"));
+					var imported = post(port, "/api/v1/project/mappings/import", request);
+					assertEquals(200, imported.statusCode(), imported.body()); assertEquals("APPLIED", body(imported).path("outcome").asText());
+					org.junit.jupiter.api.Assertions.assertArrayEquals(before, Files.readAllBytes(project));
+					if (run == 1) assertEquals(200, post(port, "/api/v1/project/save", "{}").statusCode());
+				} else {
+					var noop = post(port, "/api/v1/project/mappings/import", request);
+					assertEquals(200, noop.statusCode(), noop.body()); assertEquals("NO_CHANGE", body(noop).path("outcome").asText());
+					assertFalse(body(noop).path("dirty").asBoolean());
+				}
+				String code = body(post(port, "/api/v1/decompile", "{\"ref\":" + MappingImportEndpointsTest.CLASS + "}")).path("source").asText();
+				for (String text : java.util.List.of("ImportedOwner", "importedWork", "importedCount", "imported class")) assertTrue(code.contains(text), code);
+				org.junit.jupiter.api.Assertions.assertArrayEquals(source, Files.readAllBytes(mapping));
+				assertTrue(dev.libjadx.project.NativeProjectDocument.open(project).getMappingsPath() == null);
+			} finally { stop(process, port); }
+		}
+	}
+
+	@Test
 	void installedSearchBuildsMemoryOnlyIndexAndRestartInvalidatesCursor() throws Exception {
 		Path script = Path.of(System.getProperty("libjadx.distributionScript")
 				+ (System.getProperty("os.name").startsWith("Windows") ? ".bat" : ""));

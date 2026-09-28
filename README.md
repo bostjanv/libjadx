@@ -29,6 +29,7 @@ Native declaration edits and a matching-GUI save/reopen round trip are exercised
 | `GET /api/v1/status` | Current project lifecycle (`LOADING`, `READY`, `FAILED`, and shutdown states), progress, and safe error details. |
 | `GET /api/v1/capabilities` | Jadx version and evidence-backed capability status. |
 | `GET /api/v1/project`, `POST /api/v1/project/save`, `POST /api/v1/project/reload`, `GET/PATCH /api/v1/project/settings`, `POST /api/v1/project/pending-edits/export` | Native project state, explicit persistence, reload, mapping configuration, and transient edit export. |
+| `POST /api/v1/project/mappings/import` | Strict conflict-safe local Tiny v2 merge into unsaved native declaration edits. |
 | `POST /api/v1/project/mappings/export` | Strict verified Tiny v2 declaration export to a new local file, without changing project state. |
 | `GET /api/v1/jobs/{id}`, `POST /api/v1/jobs/{id}/cancel`, `GET /api/v1/jobs/{id}/events` | Process-local job polling, cooperative cancellation, and SSE. |
 | `POST /api/v1/shutdown` | Graceful local shutdown with `discard` (default), `save`, or `refuse_if_dirty`; active work returns `PROJECT_BUSY`. |
@@ -168,7 +169,7 @@ Before contributing, read [`AGENTS.md`](AGENTS.md), [`DESIGN.md`](DESIGN.md), an
 
 The intended architecture separates application lifecycle and HTTP transport from native project persistence, Jadx-version-sensitive integration, analysis, in-memory search, and operation scheduling. The current Gradle application is the initial implementation slice; the full logical architecture is documented in [`DESIGN.md`](DESIGN.md).
 
-Completed slices cover native save/reload and external-change detection, revisions, coordinated operations, process-local jobs, shutdown, original symbol lookup, Java source, basic references, incremental search, native declaration editing and strict Tiny v2 export. Remaining Phase 5.2 gates are mapping import, scoped variable editing and related-method propagation; the Python SDK follows in Phase 6. Smali, CFG and resource capabilities depend on further tests against the pinned Jadx release.
+Completed slices cover native save/reload and external-change detection, revisions, coordinated operations, process-local jobs, shutdown, original symbol lookup, Java source, basic references, incremental search, native declaration editing and strict Tiny v2 export/import. Remaining Phase 5.2 gates are scoped variable editing and related-method propagation; the Python SDK follows in Phase 6. Smali, CFG and resource capabilities depend on further tests against the pinned Jadx release.
 
 The long-term design retains **one project per process**, native Jadx persistence, explicit saves, and no HTTP file uploads. Planned endpoints and behavior must not be mistaken for features already delivered.
 
@@ -206,3 +207,14 @@ P4.2 Java snapshot. Coverage is always partial; READ/WRITE and original offsets
 are unavailable. Signed pagination detects changes in observed graph content,
 including those caused by decompilation without project edits. Queries do not
 save or dirty native state. See [semantics, limits and evidence](docs/phase-4-references.md).
+
+`POST /api/v1/project/mappings/import` reads an existing local `.tiny` file with
+required `sourcePath`, `format:"TINY_V2"`, `mode:"MERGE_FAIL_ON_CONFLICT"`,
+`expectedSessionId` and `expectedLogicalRevision`. All records are validated
+before one in-memory commit. Matching aliases/comments are unchanged; differing
+values or collisions reject the whole import. A new LINE comment or an exact
+attached prefix plus one native LINE suffix is supported. An equivalent file
+or valid header-only file returns `NO_CHANGE` without invalidating caches.
+The receipt distinguishes parsed records from effective alias/comment edits.
+Import neither attaches nor writes the source, and requires explicit native
+save for persistence. See [supported semantics and gates](docs/phase-5-mapping-import.md).

@@ -88,6 +88,17 @@ public final class JadxNativeEditAdapter {
 		return new Target(ref, nativeRef, node.getName(), scope, args, editable);
 	}
 
+	/** Cold ClassNode.unloadCode skips clearing attributes in 1.5.6. Mapping listeners
+	 * re-add declaration comments on every replay, so clear them also on cold nodes. */
+	public static void prepareCodeDataReplay(jadx.api.JadxDecompiler engine) {
+		for (var cls : engine.getClassesWithInners()) {
+			var node = cls.getClassNode();
+			node.remove(jadx.core.dex.attributes.AType.CODE_COMMENTS);
+			for (var method : node.getMethods()) method.remove(jadx.core.dex.attributes.AType.CODE_COMMENTS);
+			for (var field : node.getFields()) field.remove(jadx.core.dex.attributes.AType.CODE_COMMENTS);
+		}
+	}
+
 	public static final class EditLimitException extends RuntimeException {
 		public EditLimitException() { super("Requested edit owners exceed 200000 member declarations"); }
 	}

@@ -268,6 +268,20 @@ public final class ProjectRuntime implements AutoCloseable {
 		void checkBaselines() throws java.io.IOException { repository.checkExportBaselines(); }
 	}
 
+	/** Import uses the edit context with checked capture/preflight failures and one exclusive admission. */
+	<T> T withExclusiveMappingImport(dev.libjadx.core.mappings.MappingImportDtos.Request request,
+			MappingImportOperation<T> operation) throws Exception {
+		try (var lease = admit(OperationRequest.projectExclusive("mapping-import"))) {
+			var before = repository.snapshot();
+			if (!before.revisions().sessionId().equals(request.expectedSessionId())
+					|| before.revisions().logicalRevision() != request.expectedLogicalRevision()) {
+				throw new NativeProjectRepository.StaleRevisionException("Expected project revision is stale");
+			}
+			return operation.apply(new EditContext(repository, activeEngine, before));
+		}
+	}
+	@FunctionalInterface interface MappingImportOperation<T> { T apply(EditContext context) throws Exception; }
+
 	final class EditContext {
 		private final NativeProjectRepository current;
 		private final ProjectEngine engine;
@@ -283,6 +297,8 @@ public final class ProjectRuntime implements AutoCloseable {
 		ProjectSnapshot before() { return before; }
 		JadxDecompiler decompiler() { return engine.decompiler(); }
 		JadxCodeData codeDataCopy() { return current.codeDataCopy(); }
+		NativeProjectRepository.MappingExportSource mappingSource() throws IOException { return current.mappingExportSource(); }
+		void checkMappingBaselines() throws IOException { current.checkExportBaselines(); }
 
 		/** A single native replacement and reload. A reload failure after replacement fails the runtime. */
 		ProjectSnapshot commit(JadxCodeData edited) {
@@ -1005,6 +1021,7 @@ public final class ProjectRuntime implements AutoCloseable {
 			// Unload BEFORE notifying listeners: deepUnload clears CODE_COMMENTS,
 			// including attached mapping comments reapplied by ApplyMappingsPass.
 			for (var cls : jadx.getClasses()) cls.unload();
+			dev.libjadx.jadxadapter.JadxNativeEditAdapter.prepareCodeDataReplay(jadx);
 			jadx.reloadCodeData();
 		}
 

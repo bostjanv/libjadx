@@ -34,6 +34,8 @@ import dev.libjadx.app.DecompiledSourceService;
 import dev.libjadx.app.SearchService;
 import dev.libjadx.app.EditBatchService;
 import dev.libjadx.app.MappingExportService;
+import dev.libjadx.app.MappingImportService;
+import dev.libjadx.core.mappings.MappingImportDtos;
 import dev.libjadx.core.mappings.MappingExportDtos;
 import dev.libjadx.core.edits.EditDtos;
 import dev.libjadx.core.search.SearchQuery;
@@ -57,6 +59,7 @@ public final class StatusServlet extends HttpServlet {
 	private final SearchService searchService;
 	private final EditBatchService editService;
 	private final MappingExportService mappingExportService;
+	private final MappingImportService mappingImportService;
 	private final dev.libjadx.app.ReferenceQueryService referenceService;
 	private final ShutdownRequester shutdown;
 	private final AtomicBoolean shutdownRequestInProgress = new AtomicBoolean();
@@ -75,6 +78,7 @@ public final class StatusServlet extends HttpServlet {
 		this.searchService = injectedSearch == null ? new SearchService(runtime, catalogs, cursorKey) : injectedSearch;
 		this.editService = new EditBatchService(runtime);
 		this.mappingExportService = new MappingExportService(runtime);
+		this.mappingImportService = new MappingImportService(runtime);
 		this.sourceService = new DecompiledSourceService(runtime, catalogs, searchService);
 		this.referenceService = new dev.libjadx.app.ReferenceQueryService(runtime, catalogs, cursorKey);
 	}
@@ -122,6 +126,7 @@ public final class StatusServlet extends HttpServlet {
 					new Capability("edit.field_comment", "SUPPORTED", "LINE_GUI_RESAVE_VERIFIED", "MEMORY_ONLY_UNTIL_EXPLICIT_NATIVE_SAVE"),
 					new Capability("edit.batch_prevalidation", "SUPPORTED", "ONE_PROJECT_EXCLUSIVE_ADMISSION", "MEMORY_ONLY"),
 					new Capability("edit.mapping_attach", "SUPPORTED", "EXISTING_SETTINGS_PATH", "EXPLICIT_SAVE_ONLY"),
+					new Capability("edit.mapping_import", "PARTIAL", "TINY_V2_DECLARATIONS_CONFLICT_SAFE_MERGE", "MEMORY_ONLY_UNTIL_EXPLICIT_NATIVE_SAVE"),
 					new Capability("edit.mapping_export", "PARTIAL", "TINY_V2_VERIFIED_DECLARATIONS_STRICT_COMPLETE", "NEW_OUTPUT_ONLY"),
 					new Capability("edit.parameter_rename", "UNSUPPORTED", "SCOPED_IDENTITY_NOT_VERIFIED", "UNAVAILABLE"),
 					new Capability("edit.local_rename", "UNSUPPORTED", "REGISTER_SSA_IDENTITY_NOT_VERIFIED", "UNAVAILABLE"),
@@ -216,6 +221,7 @@ public final class StatusServlet extends HttpServlet {
 	@Override
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
 		String path = request.getRequestURI();
+		if ("/api/v1/project/mappings/import".equals(path)) { handleMappingImport(request, response); return; }
 		if ("/api/v1/project/mappings/export".equals(path)) {
 			handleMappingExport(request, response);
 			return;
@@ -379,6 +385,41 @@ public final class StatusServlet extends HttpServlet {
 		} catch (RuntimeException failure) {
 			writeError(response, 500, "INTERNAL_ERROR", "Class enumeration failed; inspect the local service log");
 		}
+	}
+
+	private void handleMappingImport(HttpServletRequest request, HttpServletResponse response) throws IOException {
+		try {
+			runtime.assertReady();
+			if (!sameOrigin(request)) {
+				writeError(response, 403, "INPUT_SECURITY_REJECTION", "Cross-origin mapping import is not allowed"); return;
+			}
+			if (!isJsonContentType(request.getContentType())) {
+				writeError(response, 415, "INVALID_REQUEST", "Content-Type must be application/json"); return;
+			}
+			JsonNode body = readBody(request);
+			Set<String> fields = Set.of("sourcePath", "format", "mode", "expectedSessionId", "expectedLogicalRevision");
+			requireFields(body, fields);
+			for (String field : fields) if (!body.hasNonNull(field)) throw new IllegalArgumentException("All five mapping import fields are required");
+			if (!body.get("sourcePath").isTextual() || !body.get("format").isTextual() || !body.get("mode").isTextual() || !body.get("expectedSessionId").isTextual()
+					|| !body.get("expectedLogicalRevision").isIntegralNumber() || !body.get("expectedLogicalRevision").canConvertToLong()) {
+				throw new IllegalArgumentException("Invalid mapping import field type");
+			}
+			var incoming = new MappingImportDtos.Request(Path.of(body.get("sourcePath").asText()), body.get("format").asText(), body.get("mode").asText(),
+					body.get("expectedSessionId").asText(), body.get("expectedLogicalRevision").longValue());
+			write(response, 200, mappingImportService.importMappings(incoming));
+		} catch (MappingImportDtos.Problem problem) {
+			writeError(response, problem.status(), problem.code(), problem.getMessage(), false, problem.details());
+		} catch (ProjectRuntime.ProjectNotReadyException notReady) { writeLifecycleError(response, notReady.status());
+		} catch (ServiceShuttingDownException stopping) { writeError(response, 503, "SERVICE_SHUTTING_DOWN", stopping.getMessage());
+		} catch (ProjectBusyException busy) { writeError(response, 409, "PROJECT_BUSY", busy.getMessage());
+		} catch (NativeProjectRepository.StaleRevisionException stale) { writeError(response, 409, "STALE_REVISION", stale.getMessage());
+		} catch (NativeProjectRepository.ExternalModificationException conflict) { writeError(response, 409, "EXTERNAL_MODIFICATION_CONFLICT", conflict.getMessage());
+		} catch (java.nio.file.NoSuchFileException missing) { writeError(response, 404, "NOT_FOUND", "Mapping source file does not exist");
+		} catch (SecurityException denied) { writeError(response, 403, "INPUT_SECURITY_REJECTION", denied.getMessage());
+		} catch (IllegalArgumentException invalid) {
+			if ("Request body exceeds 64 KiB".equals(invalid.getMessage())) writeError(response, 429, "RESOURCE_LIMIT", invalid.getMessage());
+			else writeError(response, 400, "INVALID_REQUEST", "Invalid mapping import request");
+		} catch (Exception failure) { writeError(response, 500, "INTERNAL_ERROR", "Mapping import failed; native replay failure may leave the runtime FAILED"); }
 	}
 
 	private void handleMappingExport(HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -896,6 +937,7 @@ public final class StatusServlet extends HttpServlet {
 		try {
 				if ("/api/v1/edits/batch".equals(request.getRequestURI())
 					|| "/api/v1/project/mappings/export".equals(request.getRequestURI())
+					|| "/api/v1/project/mappings/import".equals(request.getRequestURI())
 					|| "/api/v1/references/query".equals(request.getRequestURI())
 					|| "/api/v1/search".equals(request.getRequestURI())
 					|| "/api/v1/search/build-index".equals(request.getRequestURI())) {
@@ -1043,6 +1085,7 @@ public final class StatusServlet extends HttpServlet {
 		if ("/api/v1/project/settings".equals(path)) return Set.of("GET", "PATCH");
 		if ("/api/v1/project/save".equals(path) || "/api/v1/project/reload".equals(path)
 				|| "/api/v1/project/mappings/export".equals(path)
+				|| "/api/v1/project/mappings/import".equals(path)
 				|| "/api/v1/project/export".equals(path) || "/api/v1/project/pending-edits/export".equals(path)
 				|| "/api/v1/symbols/resolve".equals(path) || "/api/v1/decompile".equals(path)
 				|| "/api/v1/references/query".equals(path) || "/api/v1/analysis/cfg".equals(path)

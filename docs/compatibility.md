@@ -71,7 +71,8 @@ codec's published POM specifies Apache 2.0; `licenses/MAPPING-IO-LICENSE` is
 bundled in `installDist`. Its license was checked against mapping-io source
 commit `5eb15ddbd3f1d8fbecccb79392192ff86b5c65f0`, whose `gradle.properties`
 declares 0.8.0 (a version-bearing source commit, not a claimed release build
-commit). Import remains unavailable. See [export evidence](phase-5-mapping-export.md)
+commit). Bounded Tiny v2 import uses the same strict parser and pinned declaration metadata;
+see [import evidence](phase-5-mapping-import.md). No dependencies or locks changed. See [export evidence](phase-5-mapping-export.md)
 and [ADR 0001](adr/0001-defer-advanced-native-edits.md).
 
 Code-data replay unloads owners before notifying listeners. Pinned
@@ -100,3 +101,14 @@ Phase 4.3 proves bounded method/field/class relationships and missing external
 method descriptors on the owned JAR fixture. Optional source sites verify both
 caller and target. Graph mutation at unchanged logical revision is tested.
 See [reference evidence and limits](phase-4-references.md).
+
+The import replay regression additionally inspects pinned `JavaClass.unload`,
+`ClassNode.unloadCode`, `ClassInfo.makeAliasRawFullName`, `AttrNode.remove`,
+`ApplyMappingsPass` and `AttachCommentsVisitor`. Cold `NOT_LOADED` owners skip
+unloading their declaration attributes; the adapter now clears CODE_COMMENTS
+before mapping/native replay on all visible declaration nodes, avoiding repeated
+attached comments across edits. This does not generate source. The import
+retains explicit native save and the existing post-replacement FAILED lifecycle.
+The independent validator environment is Python 3.14.4, PyYAML 6.0.3,
+jsonschema 4.26.0 and openapi-spec-validator 0.9.0 (same environment as PR #11).
+Exact direct validation packages are pinned in `tests/requirements-contract.txt`.
