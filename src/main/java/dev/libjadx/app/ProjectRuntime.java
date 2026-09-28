@@ -136,7 +136,8 @@ public final class ProjectRuntime implements AutoCloseable {
 		return readPublished(NativeProjectRepository::snapshot);
 	}
 
-	/** Internal immutable hierarchy read. The admission prevents reload/shutdown during fingerprint checks and use. */
+	/** Internal immutable hierarchy read. The verifier is usable only on the callback thread until
+	 * the callback returns. Returned verification data is evidence, never native edit admission. */
 	<T> T withHierarchyVerifier(Function<dev.libjadx.core.hierarchy.RelatedHierarchyVerifier, T> operation) {
 		try (var lease = admit(OperationRequest.queryRead("hierarchy-verification"))) {
 			dev.libjadx.core.hierarchy.RelatedHierarchyVerifier verifier;
@@ -144,8 +145,31 @@ public final class ProjectRuntime implements AutoCloseable {
 				requireReady();
 				verifier = activeEngine.hierarchyVerifier();
 			}
-			return operation.apply(verifier);
+			var scoped = new CallbackHierarchyVerifier(verifier);
+			try {
+				return operation.apply(scoped);
+			} finally {
+				scoped.expire();
+			}
 		}
+	}
+
+	/** Thread confinement keeps verification inside the lease even if a callback starts background work. */
+	private static final class CallbackHierarchyVerifier implements dev.libjadx.core.hierarchy.RelatedHierarchyVerifier {
+		private final Thread owner = Thread.currentThread();
+		private dev.libjadx.core.hierarchy.RelatedHierarchyVerifier delegate;
+
+		CallbackHierarchyVerifier(dev.libjadx.core.hierarchy.RelatedHierarchyVerifier delegate) {
+			this.delegate = delegate;
+		}
+
+		@Override public Verification verify(dev.libjadx.core.symbols.SymbolRef seed, VerificationBudget budget) {
+			if (Thread.currentThread() != owner || delegate == null)
+				throw new IllegalStateException("Hierarchy verifier requires its active admitting callback");
+			return delegate.verify(seed, budget);
+		}
+
+		private void expire() { delegate = null; }
 	}
 
 	dev.libjadx.core.hierarchy.RelatedHierarchyVerifier.Verification verifyRelatedHierarchy(

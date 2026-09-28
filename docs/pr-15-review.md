@@ -33,6 +33,27 @@ Public routes, schemas, capabilities, SDK scope and native formats are unchanged
 Existing JVM/DEX input artifacts gain compile visibility, with only corresponding
 lock membership changes. Runtime versions and GUI isolation remain unchanged.
 
+## Review follow-up
+
+The nonblocking review of `a74efd0` identified that the generic hierarchy callback
+could return its verifier after the query lease ended. An unchanged-input reload
+would leave that immutable verifier's fingerprint checks successful even though
+its engine had been superseded.
+
+The runtime now supplies a callback handle confined to the admitting thread and
+callback lifetime. It rejects cross-thread use and expires in `finally` before
+the query lease is released, including when the callback fails. Expiration also
+drops the captured verifier reference. Real-Jadx regressions retain a handle,
+reject it before/after unchanged-input reload, reject background-thread use and
+check callback-failure expiration plus subsequent reload admission. Lifecycle
+identity assertions now compare owning engines rather than retain raw verifiers.
+
+A returned immutable COMPLETE result can still be retained as historical
+evidence. PR #16 must verify and stage under one current project-exclusive lease,
+checking the current session/engine and expected revision; neither a cached
+result nor a separate query lease authorizes native edits. Propagation remains
+UNSUPPORTED, and the native replay/collision/persistence gates remain deferred.
+
 ## Review checklist
 
 1. **Raw API:** pinned internal `JavaClassReader.loadClassData()` and
@@ -81,7 +102,9 @@ lock membership changes. Runtime versions and GUI isolation remain unchanged.
 12. **Public shape change:** none. OpenAPI and examples are unchanged.
 13. **Propagation still unsupported:** yes; existing live 422 rejection/zero-staging
     tests remain mandatory. Ordinary RENAME behavior is unchanged.
-14. **PR #16 evidence:** COMPLETE-only admission, all-owner collisions, group-private
+14. **PR #16 evidence:** verification and staging under one current exclusive
+    lease with session/engine/revision checks; COMPLETE-only admission,
+    all-owner collisions, group-private
     native staging, exact affectedRefs, no-op/prefix/fault semantics, explicit save,
     headless restart/discard and actual matching-GUI propagated service gates,
     including resolution of the existing hot/fresh native replay discrepancy.
@@ -90,7 +113,7 @@ lock membership changes. Runtime versions and GUI isolation remain unchanged.
 
 Final implementation fingerprint (18 changed/new implementation, fixture and
 dependency-lock files):
-`sha256:bb8d04e27da98a19986e90f2423b78b5848a57302aabdeb270e7126ac78e41af`.
+`sha256:28dd4a3b6108045a56951a72ab5a2a92dc585641e007a26aba944e05109284be`.
 The sorted path/content manifest is `/tmp/libjadx-pr15-implementation-hash.json`.
 Documentation is excluded from this fingerprint; it was checked again after the
 gates. These results cover the final implementation snapshot on the requested
@@ -110,7 +133,6 @@ Exact final commands:
   --tests dev.libjadx.app.OpenApiDocumentTest
 
 ./gradlew clean check --offline --rerun-tasks
-./gradlew check installDist --offline
 ./gradlew installDist --offline
 
 JADX_GUI=/tmp/libjadx-rerun-jadx-1.5.6/bin/jadx-gui \
@@ -130,10 +152,10 @@ git diff --check origin/main...HEAD
 
 | Gate | Final outcome |
 |---|---|
-| Focused evidence/regressions | 21 test classes, 92 tests: 91 passed, one opt-in GUI skip, zero failures/errors |
-| Clean full check | 70 test classes, 357 tests: 350 passed, seven opt-in GUI skips, zero failures/errors |
-| Follow-up check and distribution | BUILD SUCCESSFUL; final clean outputs were up to date |
-| Matching-GUI tasks | BUILD SUCCESSFUL in 2m 15s; each of all seven tasks executed one passing test, zero skips/failures/errors |
+| Focused evidence/regressions | 21 test classes, 94 tests: 93 passed, one opt-in GUI skip, zero failures/errors |
+| Clean full check | BUILD SUCCESSFUL in 6m 23s; 70 test classes, 359 tests: 352 passed, seven opt-in GUI skips, zero failures/errors |
+| Distribution | BUILD SUCCESSFUL; final clean outputs were up to date |
+| Matching-GUI tasks | BUILD SUCCESSFUL in 2m 48s; each of all seven tasks executed one passing test, zero skips/failures/errors |
 | Edit validator | OpenAPI 3.1 valid; 11 examples, 10 live HTTP responses, four injected service results, 18 scoped HTTP responses, eight propagation rejection responses valid |
 | Mapping export validator | Three examples and 31 live HTTP responses valid |
 | Mapping import validator | Four examples and 41 live HTTP responses valid |

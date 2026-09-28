@@ -234,6 +234,15 @@ state under a new session. Census interruption is cooperative at input/entry/
 class/method boundaries; construction is not a separately cancellable job and
 no hard JVM interruption guarantee is added.
 
+The callback receives a handle confined to its admitting thread and callback
+lifetime. Use from another thread or after either normal return or callback
+failure throws `IllegalStateException`, before reading inputs or the captured
+verifier. Expiration drops the handle's reference to that verifier before the
+query lease is released. Concurrent reads use separate admitted callbacks.
+Retaining a handle across an unchanged-input reload therefore cannot reuse a
+superseded engine's verifier. Returned immutable COMPLETE results are historical
+evidence, not authority to stage edits after admission ends.
+
 `HierarchyVerifierLifecycleTest` checks concurrent readers, busy reload/shutdown,
 explicit reload, changed input content, fresh runtime/session reconstruction,
 pending declaration edits, explicit save, mapping rebuild and all four analysis
@@ -241,11 +250,17 @@ modes. Disk hashes, pending native data, revisions, search identity and cold
 class states are checked. No native/input file is written by verification and
 no derived state is serialized. Existing actual GUI gates remain required and
 are recorded separately in [PR #15 review](pr-15-review.md).
+Regression tests also cover escaped/cross-thread handles, unchanged-input reload
+and callback-failure expiration/admission release.
 
 ## Next boundary
 
 PR #16 can consume this internal verifier only on COMPLETE. It must still prove
-all-owner alias collisions, group-private native records, exact affectedRefs,
+verification and native staging under one current project-exclusive lease with
+the current session/engine and expected revision checked. A cached COMPLETE
+result or a separately admitted query is insufficient for mutation admission.
+It must also prove all-owner alias collisions, group-private native records,
+exact affectedRefs,
 group-size admission, no-op/prefix/partial failure semantics, explicit-save,
 headless restart/discard and actual matching-GUI propagated service transactions.
 The existing native hot/fresh discrepancy also needs a reliable replay strategy.

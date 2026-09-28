@@ -10,6 +10,10 @@
 - Comparison detects PR #14's four-versus-three/empty candidate omission.
   Initialization/reload rebuild derived state; fingerprints invalidate changed
   inputs. Verification has no source generation or persistence side effects.
+- Review follow-up confines runtime verifier handles to their admitting callback
+  thread and lifetime; escaped handles cannot survive even unchanged-input reload.
+  COMPLETE results remain evidence, requiring fresh verification and native
+  staging under one current exclusive lease in PR #16.
 - Public OpenAPI and mutation behavior are unchanged. Propagation and local
   editing remain unsupported; group transactions and persistence are PR #16.
 
