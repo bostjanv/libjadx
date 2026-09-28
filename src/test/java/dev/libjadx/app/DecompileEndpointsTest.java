@@ -29,11 +29,9 @@ import dev.libjadx.project.NativeProjectDocument;
 import dev.libjadx.jadxadapter.JadxSymbolAdapter;
 import dev.libjadx.jadxadapter.JadxSourceAdapter;
 import dev.libjadx.core.symbols.SymbolRef;
+import dev.libjadx.core.edits.EditDtos;
 import dev.libjadx.scheduler.ProjectBusyException;
 import jadx.api.JadxDecompiler;
-import jadx.api.data.impl.JadxCodeComment;
-import jadx.api.data.impl.JadxCodeRename;
-import jadx.api.data.impl.JadxNodeRef;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -190,10 +188,10 @@ class DecompileEndpointsTest {
 		ProjectRuntime runtime = new ProjectRuntime(path, document.getInputFiles(), List.of(dir));
 		try (HttpApiServer server = new HttpApiServer("127.0.0.1", 0, runtime)) {
 			server.start(); runtime.initializeAsync(document).get(20, TimeUnit.SECONDS);
-			var data = document.getCodeData();
-			data.setRenames(List.of(new JadxCodeRename(JadxNodeRef.forCls("probe.Sample"), "UnsavedSourceAlias")));
-			data.setComments(List.of(new JadxCodeComment(JadxNodeRef.forCls("probe.Sample"), "unsaved source comment")));
-			runtime.replaceCodeData(data, 0);
+			SymbolRef sample = SymbolRef.classRef("Lprobe/Sample;");
+			assertEquals("APPLIED", new EditBatchService(runtime).apply(new EditDtos.Request(null, null, List.of(
+					new EditDtos.Operation(EditDtos.Kind.RENAME, sample, "UnsavedSourceAlias", null, null),
+					new EditDtos.Operation(EditDtos.Kind.SET_COMMENT, sample, null, "unsaved source comment", "LINE")))).outcome());
 			long revision = runtime.projectSnapshot().revisions().logicalRevision();
 			String sourceRef = ref("CLASS", "Lprobe/Sample;", null, null);
 			JsonNode primary = success(server, sourceRef);

@@ -1,7 +1,7 @@
 # Phase 3.1 operation coordination
 
 Baseline: `c20cfeda77500553e84450a6cde4000b0aca6c94` (merged PR #2),
-Jadx `1.5.6` at source commit `4c0ac37699aa8c9803f1c73cfaacd9205acb044b`.
+Jadx `1.5.6` at source commit `28ff15e4ae69950aebea110a13e5ab895d234dfc`.
 The coordinator is process local and has no journal or persistence.
 
 ## Inventory and admission matrix

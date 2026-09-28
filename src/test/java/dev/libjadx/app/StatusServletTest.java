@@ -74,7 +74,8 @@ class StatusServletTest {
 		HttpApiServer server = start(runtime);
 		try {
 			runtime.initializeAsync(null).get(5, TimeUnit.SECONDS);
-			assertError(request(server, "POST", "/api/v1/edits/batch"), 501, "OPERATION_NOT_IMPLEMENTED", false, false);
+			assertError(request(server, "POST", "/api/v1/resources/query"), 501, "OPERATION_NOT_IMPLEMENTED", false, false);
+			assertError(request(server, "POST", "/api/v1/edits/batch"), 503, "PROJECT_NOT_READY", true, false);
 		} finally {
 			server.close();
 			runtime.close();

@@ -1,0 +1,17 @@
+{
+  "expectedSessionId": "00000000-0000-4000-8000-000000000001",
+  "expectedLogicalRevision": 7,
+  "items": [
+    {
+      "kind": "RENAME",
+      "target": { "kind": "CLASS", "originalClassDescriptor": "Lprobe/Example;", "inputIdentity": null, "originalName": null, "originalDescriptor": null },
+      "newName": "RenamedExample"
+    },
+    {
+      "kind": "SET_COMMENT",
+      "target": { "kind": "METHOD", "originalClassDescriptor": "Lprobe/Example;", "inputIdentity": null, "originalName": "work", "originalDescriptor": "(I)V" },
+      "comment": "Reviewed entry point",
+      "style": "LINE"
+    }
+  ]
+}

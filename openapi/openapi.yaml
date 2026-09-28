@@ -224,6 +224,49 @@ paths:
                 $ref: '#/components/schemas/PendingEdits'
         'default':
           $ref: '#/components/responses/ApiErrorResponse'
+  /edits/batch:
+    post:
+      tags: [Project]
+      operationId: applyEditBatch
+      summary: Apply native declaration edits to the in-memory project
+      description: >-
+        Validates every item under one exclusive admission before changing native
+        code data. Preconditions are either both supplied or both omitted;
+        omission means unconditional admission against the current revision.
+        A complete no-op retains all revisions and dirty state. A successful
+        edit remains memory-only until explicit native save. An unexpected
+        staging failure returns PARTIAL with itemized FAILED and SKIPPED results,
+        committing a verified applied prefix when one exists. If no item was
+        applied, logical/index revisions and dirty state remain unchanged.
+        Only LINE declaration comments are currently accepted. No automatic
+        override propagation, mapping export, parameter or local editing.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EditBatchRequest' }
+            examples:
+              renameAndComment: { externalValue: ./examples/edit-batch-request.json }
+      responses:
+        '200':
+          description: Applied, no change, or itemized staging failure with any committed prefix.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EditBatchResult' }
+              examples:
+                applied: { externalValue: ./examples/edit-batch-applied.json }
+                noChange: { externalValue: ./examples/edit-batch-no-change.json }
+                partial: { externalValue: ./examples/edit-batch-partial.json }
+                partialNoApplied: { externalValue: ./examples/edit-batch-partial-no-applied.json }
+        '400': { $ref: '#/components/responses/ApiErrorResponse' }
+        '403': { $ref: '#/components/responses/ApiErrorResponse' }
+        '404': { $ref: '#/components/responses/ApiErrorResponse' }
+        '409': { $ref: '#/components/responses/ApiErrorResponse' }
+        '415': { $ref: '#/components/responses/ApiErrorResponse' }
+        '422': { $ref: '#/components/responses/ApiErrorResponse' }
+        '429': { $ref: '#/components/responses/ApiErrorResponse' }
+        '503': { $ref: '#/components/responses/ApiErrorResponse' }
+        '500': { $ref: '#/components/responses/ApiErrorResponse' }
   /references/query:
     post:
       tags: [Symbols]
@@ -605,6 +648,88 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorEnvelope'
   schemas:
+    EditBatchRequest:
+      type: object
+      additionalProperties: false
+      required: [items]
+      dependentRequired:
+        expectedSessionId: [expectedLogicalRevision]
+        expectedLogicalRevision: [expectedSessionId]
+      properties:
+        expectedSessionId: { type: string, format: uuid }
+        expectedLogicalRevision: { type: integer, format: int64, minimum: 0 }
+        items:
+          type: array
+          minItems: 1
+          maxItems: 64
+          items: { $ref: '#/components/schemas/EditOperation' }
+    EditOperation:
+      oneOf:
+        - $ref: '#/components/schemas/RenameOperation'
+        - $ref: '#/components/schemas/SetCommentOperation'
+      discriminator:
+        propertyName: kind
+        mapping:
+          RENAME: '#/components/schemas/RenameOperation'
+          SET_COMMENT: '#/components/schemas/SetCommentOperation'
+    RenameOperation:
+      type: object
+      additionalProperties: false
+      required: [kind, target, newName]
+      properties:
+        kind: { const: RENAME }
+        target: { $ref: '#/components/schemas/SymbolRef' }
+        newName: { type: string, minLength: 1, maxLength: 128 }
+    SetCommentOperation:
+      type: object
+      additionalProperties: false
+      required: [kind, target, comment, style]
+      properties:
+        kind: { const: SET_COMMENT }
+        target: { $ref: '#/components/schemas/SymbolRef' }
+        comment: { type: string, minLength: 1, maxLength: 4096 }
+        style: { const: LINE }
+    EditBatchResult:
+      type: object
+      additionalProperties: false
+      required: [outcome, sessionId, logicalRevisionBefore, logicalRevisionAfter, indexRevisionAfter, dirty, saved, items, diagnostics]
+      properties:
+        outcome:
+          type: string
+          enum: [APPLIED, NO_CHANGE, PARTIAL]
+          description: >-
+            PARTIAL reports a staging failure, including failure before any
+            APPLIED item. Inspect items and logicalRevisionAfter for the exact
+            committed state; no applied items means revisions/dirty are unchanged.
+        sessionId: { type: string }
+        logicalRevisionBefore: { type: integer, format: int64, minimum: 0 }
+        logicalRevisionAfter: { type: integer, format: int64, minimum: 0 }
+        indexRevisionAfter: { type: integer, format: int64, minimum: 0 }
+        dirty: { type: boolean }
+        saved: { const: false }
+        items:
+          type: array
+          minItems: 1
+          maxItems: 64
+          items: { $ref: '#/components/schemas/EditItemResult' }
+        diagnostics:
+          type: array
+          maxItems: 8
+          items: { type: string, maxLength: 256 }
+    EditItemResult:
+      type: object
+      additionalProperties: false
+      required: [index, status, kind, target, affectedRefs, message]
+      properties:
+        index: { type: integer, minimum: 0, maximum: 63 }
+        status: { type: string, enum: [APPLIED, FAILED, SKIPPED] }
+        kind: { type: string, enum: [RENAME, SET_COMMENT] }
+        target: { $ref: '#/components/schemas/SymbolRef' }
+        affectedRefs:
+          type: array
+          maxItems: 64
+          items: { $ref: '#/components/schemas/SymbolRef' }
+        message: { type: [string, 'null'], maxLength: 256 }
     SearchRequest:
       type: object
       additionalProperties: false

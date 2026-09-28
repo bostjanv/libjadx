@@ -14,12 +14,11 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import dev.libjadx.core.search.SearchDtos.Page;
+import dev.libjadx.core.edits.EditDtos;
+import dev.libjadx.core.symbols.SymbolRef;
 import dev.libjadx.core.search.SearchQuery;
 import dev.libjadx.core.symbols.SymbolCatalog;
 import dev.libjadx.project.NativeProjectDocument;
-import jadx.api.data.impl.JadxCodeComment;
-import jadx.api.data.impl.JadxCodeRename;
-import jadx.api.data.impl.JadxNodeRef;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -45,11 +44,17 @@ class SearchInvalidationTest {
 			Page before = (Page) service.query(originalQuery);
 			assertFalse(before.nextCursor() == null, before.toString());
 			assertArrayEquals(originalProject, Files.readAllBytes(project));
-			var edited = document.getCodeData();
-			edited.setRenames(List.of(new JadxCodeRename(JadxNodeRef.forCls("probe.Sample"), "UnsavedSearchAlias")));
-			edited.setComments(List.of(new JadxCodeComment(JadxNodeRef.forCls("probe.Sample"), "unsaved search comment")));
-			runtime.replaceCodeData(edited, runtime.projectSnapshot().revisions().logicalRevision());
+			var edit = new EditBatchService(runtime);
+			SymbolRef sample = SymbolRef.classRef("Lprobe/Sample;");
+			assertEquals("APPLIED", edit.apply(new EditDtos.Request(null, null, List.of(
+					new EditDtos.Operation(EditDtos.Kind.RENAME, sample, "UnsavedSearchAlias", null, null),
+					new EditDtos.Operation(EditDtos.Kind.SET_COMMENT, sample, null, "unsaved search comment", "LINE")))).outcome());
 			assertThrows(SearchService.StaleSearchException.class, () -> service.query(query(before.nextCursor())));
+			Page beforeNoop = (Page) service.query(originalQuery);
+			assertEquals("NO_CHANGE", edit.apply(new EditDtos.Request(null, null, List.of(
+					new EditDtos.Operation(EditDtos.Kind.RENAME, sample, "UnsavedSearchAlias", null, null)))).outcome());
+			assertEquals(1, runtime.projectSnapshot().revisions().logicalRevision());
+			assertTrue(service.query(query(beforeNoop.nextCursor())) instanceof Page);
 			Page alias = (Page) service.query(new SearchQuery("UnsavedSearchAlias",
 					List.of(SearchQuery.Domain.CLASS_NAME), SearchQuery.MatchMode.CONTAINS,
 					true, 1, null, false, false, null, null));

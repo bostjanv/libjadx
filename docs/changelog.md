@@ -1,5 +1,26 @@
 # Experimental API changelog
 
+## 2026-09-28 — Phase 5.2 review fixes
+
+- Edit batches resolve class collisions from the lightweight catalog and load
+  members only for requested declaring owners, retaining original-identity and
+  ambiguity checks. Unrelated classes stay unprocessed during validation.
+- `PARTIAL` now retains itemized staging failures even without an applied
+  prefix. In that case logical/index revisions and dirty state are unchanged;
+  earlier no-op items remain `SKIPPED/NO_CHANGE`. The result schema and outcome
+  enum are unchanged. The generated Python transport remains a Phase 6 deliverable.
+
+## 2026-09-27 — Phase 5.2 native declaration editing slice
+
+- Added `POST /api/v1/edits/batch` for validated native class, method and
+  field renames and LINE declaration comments. A batch is memory-only until
+  explicit native save; no-op requests retain revisions and dirty state.
+- Added per-item committed-prefix results for an unexpected staging failure,
+  typed validation errors, strict JSON/origin/body limits and edit capabilities.
+- Matching Jadx 1.5.6 GUI resave and headless reopen exercise all six
+  declaration edit forms. Mapping export, parameter/local editing and related
+  override propagation remain unsupported Phase 5.2 gates.
+
 ## 2026-09-27 — Phase 5.1 incremental search
 
 - Added `POST /api/v1/search` for original and alias class/member names and

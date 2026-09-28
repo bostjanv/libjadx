@@ -1,6 +1,6 @@
 # Phase 4.3: Jadx-reported references
 
-Pinned source: Jadx 1.5.6, commit `4c0ac37699aa8c9803f1c73cfaacd9205acb044b`.
+Pinned source: Jadx 1.5.6, commit `28ff15e4ae69950aebea110a13e5ab895d234dfc`.
 All upstream paths below are relative to that commit's `jadx-core/src/main/java/`.
 
 ## Executable feasibility evidence

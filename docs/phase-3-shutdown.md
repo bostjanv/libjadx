@@ -2,7 +2,7 @@
 
 Baseline: merged PR #4 at `91ae20c9a7b04fac287a5f19647126a2cc4c81d7`.
 Jadx remains pinned to 1.5.6, source revision
-`4c0ac37699aa8c9803f1c73cfaacd9205acb044b`.
+`28ff15e4ae69950aebea110a13e5ab895d234dfc`.
 
 `POST /api/v1/shutdown` accepts an optional JSON object. Omitted `policy` means
 `discard`. `discard` ends the process without saving pending edits. `save`

@@ -20,6 +20,7 @@ import dev.libjadx.core.symbols.SymbolLookup;
 import dev.libjadx.core.symbols.SymbolRef;
 import dev.libjadx.core.symbols.SymbolResolution;
 import dev.libjadx.jadxadapter.JadxSymbolAdapter;
+import dev.libjadx.jadxadapter.JadxNativeEditAdapter;
 import dev.libjadx.jadxadapter.JadxSourceAdapter;
 import dev.libjadx.project.NativeProjectRepository;
 import dev.libjadx.scheduler.ProjectBusyException;
@@ -31,6 +32,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.libjadx.app.ProjectRuntime;
 import dev.libjadx.app.DecompiledSourceService;
 import dev.libjadx.app.SearchService;
+import dev.libjadx.app.EditBatchService;
+import dev.libjadx.core.edits.EditDtos;
 import dev.libjadx.core.search.SearchQuery;
 import dev.libjadx.core.search.SearchIndexStore;
 import dev.libjadx.app.SymbolCatalogProvider;
@@ -50,6 +53,7 @@ public final class StatusServlet extends HttpServlet {
 	private final JobEventsHandler jobEvents;
 	private final DecompiledSourceService sourceService;
 	private final SearchService searchService;
+	private final EditBatchService editService;
 	private final dev.libjadx.app.ReferenceQueryService referenceService;
 	private final ShutdownRequester shutdown;
 	private final AtomicBoolean shutdownRequestInProgress = new AtomicBoolean();
@@ -66,6 +70,7 @@ public final class StatusServlet extends HttpServlet {
 		this.shutdown = shutdown;
 		this.jobEvents = new JobEventsHandler(runtime.jobRegistry());
 		this.searchService = injectedSearch == null ? new SearchService(runtime, catalogs, cursorKey) : injectedSearch;
+		this.editService = new EditBatchService(runtime);
 		this.sourceService = new DecompiledSourceService(runtime, catalogs, searchService);
 		this.referenceService = new dev.libjadx.app.ReferenceQueryService(runtime, catalogs, cursorKey);
 	}
@@ -105,6 +110,18 @@ public final class StatusServlet extends HttpServlet {
 					new Capability("search.original_input_coverage", "UNKNOWN", "JADX_VISIBLE_IS_NOT_INPUT_CENSUS", "UNAVAILABLE"),
 					new Capability("project.native_load", "SUPPORTED", "JADX_1_5_6_FIXTURE", "READ_ONLY"),
 					new Capability("project.native_save", "PARTIAL", "CLASS_RENAME_COMMENT_MAPPING_AND_GUI_ROUND_TRIP", "EXPLICIT_SAVE_ONLY"),
+					new Capability("edit.class_rename", "SUPPORTED", "JADX_1_5_6_GUI_RESAVE_VERIFIED", "MEMORY_ONLY_UNTIL_EXPLICIT_NATIVE_SAVE"),
+					new Capability("edit.method_rename", "SUPPORTED", "JADX_1_5_6_GUI_RESAVE_VERIFIED", "MEMORY_ONLY_UNTIL_EXPLICIT_NATIVE_SAVE"),
+					new Capability("edit.field_rename", "SUPPORTED", "JADX_1_5_6_GUI_RESAVE_VERIFIED", "MEMORY_ONLY_UNTIL_EXPLICIT_NATIVE_SAVE"),
+					new Capability("edit.class_comment", "SUPPORTED", "LINE_GUI_RESAVE_VERIFIED", "MEMORY_ONLY_UNTIL_EXPLICIT_NATIVE_SAVE"),
+					new Capability("edit.method_comment", "SUPPORTED", "LINE_GUI_RESAVE_VERIFIED", "MEMORY_ONLY_UNTIL_EXPLICIT_NATIVE_SAVE"),
+					new Capability("edit.field_comment", "SUPPORTED", "LINE_GUI_RESAVE_VERIFIED", "MEMORY_ONLY_UNTIL_EXPLICIT_NATIVE_SAVE"),
+					new Capability("edit.batch_prevalidation", "SUPPORTED", "ONE_PROJECT_EXCLUSIVE_ADMISSION", "MEMORY_ONLY"),
+					new Capability("edit.mapping_attach", "SUPPORTED", "EXISTING_SETTINGS_PATH", "EXPLICIT_SAVE_ONLY"),
+					new Capability("edit.mapping_export", "UNSUPPORTED", "NATIVE_CODEC_NOT_VERIFIED", "UNAVAILABLE"),
+					new Capability("edit.parameter_rename", "UNSUPPORTED", "SCOPED_IDENTITY_NOT_VERIFIED", "UNAVAILABLE"),
+					new Capability("edit.local_rename", "UNSUPPORTED", "REGISTER_SSA_IDENTITY_NOT_VERIFIED", "UNAVAILABLE"),
+					new Capability("edit.related_propagation", "UNSUPPORTED", "GUI_BEHAVIOR_NOT_VERIFIED", "UNAVAILABLE"),
 					new Capability("project.revisions", "PARTIAL", "CONTENT_HASH_AND_SESSION_TOKENS", "PROCESS_LOCAL_COUNTERS"),
 					new Capability("analysis.temporary_override", "PARTIAL", "ISOLATED_DECOMPILATION_MODE_WITH_UNSAVED_EDITS", "READ_ONLY"),
 					new Capability("analysis.cfg", "UNKNOWN", "NOT_PROBED", "UNAVAILABLE"),
@@ -195,6 +212,10 @@ public final class StatusServlet extends HttpServlet {
 	@Override
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
 		String path = request.getRequestURI();
+		if ("/api/v1/edits/batch".equals(path)) {
+			handleEditBatch(request, response);
+			return;
+		}
 		if ("/api/v1/symbols/resolve".equals(path)) {
 			handleSymbolResolve(request, response);
 			return;
@@ -349,6 +370,107 @@ public final class StatusServlet extends HttpServlet {
 			writeError(response, 400, "INVALID_REQUEST", invalid.getMessage());
 		} catch (RuntimeException failure) {
 			writeError(response, 500, "INTERNAL_ERROR", "Class enumeration failed; inspect the local service log");
+		}
+	}
+
+	private void handleEditBatch(HttpServletRequest request, HttpServletResponse response) throws IOException {
+		try {
+			runtime.assertReady();
+			if (!sameOrigin(request)) {
+				writeError(response, 403, "INPUT_SECURITY_REJECTION", "Cross-origin native editing is not allowed");
+				return;
+			}
+			if (!isJsonContentType(request.getContentType())) {
+				writeError(response, 415, "INVALID_REQUEST", "Content-Type must be application/json");
+				return;
+			}
+			JsonNode body = readBody(request);
+			requireFields(body, Set.of("expectedSessionId", "expectedLogicalRevision", "items"));
+			boolean hasSession = body.has("expectedSessionId");
+			boolean hasRevision = body.has("expectedLogicalRevision");
+			if (hasSession != hasRevision) throw new IllegalArgumentException("Revision preconditions must be supplied together");
+			String session = null;
+			Long revision = null;
+			if (hasSession) {
+				if (!body.get("expectedSessionId").isTextual()
+						|| !body.get("expectedLogicalRevision").isIntegralNumber()
+						|| !body.get("expectedLogicalRevision").canConvertToLong()
+						|| body.get("expectedLogicalRevision").longValue() < 0) {
+					throw new IllegalArgumentException("Invalid revision precondition");
+				}
+				session = body.get("expectedSessionId").asText();
+				try {
+					if (!UUID.fromString(session).toString().equalsIgnoreCase(session)) {
+						throw new IllegalArgumentException("Noncanonical UUID");
+					}
+				}
+				catch (IllegalArgumentException invalid) { throw new IllegalArgumentException("expectedSessionId must be a UUID"); }
+				revision = body.get("expectedLogicalRevision").longValue();
+			}
+			if (!body.has("items") || !body.get("items").isArray() || body.get("items").isEmpty()
+					|| body.get("items").size() > 64) {
+				throw new IllegalArgumentException("items must contain 1 to 64 operations");
+			}
+			List<EditDtos.Operation> items = new java.util.ArrayList<>();
+			for (JsonNode item : body.get("items")) {
+				if (!item.isObject() || !item.hasNonNull("kind") || !item.get("kind").isTextual()) {
+					throw new IllegalArgumentException("Each item requires a kind");
+				}
+				String kind = item.get("kind").asText();
+				if (!kind.equals("RENAME") && !kind.equals("SET_COMMENT")) {
+					writeError(response, 422, "UNSUPPORTED_CAPABILITY", "Edit kind is not supported", false,
+							Map.of("itemErrors", List.of(new EditDtos.ItemError(items.size(), "UNSUPPORTED_CAPABILITY",
+									"Edit kind is not supported"))));
+					return;
+				}
+				if (item.has("propagateRelated")) {
+					writeError(response, 422, "UNSUPPORTED_CAPABILITY", "Related-method propagation is not verified", false,
+							Map.of("itemErrors", List.of(new EditDtos.ItemError(items.size(), "UNSUPPORTED_CAPABILITY",
+									"Related-method propagation is not verified"))));
+					return;
+				}
+				requireFields(item, kind.equals("RENAME") ? Set.of("kind", "target", "newName")
+						: Set.of("kind", "target", "comment", "style"));
+				if (!item.has("target") || !item.get("target").isObject()) {
+					throw new IllegalArgumentException("Each item requires a target object");
+				}
+				SymbolRef target = parseSymbolRef(item.get("target"));
+				String name = null;
+				String comment = null;
+				String style = null;
+				if (kind.equals("RENAME")) {
+					if (!item.hasNonNull("newName") || !item.get("newName").isTextual()) {
+						throw new IllegalArgumentException("RENAME requires newName string");
+					}
+					name = item.get("newName").asText();
+				} else {
+					if (!item.hasNonNull("comment") || !item.get("comment").isTextual()
+							|| !item.hasNonNull("style") || !item.get("style").isTextual()) {
+						throw new IllegalArgumentException("SET_COMMENT requires comment and style strings");
+					}
+					comment = item.get("comment").asText();
+					style = item.get("style").asText();
+				}
+				items.add(new EditDtos.Operation(EditDtos.Kind.valueOf(kind), target, name, comment, style));
+			}
+			write(response, 200, editService.apply(new EditDtos.Request(session, revision, items)));
+		} catch (EditBatchService.Rejected rejected) {
+			writeError(response, rejected.status(), rejected.code(), rejected.getMessage(), false,
+					rejected.itemErrors().isEmpty() ? null : Map.of("itemErrors", rejected.itemErrors()));
+		} catch (ProjectRuntime.ProjectNotReadyException notReady) {
+			writeLifecycleError(response, notReady.status());
+		} catch (ServiceShuttingDownException stopping) {
+			writeError(response, 503, "SERVICE_SHUTTING_DOWN", stopping.getMessage());
+		} catch (ProjectBusyException busy) {
+			writeError(response, 409, "PROJECT_BUSY", busy.getMessage());
+		} catch (JadxNativeEditAdapter.EditLimitException | JadxSymbolAdapter.CatalogLimitException limit) {
+			writeError(response, 429, "RESOURCE_LIMIT", limit.getMessage());
+		} catch (IllegalArgumentException invalid) {
+			if ("Request body exceeds 64 KiB".equals(invalid.getMessage())) {
+				writeError(response, 429, "RESOURCE_LIMIT", invalid.getMessage());
+			} else writeError(response, 400, "INVALID_REQUEST", invalid.getMessage());
+		} catch (RuntimeException failure) {
+			writeError(response, 500, "INTERNAL_ERROR", "Native edit failed; inspect project status before retrying");
 		}
 	}
 
@@ -730,7 +852,8 @@ public final class StatusServlet extends HttpServlet {
 		if (bytes.length > 65_536) throw new IllegalArgumentException("Request body exceeds 64 KiB");
 		JsonNode body;
 		try {
-			if ("/api/v1/references/query".equals(request.getRequestURI())
+				if ("/api/v1/edits/batch".equals(request.getRequestURI())
+					|| "/api/v1/references/query".equals(request.getRequestURI())
 					|| "/api/v1/search".equals(request.getRequestURI())
 					|| "/api/v1/search/build-index".equals(request.getRequestURI())) {
 				try (var parser = json.getFactory().createParser(bytes)) {

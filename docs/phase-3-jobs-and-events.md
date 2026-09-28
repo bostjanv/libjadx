@@ -10,7 +10,7 @@ job-producing endpoint must return `202 Accepted`, a `Job` body, and
 with 409 `PROJECT_BUSY`.
 
 Integration uses pinned Jadx 1.5.6 (source revision
-`4c0ac37699aa8c9803f1c73cfaacd9205acb044b`) and the existing
+`28ff15e4ae69950aebea110a13e5ab895d234dfc`) and the existing
 `tests/fixtures/native-project/sample.jar.jadx` and raw-input fixtures.
 The queue, replay, and cancellation tests use synthetic tasks. They establish
 registry behavior without asserting that an arbitrary Jadx call is

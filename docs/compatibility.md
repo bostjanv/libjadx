@@ -1,13 +1,14 @@
 # Compatibility and pinned dependencies
 
-Status: Phase 5.1 incremental search, updated 2026-09-27.
+Status: Phase 5.2 native editing slice, updated 2026-09-28.
 
 ## Jadx pin
 
 | Component | Pin | Evidence |
 |---|---|---|
 | Jadx stable release | `1.5.6` | GitHub release is marked latest, published 2026-07-10, and is not a prerelease: <https://github.com/skylot/jadx/releases/tag/v1.5.6> |
-| Jadx source commit | `4c0ac37699aa8c9803f1c73cfaacd9205acb044b` | Annotated `v1.5.6` tag resolved through GitHub's Git refs API on 2026-09-24 |
+| Jadx source commit | `28ff15e4ae69950aebea110a13e5ab895d234dfc` | The `v1.5.6` annotated tag object resolves to this commit; verified with GitHub Git refs and tag APIs on 2026-09-27. |
+| Jadx annotated tag object | `4c0ac37699aa8c9803f1c73cfaacd9205acb044b` | The earlier handoff called this the source commit. It is the tag object and cannot be used as a source-file commit URL. |
 | Jadx release source | [`v1.5.6`](https://github.com/skylot/jadx/releases/tag/v1.5.6) | Latest stable at implementation start; published 2026-07-10, not a prerelease |
 | Maven coordinates | `io.github.skylot:jadx-core:1.5.6` and pinned headless runtime plugins; `io.github.skylot:jadx-gui:1.5.6` (test scope only) | The plugin set follows the matching CLI build file at the pinned source commit; resolved artifacts are in `gradle.lockfile` |
 | Java toolchain | JDK 21 | Jadx 1.5.6's core compiles to Java 11 (`buildSrc/src/main/kotlin/jadx-java.gradle.kts`); JDK 21 is selected as the build/runtime baseline for LibJadx |
@@ -17,23 +18,23 @@ Status: Phase 5.1 incremental search, updated 2026-09-27.
 
 The 1.5.6 Git tag is `v1.5.6`, a stable, signed upstream release. No build-time dependency points to `master`. The `jadx-gui` dependency is test-only while headless native-project feasibility is being investigated; production code must not depend on a GUI runtime unless Phase 0 proves a headless approach requires it and the architecture is explicitly reviewed.
 
-The installed distribution includes the 1.5.6 analysis, dex, Java input/conversion, Smali, mapping, Kotlin metadata, XAPK, AAB, APKM and APKS plugins listed in the [pinned CLI build](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-cli/build.gradle.kts). `jadx-core` alone has no input loaders in the distribution. `StandaloneDistributionTest` launches the installed service against a real native-project fixture and checks class loading and cursor behavior across two processes without the test-only GUI classpath.
+The installed distribution includes the 1.5.6 analysis, dex, Java input/conversion, Smali, mapping, Kotlin metadata, XAPK, AAB, APKM and APKS plugins listed in the [pinned CLI build](https://github.com/skylot/jadx/blob/28ff15e4ae69950aebea110a13e5ab895d234dfc/jadx-cli/build.gradle.kts). `jadx-core` alone has no input loaders in the distribution. `StandaloneDistributionTest` launches the installed service against a real native-project fixture and checks class loading and cursor behavior across two processes without the test-only GUI classpath.
 
 ## Source evidence inspected
 
 The source archive was fetched from the `v1.5.6` tag and inspected at the commit above. Commit-pinned source links:
 
-- [`JadxDecompiler.java`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-core/src/main/java/jadx/api/JadxDecompiler.java): public constructor, `load()`, `getClasses()`, `getClassesWithInners()`, original/alias class lookup and `reloadCodeData()` APIs; its class-level documentation shows the library loading/decompile flow.
-- [`JadxArgs.java`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-core/src/main/java/jadx/api/JadxArgs.java): public `setCodeData(ICodeData)` API.
-- [`JavaClass.java`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-core/src/main/java/jadx/api/JavaClass.java) and [`JavaMethod.java`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-core/src/main/java/jadx/api/JavaMethod.java): Java code and metadata, Smali, member listing and use references.
-- [`JavaField.java`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-core/src/main/java/jadx/api/JavaField.java), [`MethodInfo.java`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-core/src/main/java/jadx/core/dex/info/MethodInfo.java), [`FieldInfo.java`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-core/src/main/java/jadx/core/dex/info/FieldInfo.java), and [`TypeGen.java`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-core/src/main/java/jadx/core/codegen/TypeGen.java): original member names and raw type signatures used by the isolated symbol adapter.
-- [`JadxProject.java`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-gui/src/main/java/jadx/gui/settings/JadxProject.java): `loadProjectData(Path)` and `save()`; `saveAs(Path)` uses `MainWindow`/GUI cache services. `buildGson` applies native relative-path and code-data adapters.
-- [`ProjectData.java`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-gui/src/main/java/jadx/gui/settings/data/ProjectData.java): native project fields include input files, tree expansions, `JadxCodeData`, tabs, mappings path, cache directory, live reload, search fields and plugin options.
-- [`jadx-java.gradle.kts`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/buildSrc/src/main/kotlin/jadx-java.gradle.kts): Jadx main sources target Java 11; `settings.gradle.kts` requires Java 11 or newer to build.
-- [`jadx-cli/build.gradle.kts`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-cli/build.gradle.kts): the pinned CLI's headless runtime plugin set used by the standalone LibJadx distribution.
-- [`ICodeInfo.java`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-core/src/main/java/jadx/api/ICodeInfo.java), [`ICodeMetadata.java`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-core/src/main/java/jadx/api/metadata/ICodeMetadata.java), [`NodeDeclareRef.java`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-core/src/main/java/jadx/api/metadata/annotations/NodeDeclareRef.java), and [`NodeEnd.java`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-core/src/main/java/jadx/api/metadata/annotations/NodeEnd.java): exact Java string, code-position map, declaration node and unattributed end markers used by `JadxSourceAdapter`.
-- [`ClassGen.java`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-core/src/main/java/jadx/core/codegen/ClassGen.java): emits `NodeEnd` after method body closing braces; lexical brace matching is required to associate an end marker with a specific original method.
-- [`JadxError.java`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-core/src/main/java/jadx/core/dex/attributes/nodes/JadxError.java) and [`JadxCommentsAttr.java`](https://github.com/skylot/jadx/blob/4c0ac37699aa8c9803f1c73cfaacd9205acb044b/jadx-core/src/main/java/jadx/core/dex/attributes/nodes/JadxCommentsAttr.java): pinned internal class/method diagnostics; exception causes and stack traces are not copied to HTTP responses.
+- [`JadxDecompiler.java`](https://github.com/skylot/jadx/blob/28ff15e4ae69950aebea110a13e5ab895d234dfc/jadx-core/src/main/java/jadx/api/JadxDecompiler.java): public constructor, `load()`, `getClasses()`, `getClassesWithInners()`, original/alias class lookup and `reloadCodeData()` APIs; its class-level documentation shows the library loading/decompile flow.
+- [`JadxArgs.java`](https://github.com/skylot/jadx/blob/28ff15e4ae69950aebea110a13e5ab895d234dfc/jadx-core/src/main/java/jadx/api/JadxArgs.java): public `setCodeData(ICodeData)` API.
+- [`JavaClass.java`](https://github.com/skylot/jadx/blob/28ff15e4ae69950aebea110a13e5ab895d234dfc/jadx-core/src/main/java/jadx/api/JavaClass.java) and [`JavaMethod.java`](https://github.com/skylot/jadx/blob/28ff15e4ae69950aebea110a13e5ab895d234dfc/jadx-core/src/main/java/jadx/api/JavaMethod.java): Java code and metadata, Smali, member listing and use references.
+- [`JavaField.java`](https://github.com/skylot/jadx/blob/28ff15e4ae69950aebea110a13e5ab895d234dfc/jadx-core/src/main/java/jadx/api/JavaField.java), [`MethodInfo.java`](https://github.com/skylot/jadx/blob/28ff15e4ae69950aebea110a13e5ab895d234dfc/jadx-core/src/main/java/jadx/core/dex/info/MethodInfo.java), [`FieldInfo.java`](https://github.com/skylot/jadx/blob/28ff15e4ae69950aebea110a13e5ab895d234dfc/jadx-core/src/main/java/jadx/core/dex/info/FieldInfo.java), and [`TypeGen.java`](https://github.com/skylot/jadx/blob/28ff15e4ae69950aebea110a13e5ab895d234dfc/jadx-core/src/main/java/jadx/core/codegen/TypeGen.java): original member names and raw type signatures used by the isolated symbol adapter.
+- [`JadxProject.java`](https://github.com/skylot/jadx/blob/28ff15e4ae69950aebea110a13e5ab895d234dfc/jadx-gui/src/main/java/jadx/gui/settings/JadxProject.java): `loadProjectData(Path)` and `save()`; `saveAs(Path)` uses `MainWindow`/GUI cache services. `buildGson` applies native relative-path and code-data adapters.
+- [`ProjectData.java`](https://github.com/skylot/jadx/blob/28ff15e4ae69950aebea110a13e5ab895d234dfc/jadx-gui/src/main/java/jadx/gui/settings/data/ProjectData.java): native project fields include input files, tree expansions, `JadxCodeData`, tabs, mappings path, cache directory, live reload, search fields and plugin options.
+- [`jadx-java.gradle.kts`](https://github.com/skylot/jadx/blob/28ff15e4ae69950aebea110a13e5ab895d234dfc/buildSrc/src/main/kotlin/jadx-java.gradle.kts): Jadx main sources target Java 11; `settings.gradle.kts` requires Java 11 or newer to build.
+- [`jadx-cli/build.gradle.kts`](https://github.com/skylot/jadx/blob/28ff15e4ae69950aebea110a13e5ab895d234dfc/jadx-cli/build.gradle.kts): the pinned CLI's headless runtime plugin set used by the standalone LibJadx distribution.
+- [`ICodeInfo.java`](https://github.com/skylot/jadx/blob/28ff15e4ae69950aebea110a13e5ab895d234dfc/jadx-core/src/main/java/jadx/api/ICodeInfo.java), [`ICodeMetadata.java`](https://github.com/skylot/jadx/blob/28ff15e4ae69950aebea110a13e5ab895d234dfc/jadx-core/src/main/java/jadx/api/metadata/ICodeMetadata.java), [`NodeDeclareRef.java`](https://github.com/skylot/jadx/blob/28ff15e4ae69950aebea110a13e5ab895d234dfc/jadx-core/src/main/java/jadx/api/metadata/annotations/NodeDeclareRef.java), and [`NodeEnd.java`](https://github.com/skylot/jadx/blob/28ff15e4ae69950aebea110a13e5ab895d234dfc/jadx-core/src/main/java/jadx/api/metadata/annotations/NodeEnd.java): exact Java string, code-position map, declaration node and unattributed end markers used by `JadxSourceAdapter`.
+- [`ClassGen.java`](https://github.com/skylot/jadx/blob/28ff15e4ae69950aebea110a13e5ab895d234dfc/jadx-core/src/main/java/jadx/core/codegen/ClassGen.java): emits `NodeEnd` after method body closing braces; lexical brace matching is required to associate an end marker with a specific original method.
+- [`JadxError.java`](https://github.com/skylot/jadx/blob/28ff15e4ae69950aebea110a13e5ab895d234dfc/jadx-core/src/main/java/jadx/core/dex/attributes/nodes/JadxError.java) and [`JadxCommentsAttr.java`](https://github.com/skylot/jadx/blob/28ff15e4ae69950aebea110a13e5ab895d234dfc/jadx-core/src/main/java/jadx/core/dex/attributes/nodes/JadxCommentsAttr.java): pinned internal class/method diagnostics; exception causes and stack traces are not copied to HTTP responses.
 
 ## Non-Jadx build dependencies
 
@@ -49,7 +50,21 @@ Resolved transitive versions are recorded in [gradle.lockfile](../gradle.lockfil
 
 ## Current feasibility status
 
-The public-core smoke probe, in-memory class rename/comment, native project JSON round-trip, unknown-field retention, and matching-GUI save/reopen have executable probes. Remaining P0.3 topics are listed with bounded follow-up probes in [feasibility-matrix.md](feasibility-matrix.md). Phase 2 adds native save/reload/conflict detection, process-scoped revisions, mapping-path rebuilds and isolated temporary decompilation mode. Phase 4.1 adds Jadx-visible class listing and original class/method/field resolution. Phase 4.2 adds class-oriented Java source, validated token annotations and verified method excerpts. Source-only internals are isolated in `JadxSourceAdapter`. Phase 5.1 adds memory-only class/member/emitted-Java search and a complete-index job. Editing remains Phase 5.2.
+The public-core smoke probe, in-memory class rename/comment, native project JSON round-trip, unknown-field retention, and matching-GUI save/reopen have executable probes. Remaining P0.3 topics are listed with bounded follow-up probes in [feasibility-matrix.md](feasibility-matrix.md). Phase 2 adds native save/reload/conflict detection, process-scoped revisions, mapping-path rebuilds and isolated temporary decompilation mode. Phase 4.1 adds Jadx-visible class listing and original class/method/field resolution. Phase 4.2 adds class-oriented Java source, validated token annotations and verified method excerpts. Source-only internals are isolated in `JadxSourceAdapter`. Phase 5.1 adds memory-only class/member/emitted-Java search and a complete-index job. Phase 5.2 now includes validated native declaration editing; advanced edit gates remain open.
+
+The Phase 5.2 declaration editing slice uses pinned `JadxNodeRef.forJavaNode`,
+`JadxCodeRename`, `JadxCodeComment`, and `JadxDecompiler.reloadCodeData()`.
+The last API only notifies listeners in 1.5.6; LibJadx also unloads generated
+owner code caches after a committed edit so a previously read class cannot
+return stale Java.
+Pinned `JavaClass.getMethods()` and `getFields()` call `load()`, which can
+decompile their owner. Review fixes restrict these calls to requested member
+owners and use lightweight class metadata for class edits/collisions.
+The owned `EditOwner.java` regression checks unrelated classes before edit
+publication as well as after effective, rejected and no-op batches.
+Real HTTP, installed-distribution and matching-GUI resave checks are recorded
+in [editing evidence](phase-5-editing.md). Native mapping export remains
+unavailable for the safety reasons in [ADR 0001](adr/0001-defer-advanced-native-edits.md).
 
 For Phase 5.1, the exact 1.5.6 Maven source JAR was inspected for public
 `JavaClass.getOriginalTopParentClass`, `getTopParentClass`, `getCodeInfo`,

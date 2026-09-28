@@ -126,7 +126,7 @@ class SearchBuildJobTest {
 	}
 
 	@Test
-	void queuedSearchFailsStaleAfterReloadAndQueueCapacityIsBounded() throws Exception {
+	void queuedSearchFailsStaleAfterNativeEditAndQueueCapacityIsBounded() throws Exception {
 		Path jar = SymbolFixtureSupport.compileFixture(dir);
 		var defaults = dev.libjadx.scheduler.JobLimits.defaults();
 		var limits = new dev.libjadx.scheduler.JobLimits(1, 1, 16, defaults.maxResultBytes(),
@@ -158,7 +158,11 @@ class SearchBuildJobTest {
 			assertEquals(JobSnapshot.State.QUEUED, queued.state());
 			assertThrows(dev.libjadx.scheduler.JobRegistry.ResourceLimitException.class,
 					() -> service.buildIndex(List.of(SearchQuery.Domain.MEMBER_NAME), false));
-			runtime.reloadProject(true, revision.sessionId(), revision.logicalRevision());
+			assertEquals("APPLIED", new EditBatchService(runtime).apply(new dev.libjadx.core.edits.EditDtos.Request(
+					revision.sessionId(), revision.logicalRevision(), List.of(new dev.libjadx.core.edits.EditDtos.Operation(
+							dev.libjadx.core.edits.EditDtos.Kind.RENAME,
+							dev.libjadx.core.symbols.SymbolRef.classRef("Lprobe/SymbolFixture;"),
+							"QueuedEditAlias", null, null)))).outcome());
 			release.countDown();
 			runtime.jobRegistry().awaitTerminal(blocker.jobId(), Duration.ofSeconds(10));
 			var terminal = runtime.jobRegistry().awaitTerminal(queued.jobId(), Duration.ofSeconds(10));
