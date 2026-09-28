@@ -212,6 +212,11 @@ Use offset paging only on stable snapshot-bound enumerations; use opaque, in-mem
 
 ### P5.2 Editing and native propagation
 
+Implemented sub-slices: validated declaration edits and strict safe Tiny v2
+mapping export. Export's probes and independent GUI/HTTP gates are recorded in
+`docs/phase-5-mapping-export.md`. Native mapping import/merge, scoped variable
+editing and related-method propagation remain outstanding; P5.2 is incomplete.
+
 Build validated native-saveable editing operations in this order: class rename, method/field rename, comments, native mapping import/export; then supported parameter/local rename and related-method propagation. Verify each type through Phase 0 and actual GUI round-trip before advertising persistence. Use original entity references plus snapshot-scoped local variable references. Report propagated affected entities when known.
 
 For `/edits/batch`, prevalidate **all items** (identity, supported persistence, syntax, expected revision, duplicate/conflicting operations). If prevalidation fails, apply none. During execution an unexpected failure may partially apply; return itemized `APPLIED`, `FAILED`, `SKIPPED` and the resulting logical revision. Do not implement an unproven rollback mechanism. Mutations invalidate affected cached results before responding.

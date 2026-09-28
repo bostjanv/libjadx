@@ -25,7 +25,8 @@ dependencies {
     runtimeOnly("io.github.skylot:jadx-java-input:1.5.6")
     runtimeOnly("io.github.skylot:jadx-java-convert:1.5.6")
     runtimeOnly("io.github.skylot:jadx-smali-input:1.5.6")
-    runtimeOnly("io.github.skylot:jadx-rename-mappings:1.5.6")
+    implementation("io.github.skylot:jadx-rename-mappings:1.5.6")
+    implementation("net.fabricmc:mapping-io:0.8.0")
     runtimeOnly("io.github.skylot:jadx-kotlin-metadata:1.5.6")
     runtimeOnly("io.github.skylot:jadx-kotlin-source-debug-extension:1.5.6")
     runtimeOnly("io.github.skylot:jadx-xapk-input:1.5.6")
@@ -41,6 +42,9 @@ dependencies {
     implementation("org.eclipse.jetty.ee10:jetty-ee10-servlet:12.1.13")
 
     testImplementation("io.github.skylot:jadx-gui:1.5.6")
+    // Phase 5.2 feasibility only: inspect the pinned loaded tree and codec.
+    testImplementation("io.github.skylot:jadx-rename-mappings:1.5.6")
+    testImplementation("net.fabricmc:mapping-io:0.8.0")
     testImplementation("com.google.code.gson:gson:2.14.0")
     testImplementation("org.junit.jupiter:junit-jupiter:5.12.2")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.12.2")
@@ -150,4 +154,28 @@ tasks.register<Test>("nativeEditGuiRoundTripTest") {
     classpath = sourceSets.test.get().runtimeClasspath
     filter { includeTestsMatching("dev.libjadx.probes.NativeEditGuiReverseRoundTripTest") }
     environment("LIBJADX_EDIT_GUI_SAVED_PROJECT", editGuiSavedProject.get().asFile.absolutePath)
+}
+
+val mappingGuiSavedProject = layout.buildDirectory.file("mapping-export-gui-fixture/gui-resaved.jadx")
+
+tasks.register<Exec>("saveExportedMappingsWithMatchingGui") {
+    dependsOn(tasks.test)
+    val guiPath = providers.environmentVariable("JADX_GUI")
+    doFirst {
+        if (!guiPath.isPresent) throw GradleException("Set JADX_GUI to the matching jadx-gui executable")
+    }
+    commandLine(
+        "bash", "tests/gui-round-trip.sh", guiPath.orNull ?: "",
+        layout.buildDirectory.file("mapping-export-gui-fixture/mapping-copy.jadx").get().asFile.absolutePath,
+        mappingGuiSavedProject.get().asFile.absolutePath,
+    )
+}
+
+tasks.register<Test>("mappingExportGuiRoundTripTest") {
+    dependsOn("saveExportedMappingsWithMatchingGui")
+    useJUnitPlatform()
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    filter { includeTestsMatching("dev.libjadx.probes.MappingExportGuiReverseRoundTripTest") }
+    environment("LIBJADX_MAPPING_GUI_SAVED_PROJECT", mappingGuiSavedProject.get().asFile.absolutePath)
 }

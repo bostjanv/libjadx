@@ -249,6 +249,25 @@ public final class ProjectRuntime implements AutoCloseable {
 		}
 	}
 
+	/** Export admission never changes lifecycle, logical/index revisions or cache publication. */
+	<T> T withExclusiveMappingExport(dev.libjadx.core.mappings.MappingExportDtos.Request request,
+			MappingExportOperation<T> operation) throws Exception {
+		try (var lease = admit(OperationRequest.projectExclusive("mapping-export"))) {
+			NativeProjectRepository current = repository;
+			ProjectSnapshot before = current.snapshot();
+			if (!before.revisions().sessionId().equals(request.expectedSessionId())
+					|| before.revisions().logicalRevision() != request.expectedLogicalRevision()) {
+				throw new NativeProjectRepository.StaleRevisionException("Expected project revision is stale");
+			}
+			return operation.apply(new MappingExportContext(activeEngine.decompiler(), before, current.mappingExportSource(), current));
+		}
+	}
+	@FunctionalInterface interface MappingExportOperation<T> { T apply(MappingExportContext context) throws Exception; }
+	record MappingExportContext(JadxDecompiler decompiler, ProjectSnapshot before,
+			NativeProjectRepository.MappingExportSource source, NativeProjectRepository repository) {
+		void checkBaselines() throws java.io.IOException { repository.checkExportBaselines(); }
+	}
+
 	final class EditContext {
 		private final NativeProjectRepository current;
 		private final ProjectEngine engine;
@@ -980,11 +999,13 @@ public final class ProjectRuntime implements AutoCloseable {
 		default void reloadCodeData(JadxCodeData codeData) {
 			JadxDecompiler jadx = decompiler();
 			jadx.getArgs().setCodeData(codeData);
-			jadx.reloadCodeData();
 			// In 1.5.6 reloadCodeData only notifies code-data listeners. Previously
 			// decompiled Java remains cached until each owner is explicitly unloaded.
 			// An edit can change references in any owner, so invalidate all owners.
+			// Unload BEFORE notifying listeners: deepUnload clears CODE_COMMENTS,
+			// including attached mapping comments reapplied by ApplyMappingsPass.
 			for (var cls : jadx.getClasses()) cls.unload();
+			jadx.reloadCodeData();
 		}
 
 		@Override

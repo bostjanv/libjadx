@@ -1,0 +1,5 @@
+LibJadx uses net.fabricmc:mapping-io:0.8.0, a FabricMC mapping-file library.
+Upstream: https://github.com/FabricMC/mapping-io
+License: Apache License 2.0 (see MAPPING-IO-LICENSE).
+License/source-version audit: commit 5eb15ddbd3f1d8fbecccb79392192ff86b5c65f0.
+This attribution does not imply upstream endorsement of LibJadx.

@@ -122,6 +122,59 @@ paths:
                 $ref: '#/components/schemas/FixedProject'
         'default':
           $ref: '#/components/responses/ApiErrorResponse'
+  /project/mappings/export:
+    post:
+      tags: [Project]
+      operationId: exportMappings
+      summary: Export verified current declarations to a new Tiny v2 file
+      description: >-
+        Strict synchronous export of accepted attached Tiny v2 declarations plus
+        current native class/method/field aliases and LINE declaration comments.
+        Native aliases take precedence; attached and native comments are additive.
+        Does not save, attach the output, or change project state or revisions.
+        Requires an absolute normalized .tiny path with an existing nonsymlink
+        parent under allowed roots. Existing targets are never overwritten,
+        including create-after-check races. Unsupported structures, namespaces,
+        inversion, duplicate/unknown records or unresolved keys fail before output.
+        An attached zero-byte mapping file returns 422 UNSUPPORTED_CAPABILITY;
+        no attached mapping and no native edits may export a header-only Tiny file.
+        Limits are 64 KiB request, 4096 path characters, 10000 declaration/comment
+        entries, 4 MiB source/output bytes, 16384 characters per string and a
+        conservative 16 MiB intermediate allocation budget. Native project
+        baseline hashing is capped at 16 MiB. No partial output.
+        Cross-origin requests return INPUT_SECURITY_REJECTION. Incompatible
+        engine work returns prompt PROJECT_BUSY. Filesystems without supported
+        hard-link publication fail closed. Parent identity is rechecked before
+        publication; uncooperative directory replacement during the final syscall
+        remains an operating-system TOCTOU limitation. Post-publication failures
+        report published:true and targetPath; clients must not blindly retry.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MappingExportRequest' }
+      responses:
+        '200':
+          description: New output published after codec read-back verification; counts and hash observed.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MappingExportReceipt' }
+        '400': { $ref: '#/components/responses/ApiErrorResponse' }
+        '403': { $ref: '#/components/responses/ApiErrorResponse' }
+        '409':
+          description: STALE_REVISION, PROJECT_BUSY or EXTERNAL_MODIFICATION_CONFLICT; no output published.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '415': { $ref: '#/components/responses/ApiErrorResponse' }
+        '422':
+          description: UNSUPPORTED_CAPABILITY with bounded categories; no output published.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '429': { $ref: '#/components/responses/ApiErrorResponse' }
+        '500': { $ref: '#/components/responses/ApiErrorResponse' }
+        '503': { $ref: '#/components/responses/ApiErrorResponse' }
   /project/save:
     post:
       tags: [Project]
@@ -648,6 +701,40 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorEnvelope'
   schemas:
+    MappingExportRequest:
+      type: object
+      additionalProperties: false
+      required: [targetPath, format, expectedSessionId, expectedLogicalRevision]
+      properties:
+        targetPath: { type: string, minLength: 1, maxLength: 4096 }
+        format: { type: string, const: TINY_V2 }
+        expectedSessionId: { type: string, format: uuid, pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' }
+        expectedLogicalRevision: { type: integer, minimum: 0, maximum: 9223372036854775807 }
+    MappingExportReceipt:
+      type: object
+      additionalProperties: false
+      required: [format, targetPath, sessionId, logicalRevision, source, completeness, exported, bytes, sha256, omissions, projectMutated]
+      properties:
+        format: { type: string, const: TINY_V2 }
+        targetPath: { type: string, maxLength: 4096 }
+        sessionId: { type: string, format: uuid }
+        logicalRevision: { type: integer, minimum: 0 }
+        source: { type: string, const: CURRENT_IN_MEMORY_WITH_ATTACHED_MAPPINGS }
+        completeness: { type: string, const: VERIFIED_DECLARATIONS }
+        exported: { $ref: '#/components/schemas/MappingExportCounts' }
+        bytes: { type: integer, minimum: 0, maximum: 4194304 }
+        sha256: { type: string, pattern: '^sha256:[0-9a-f]{64}$' }
+        omissions: { type: array, maxItems: 0, items: { type: object } }
+        projectMutated: { type: boolean, const: false }
+    MappingExportCounts:
+      type: object
+      additionalProperties: false
+      required: [classes, methods, fields, comments]
+      properties:
+        classes: { type: integer, minimum: 0, maximum: 10000 }
+        methods: { type: integer, minimum: 0, maximum: 10000 }
+        fields: { type: integer, minimum: 0, maximum: 10000 }
+        comments: { type: integer, minimum: 0, maximum: 10000 }
     EditBatchRequest:
       type: object
       additionalProperties: false

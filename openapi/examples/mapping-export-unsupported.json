@@ -1,0 +1,16 @@
+{
+  "error": {
+    "code": "UNSUPPORTED_CAPABILITY",
+    "message": "Current mapping data cannot be exported exactly",
+    "retryable": false,
+    "requestId": "example",
+    "details": {
+      "omissions": [
+        {
+          "category": "NATIVE_CODE_REF",
+          "count": 1
+        }
+      ]
+    }
+  }
+}

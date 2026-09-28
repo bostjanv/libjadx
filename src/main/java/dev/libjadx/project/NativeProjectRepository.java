@@ -88,6 +88,66 @@ public final class NativeProjectRepository {
 		return document == null ? null : document.getMappingsPath();
 	}
 
+	/** Export capture is read-only and always compares the accepted native baselines. */
+	public synchronized MappingExportSource mappingExportSource() throws IOException {
+		Path mapping = mappingsPath();
+		if (mapping != null && Files.exists(mapping) && Files.size(mapping) > dev.libjadx.core.mappings.MappingExportDtos.MAX_BYTES) {
+			throw dev.libjadx.core.mappings.MappingExportDtos.limit();
+		}
+		checkExportBaselines();
+		JadxCodeData code = document == null ? rawCodeData : document.getCodeData();
+		if ((long) code.getRenames().size() + code.getComments().size() > dev.libjadx.core.mappings.MappingExportDtos.MAX_ENTRIES) {
+			throw dev.libjadx.core.mappings.MappingExportDtos.limit();
+		}
+		long characters = 0;
+		for (var rename : code.getRenames()) characters += exportStringSize(rename.getNewName()) + exportRefSize(rename.getNodeRef());
+		for (var comment : code.getComments()) characters += exportStringSize(comment.getComment()) + exportRefSize(comment.getNodeRef());
+		if (characters * 16 + 1024L * (code.getRenames().size() + code.getComments().size())
+				> dev.libjadx.core.mappings.MappingExportDtos.MAX_MEMORY) throw dev.libjadx.core.mappings.MappingExportDtos.limit();
+		byte[] bytes = new byte[0];
+		if (mapping != null) {
+			checkedReference(mapping);
+			try (var input = Files.newInputStream(mapping)) {
+				bytes = input.readNBytes(dev.libjadx.core.mappings.MappingExportDtos.MAX_BYTES + 1);
+			}
+			if (bytes.length > dev.libjadx.core.mappings.MappingExportDtos.MAX_BYTES) throw dev.libjadx.core.mappings.MappingExportDtos.limit();
+			FileFingerprint expected = stagedMappingBaseline == null ? mappingBaseline : stagedMappingBaseline;
+			String digest = "sha256:" + java.util.HexFormat.of().formatHex(FileFingerprint.sha256Digest().digest(bytes));
+			if (!expected.present() || !Objects.equals(digest, expected.sha256())) {
+				throw new ExternalModificationException("Attached mappings changed during export capture");
+			}
+		}
+		checkExportBaselines();
+		List<Path> protectedPaths = new ArrayList<>(inputs);
+		if (currentPath() != null) protectedPaths.add(currentPath());
+		if (mapping != null) protectedPaths.add(mapping);
+		if (baselineMappingsPath != null) protectedPaths.add(baselineMappingsPath);
+		return new MappingExportSource(codeDataCopy(), bytes, mapping != null, List.copyOf(allowedRoots), List.copyOf(protectedPaths));
+	}
+
+	public synchronized void checkExportBaselines() throws IOException {
+		if ((currentPath() != null && Files.exists(currentPath()) && Files.size(currentPath()) > dev.libjadx.core.mappings.MappingExportDtos.MAX_MEMORY)
+				|| (baselineMappingsPath != null && Files.exists(baselineMappingsPath) && Files.size(baselineMappingsPath) > dev.libjadx.core.mappings.MappingExportDtos.MAX_BYTES)
+				|| (mappingsPath() != null && Files.exists(mappingsPath()) && Files.size(mappingsPath()) > dev.libjadx.core.mappings.MappingExportDtos.MAX_BYTES)) {
+			throw dev.libjadx.core.mappings.MappingExportDtos.limit();
+		}
+		if (!FileFingerprint.of(currentPath()).equals(projectBaseline)
+				|| !FileFingerprint.of(baselineMappingsPath).equals(mappingBaseline)
+				|| (stagedMappingBaseline != null && !FileFingerprint.of(mappingsPath()).equals(stagedMappingBaseline))) {
+			throw new ExternalModificationException("Native project or mappings changed since the accepted baseline");
+		}
+	}
+	private static long exportStringSize(String value) {
+		if (value == null) return 0;
+		if (value.length() > dev.libjadx.core.mappings.MappingExportDtos.MAX_STRING) throw dev.libjadx.core.mappings.MappingExportDtos.limit();
+		return value.length();
+	}
+	private static long exportRefSize(jadx.api.data.IJavaNodeRef ref) {
+		return ref == null ? 0 : exportStringSize(ref.getDeclaringClass()) + exportStringSize(ref.getShortId());
+	}
+	public record MappingExportSource(JadxCodeData codeData, byte[] mappingBytes, boolean hasAttachedMapping,
+			List<Path> allowedRoots, List<Path> protectedPaths) { }
+
 	/** Validate a native mapping setting without changing the live project. */
 	public synchronized MappingCandidate stageMappingsPath(Path mappings, long expectedRevision) throws IOException {
 		checkRevision(expectedRevision);

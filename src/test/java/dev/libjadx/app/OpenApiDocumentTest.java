@@ -76,6 +76,11 @@ class OpenApiDocumentTest {
 		assertTrue(yaml.path("components").path("schemas").path("RevisionSet")
 				.path("required").toString().contains("persistedIdentityState"));
 		ObjectMapper json = new ObjectMapper();
+		assertEquals("#/components/schemas/MappingExportReceipt", yaml.path("paths").path("/project/mappings/export").path("post")
+				.path("responses").path("200").path("content").path("application/json").path("schema").path("$ref").asText());
+		OpenApiExampleValidator.assertValid(yaml, "MappingExportRequest", json.readTree(Path.of("openapi/examples/mapping-export-request.json").toFile()));
+		OpenApiExampleValidator.assertValid(yaml, "MappingExportReceipt", json.readTree(Path.of("openapi/examples/mapping-export-receipt.json").toFile()));
+		OpenApiExampleValidator.assertValid(yaml, "ErrorEnvelope", json.readTree(Path.of("openapi/examples/mapping-export-unsupported.json").toFile()));
 		for (String file : List.of("project.json", "save-request.json", "reload-request.json", "settings-update-request.json",
 				"external-conflict.json", "project-busy.json", "job-queued.json",
 				"job-running-unknown-total.json", "job-cancelling.json", "job-succeeded.json",

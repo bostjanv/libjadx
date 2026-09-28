@@ -63,8 +63,21 @@ owners and use lightweight class metadata for class edits/collisions.
 The owned `EditOwner.java` regression checks unrelated classes before edit
 publication as well as after effective, rejected and no-op batches.
 Real HTTP, installed-distribution and matching-GUI resave checks are recorded
-in [editing evidence](phase-5-editing.md). Native mapping export remains
-unavailable for the safety reasons in [ADR 0001](adr/0001-defer-advanced-native-edits.md).
+in [editing evidence](phase-5-editing.md). Strict Tiny v2 export is isolated in
+`JadxMappingExportAdapter`, using the already installed headless
+`jadx-rename-mappings:1.5.6` plugin and `net.fabricmc:mapping-io:0.8.0` as
+explicit compile dependencies. No resolved runtime version changed. The
+codec's published POM specifies Apache 2.0; `licenses/MAPPING-IO-LICENSE` is
+bundled in `installDist`. Its license was checked against mapping-io source
+commit `5eb15ddbd3f1d8fbecccb79392192ff86b5c65f0`, whose `gradle.properties`
+declares 0.8.0 (a version-bearing source commit, not a claimed release build
+commit). Import remains unavailable. See [export evidence](phase-5-mapping-export.md)
+and [ADR 0001](adr/0001-defer-advanced-native-edits.md).
+
+Code-data replay unloads owners before notifying listeners. Pinned
+`ClassNode.deepUnload` clears `CODE_COMMENTS`; the old order erased attached
+mapping comments reapplied by `ApplyMappingsPass`. The export regression
+compares exact Java before export and after fresh-engine mapping loading.
 
 For Phase 5.1, the exact 1.5.6 Maven source JAR was inspected for public
 `JavaClass.getOriginalTopParentClass`, `getTopParentClass`, `getCodeInfo`,
