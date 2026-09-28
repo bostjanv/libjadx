@@ -30,7 +30,7 @@ public final class MappingExportService {
 			});
 			try (output) {
 				hook.at("ENCODE");
-				var encoded = adapter.encode(context.decompiler(), source.codeData(), source.mappingBytes());
+				var encoded = adapter.encode(context.decompiler(), source.codeData(), source.mappingBytes(), source.hasAttachedMapping());
 				output.stage(encoded.bytes());
 				hook.at("VERIFY");
 				byte[] observed = output.readStaged();

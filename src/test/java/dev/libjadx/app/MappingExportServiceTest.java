@@ -36,6 +36,52 @@ class MappingExportServiceTest {
 			+ "\tf\tI\tcount\tattachedCount\n\t\tc\tattached field comment\n";
 
 	@Test
+	void unattachedRawInputWithEmptyCodeDataExportsOnlyTinyHeader() throws Exception {
+		Path jar = SymbolFixtureSupport.compileEditFixture(dir);
+		try (var runtime = new ProjectRuntime(null, List.of(jar), List.of(dir))) {
+			runtime.initializeAsync(null).get(20, TimeUnit.SECONDS);
+			assertNull(runtime.decompiler().getArgs().getUserRenamesMappingsPath());
+			var before = runtime.projectSnapshot();
+			var identity = runtime.searchIdentity();
+			var receipt = new MappingExportService(runtime).export(request(runtime, "header.tiny"));
+			assertEquals("tiny\t2\t0\toriginal\tmapped\n", Files.readString(dir.resolve("header.tiny")));
+			assertEquals(new MappingExportDtos.Counts(0, 0, 0, 0), receipt.exported());
+			assertEquals("VERIFIED_DECLARATIONS", receipt.completeness());
+			assertFalse(receipt.projectMutated()); assertTrue(receipt.omissions().isEmpty());
+			assertFalse(before.dirty()); assertEquals(before, runtime.projectSnapshot());
+			assertEquals(identity, runtime.searchIdentity()); assertNoStaging();
+		}
+	}
+
+	@Test
+	void attachedZeroByteMappingRejectsBeforeStagingAndPreservesCleanAndDirtyState() throws Exception {
+		try (var runtime = project("")) {
+			assertEquals("READY", runtime.status().state());
+			assertNull(jadx.plugins.mappings.RenameMappingsData.getTree(runtime.decompiler().getRoot()));
+			assertEquals(dir.resolve("attached.tiny"), runtime.decompiler().getArgs().getUserRenamesMappingsPath());
+			var nativeHash = FileFingerprint.of(dir.resolve("project.jadx"));
+			var mappingHash = FileFingerprint.of(dir.resolve("attached.tiny"));
+			for (boolean dirty : List.of(false, true)) {
+				if (dirty) new EditBatchService(runtime).apply(new EditDtos.Request(null, null, List.of(
+						new EditDtos.Operation(EditDtos.Kind.RENAME, SymbolRef.classRef("Lprobe/EditOwner;"), "UnsavedOwner", null, null))));
+				var before = runtime.projectSnapshot();
+				var identity = runtime.searchIdentity();
+				String pending = runtime.pendingEdits().toString();
+				String target = "empty-attached-" + dirty + ".tiny";
+				var error = assertThrows(MappingExportDtos.Problem.class, () -> new MappingExportService(runtime, stage -> {
+					assertEquals("ENCODE", stage, "Must reject before staging or publication");
+				}).export(request(runtime, target)));
+				assertEquals(422, error.status()); assertEquals("UNSUPPORTED_CAPABILITY", error.code());
+				assertEquals(dirty, before.dirty()); assertEquals(before, runtime.projectSnapshot());
+				assertEquals(identity, runtime.searchIdentity()); assertEquals(pending, runtime.pendingEdits().toString());
+				assertEquals(nativeHash, FileFingerprint.of(dir.resolve("project.jadx")));
+				assertEquals(mappingHash, FileFingerprint.of(dir.resolve("attached.tiny")));
+				assertFalse(Files.exists(dir.resolve(target))); assertNoStaging();
+			}
+		}
+	}
+
+	@Test
 	void exportIncludesAttachedAndUnsavedDeclarationsWithoutChangingAnyProjectIdentity() throws Exception {
 		try (var runtime = project(ATTACHED)) {
 			var service = new EditBatchService(runtime);

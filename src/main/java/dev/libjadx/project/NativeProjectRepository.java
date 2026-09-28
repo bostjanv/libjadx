@@ -122,7 +122,7 @@ public final class NativeProjectRepository {
 		if (currentPath() != null) protectedPaths.add(currentPath());
 		if (mapping != null) protectedPaths.add(mapping);
 		if (baselineMappingsPath != null) protectedPaths.add(baselineMappingsPath);
-		return new MappingExportSource(codeDataCopy(), bytes, List.copyOf(allowedRoots), List.copyOf(protectedPaths));
+		return new MappingExportSource(codeDataCopy(), bytes, mapping != null, List.copyOf(allowedRoots), List.copyOf(protectedPaths));
 	}
 
 	public synchronized void checkExportBaselines() throws IOException {
@@ -145,7 +145,8 @@ public final class NativeProjectRepository {
 	private static long exportRefSize(jadx.api.data.IJavaNodeRef ref) {
 		return ref == null ? 0 : exportStringSize(ref.getDeclaringClass()) + exportStringSize(ref.getShortId());
 	}
-	public record MappingExportSource(JadxCodeData codeData, byte[] mappingBytes, List<Path> allowedRoots, List<Path> protectedPaths) { }
+	public record MappingExportSource(JadxCodeData codeData, byte[] mappingBytes, boolean hasAttachedMapping,
+			List<Path> allowedRoots, List<Path> protectedPaths) { }
 
 	/** Validate a native mapping setting without changing the live project. */
 	public synchronized MappingCandidate stageMappingsPath(Path mappings, long expectedRevision) throws IOException {

@@ -36,7 +36,7 @@ public final class JadxMappingExportAdapter {
 	public record Encoded(byte[] bytes, Counts counts, Map<String, Value> semantics) { }
 	public record Value(String alias, String comment) { }
 
-	public Encoded encode(JadxDecompiler engine, JadxCodeData code, byte[] acceptedMapping) throws IOException {
+	public Encoded encode(JadxDecompiler engine, JadxCodeData code, byte[] acceptedMapping, boolean hasAttachedMapping) throws IOException {
 		if (engine.getArgs().getPluginOptions().entrySet().stream().anyMatch(entry -> entry.getKey().startsWith("rename-mappings."))) {
 			throw unsupported("MAPPING_PLUGIN_OPTIONS_OR_INVERSION");
 		}
@@ -45,9 +45,10 @@ public final class JadxMappingExportAdapter {
 		for (var rename : code.getRenames()) budgetNativeRef(budget, rename.getNodeRef());
 		for (var comment : code.getComments()) budgetNativeRef(budget, comment.getNodeRef());
 		budget.bytes(acceptedMapping.length * 5L);
-		MemoryMappingTree tree = acceptedMapping.length == 0 ? empty() : parse(acceptedMapping, budget);
+		// Attachment presence is independent of byte length: an empty attached file is malformed.
+		MemoryMappingTree tree = hasAttachedMapping ? parse(acceptedMapping, budget) : empty();
 		MappingTreeView loaded = RenameMappingsData.getTree(engine.getRoot());
-		if ((loaded == null && acceptedMapping.length != 0)
+		if ((loaded == null && hasAttachedMapping)
 				|| (loaded != null && !canonical(tree).equals(canonical(loaded)))) {
 			throw unsupported("LOADED_MAPPING_DIFFERS_FROM_ACCEPTED_SOURCE");
 		}

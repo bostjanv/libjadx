@@ -137,7 +137,7 @@ class JadxMappingExportProbeTest {
 			engine.load();
 			assertEquals("mapped", RenameMappingsData.getTree(engine.getRoot()).getSrcNamespace());
 			var failure = assertThrows(dev.libjadx.core.mappings.MappingExportDtos.Problem.class,
-					() -> new dev.libjadx.jadxadapter.JadxMappingExportAdapter().encode(engine, new JadxCodeData(), Files.readAllBytes(mapping)));
+					() -> new dev.libjadx.jadxadapter.JadxMappingExportAdapter().encode(engine, new JadxCodeData(), Files.readAllBytes(mapping), true));
 			assertEquals(422, failure.status());
 		}
 		Files.writeString(mapping, "tiny\t2\t0\toriginal\tfirst\tsecond\nc\tprobe/SymbolFixture\tprobe/First\tprobe/Second\n");
@@ -146,7 +146,7 @@ class JadxMappingExportProbeTest {
 		try (var engine = engine(jar, mapping, new JadxCodeData())) {
 			assertNull(RenameMappingsData.getTree(engine.getRoot()));
 			var failure = assertThrows(dev.libjadx.core.mappings.MappingExportDtos.Problem.class,
-					() -> new dev.libjadx.jadxadapter.JadxMappingExportAdapter().encode(engine, new JadxCodeData(), Files.readAllBytes(mapping)));
+					() -> new dev.libjadx.jadxadapter.JadxMappingExportAdapter().encode(engine, new JadxCodeData(), Files.readAllBytes(mapping), true));
 			assertEquals(422, failure.status());
 		}
 	}

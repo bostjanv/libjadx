@@ -27,6 +27,33 @@ class MappingExportEndpointsTest {
 	@TempDir Path dir;
 
 	@Test
+	void explicitlyAttachedZeroByteTinyReturns422WithoutOutputOrStateChanges() throws Exception {
+		Path jar = SymbolFixtureSupport.compileEditFixture(dir);
+		Path mapping = dir.resolve("empty.tiny"); Files.write(mapping, new byte[0]);
+		Path nativePath = dir.resolve("empty-attached.jadx");
+		var document = dev.libjadx.project.NativeProjectDocument.newFromInputs(nativePath, List.of(jar)).withMappingsPath(mapping);
+		document.save();
+		try (var runtime = new ProjectRuntime(nativePath, List.of(jar), List.of(dir));
+				var server = new HttpApiServer("127.0.0.1", 0, runtime)) {
+			server.start(); runtime.initializeAsync(document).get(20, TimeUnit.SECONDS);
+			assertEquals("READY", runtime.status().state());
+			assertNull(jadx.plugins.mappings.RenameMappingsData.getTree(runtime.decompiler().getRoot()));
+			JsonNode before = get(server, "/project");
+			var nativeHash = FileFingerprint.of(nativePath);
+			var mappingHash = FileFingerprint.of(mapping);
+			Path target = dir.resolve("rejected.tiny");
+			JsonNode error = capture("empty-attached-source", send(server, "/project/mappings/export", request(runtime, target), null, null), 422);
+			assertEquals("UNSUPPORTED_CAPABILITY", error.path("error").path("code").asText());
+			assertFalse(Files.exists(target)); assertEquals(before, get(server, "/project"));
+			assertFalse(before.path("dirty").asBoolean());
+			assertEquals(nativeHash, FileFingerprint.of(nativePath)); assertEquals(mappingHash, FileFingerprint.of(mapping));
+			try (var paths = Files.list(dir)) {
+				assertTrue(paths.noneMatch(path -> path.getFileName().toString().startsWith(".libjadx-mapping-")));
+			}
+		}
+	}
+
+	@Test
 	void successfulExportRetainsDirtyStateSourceSnapshotAndClassAndSearchCursors() throws Exception {
 		Path jar = SymbolFixtureSupport.compileEditFixture(dir);
 		try (var runtime = new ProjectRuntime(null, List.of(jar), List.of(dir));

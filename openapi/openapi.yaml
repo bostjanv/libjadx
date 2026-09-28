@@ -136,6 +136,8 @@ paths:
         parent under allowed roots. Existing targets are never overwritten,
         including create-after-check races. Unsupported structures, namespaces,
         inversion, duplicate/unknown records or unresolved keys fail before output.
+        An attached zero-byte mapping file returns 422 UNSUPPORTED_CAPABILITY;
+        no attached mapping and no native edits may export a header-only Tiny file.
         Limits are 64 KiB request, 4096 path characters, 10000 declaration/comment
         entries, 4 MiB source/output bytes, 16384 characters per string and a
         conservative 16 MiB intermediate allocation budget. Native project
