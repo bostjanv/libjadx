@@ -105,7 +105,7 @@ assert not validator.is_valid(related_request)
 related_request["items"][0]["propagateRelated"] = False
 validator.validate(related_request)
 related = sorted((root / "build/related-contract-responses").glob("*.json"))
-assert len(related) == 32, "Run RelatedPropagationEndpointsTest for all final-head HTTP captures"
+assert len(related) == 36, "Run RelatedPropagationEndpointsTest for all final-head HTTP captures"
 statuses = set()
 for path in related:
     record = json.loads(path.read_text())
@@ -123,4 +123,10 @@ for name in ("applied", "no-change"):
     assert result["items"][0]["affectedRefs"] == family
     assert result["outcome"] == ("APPLIED" if name == "applied" else "NO_CHANGE")
 assert json.loads((root / "build/related-contract-responses/false.json").read_text())["body"]["items"][0]["affectedRefs"] == []
+for order in ("group-first", "ordinary-first"):
+    for flag in ("false", "omitted"):
+        record = json.loads((root / f"build/related-contract-responses/mixed-{order}-{flag}.json").read_text())
+        assert record["status"] == 400
+        assert record["body"]["error"]["code"] == "INVALID_REQUEST"
+        assert record["body"]["error"]["details"]["itemErrors"][0]["index"] == (1 if order == "group-first" else 0)
 print(f"{len(related)} related-propagation live HTTP responses valid; exact propagated family and no-op receipts verified")

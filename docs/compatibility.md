@@ -229,8 +229,9 @@ semantics and empty affectedRefs. Applied and verified no-op groups return exact
 original family refs; no-op requires every explicit member record already present.
 
 Limits: 64 per family; four propagated items, 128 total members and 800000 reserved
-verification work per batch. No class rename shares a group batch; parameter
-edits on members reject. Raw hidden bridge/synthetic methods block collisions,
+verification work per batch. No class or ordinary method rename shares a group
+batch; parameter edits on members reject. Field renames and declaration comments
+may coexist. Raw hidden bridge/synthetic methods block collisions,
 without becoming admitted members. Standard Jadx records persist only on explicit
 save. Restart/discard/reload, accepted input/mapping conflicts and actual matching
 GUI Save As retain their native-only behavior. Covariant/bridge, missing/external,

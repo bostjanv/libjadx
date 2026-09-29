@@ -75,8 +75,19 @@ revision errors retain the existing batch-level STALE_REVISION classification.
 All groups expand before ordinary item validation or any staging. Overlapping
 propagated groups, repeated family seeds, ordinary rename of a group member,
 contradictory/duplicate native rename keys and parameter edits on group members
-reject regardless of item ordering. Class renames cannot share a batch with a
-group; separate batches retain class editing. Declaration comments may coexist.
+reject regardless of item ordering. Class renames and ordinary METHOD renames
+cannot share a batch with a group, including disjoint and no-op method renames;
+400 INVALID_REQUEST identifies the excluded operation. Separate batches retain
+ordinary class/method editing. Field renames and declaration comments may coexist.
+
+Pinned `UserRenames.apply` calls `MethodNode.rename`, which can alias every current
+METHOD_OVERRIDE candidate in another owner. A proposed-name map of explicit
+operation targets cannot bound those effects; candidates remain incomplete and
+processing-sensitive. The review regression uses `P.foo` / `C.foo` and `B.bar` /
+`C.bar`: an ordinary rename on P can alias C.foo, colliding with a propagated bar
+family in C. Both batch orders reject before staging, without changing intent,
+revisions or the engine. Ordinary rename alone retains its existing implicit
+behavior. No candidate relation is promoted to group-admission authority.
 
 Each family owner's ClassNode method inventory includes raw synthetic/bridge and
 compiler-generated declarations, including those excluded by the public Java

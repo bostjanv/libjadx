@@ -6,6 +6,10 @@
   current session/revision and independently COMPLETE closed-input membership.
 - Raw per-owner method collisions, overlapping batches and scoped-member conflicts
   fail closed before staging. Whole groups stage privately as standard native records.
+- A batch containing propagated groups rejects all ordinary METHOD renames with
+  400 INVALID_REQUEST, including disjoint/no-op renames, because pinned Jadx may
+  implicitly alias override candidates in another owner. Fields/comments remain
+  allowed; ordinary method renames alone retain their existing behavior.
 - APPLIED and verified NO_CHANGE return exact sorted affectedRefs. Explicit native
   save, fresh replacement, restart/discard and matching-GUI Save As are preserved.
 - Per-family 64; per-batch four groups, 128 members and 800000 reserved work units.

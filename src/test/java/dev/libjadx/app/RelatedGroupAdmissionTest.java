@@ -142,13 +142,14 @@ class RelatedGroupAdmissionTest {
 		var inputs=RelatedFixture.compile(dir);
 		try(var runtime=new ProjectRuntime(null,inputs,List.of(dir))) {
 			runtime.initializeAsync(null).get(30,TimeUnit.SECONDS);
-			var ordinary=ReplacementStateTest.rename(RelatedFixture.ref("Unrelated","work","(I)I"),"prefixWork");
+			var ordinary=new EditDtos.Operation(EditDtos.Kind.SET_COMMENT,RelatedFixture.ref("Unrelated","work","(I)I"),null,"prefix comment","LINE");
 			var comment=new EditDtos.Operation(EditDtos.Kind.SET_COMMENT,SymbolRef.classRef("Lrelated/Hierarchy;"),null,"suffix","LINE");
 			var service=new EditBatchService(runtime,i->{},(item,member)->{if(member==fault)throw new IllegalStateException("group fault");});
 			var result=service.apply(request(runtime,ordinary,propagated(SEED,ALIAS),comment));
 			assertEquals("PARTIAL",result.outcome()); assertEquals(List.of("APPLIED","FAILED","SKIPPED"),result.items().stream().map(EditDtos.ItemResult::status).toList());
 			assertTrue(result.items().stream().allMatch(i->i.affectedRefs().isEmpty()));
-			assertEquals(1,runtime.<Integer>withExclusiveEdit(c->c.codeDataCopy().getRenames().size()).intValue());
+			assertEquals(0,runtime.<Integer>withExclusiveEdit(c->c.codeDataCopy().getRenames().size()).intValue());
+			assertEquals(1,runtime.<Integer>withExclusiveEdit(c->c.codeDataCopy().getComments().size()).intValue());
 			assertEquals("joined",RelatedFixture.method(runtime.decompiler(),SEED).getName());
 			var next=new EditBatchService(runtime,i->{if(i==1)throw new IllegalStateException("ordinary fault");});
 			var prefix=next.apply(request(runtime,propagated(SEED,ALIAS),comment));

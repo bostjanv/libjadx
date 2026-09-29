@@ -80,10 +80,12 @@ compiler bridge while raw collision admission rejects it.
 10. One invisible/uneditable/unrepresentable member rejects the entire item.
 11. Raw ClassNode inventory includes hidden synthetic and compiler bridge methods.
 12. Every family owner checks alias plus argument descriptor, excluding return type.
-13. Full proposed names detect collisions created by other batch items in both orders;
-    current names conservatively reject obstacle-removal batches too.
+13. Full proposed names detect collisions between propagated groups in both orders;
+    current names conservatively reject obstacle-removal batches too. Ordinary
+    method renames cannot share a group batch because their implicit candidate
+    effects are not bounded by explicit operation targets.
 14. Propagated groups cannot overlap, even with matching requested aliases.
-15. Ordinary renames cannot overlap a family member.
+15. Ordinary METHOD renames cannot share a group batch, even when disjoint or no-op.
 16. Parameter edits cannot target a group member in the same batch. Class renames
     also cannot share a group batch; separate batches remain supported.
 17. One standard native declaration rename per exact original family member.
@@ -110,14 +112,15 @@ compiler bridge while raw collision admission rejects it.
 36. Final evidence string is INDEPENDENT_CLOSED_INPUT_FAMILY_GUI_VERIFIED (PARTIAL).
 37. Final commands, counts and artifacts are recorded below; opt-in skips are never passes.
 
-## Final validation
+## Initial validation at 4c507f1
 
-**Outcome A passed locally.** All results below use the final implementation,
-contract and test patch. The 27-file manifest in
+The initial patch passed the gates below but review subsequently identified the
+mixed-batch gap described in the correction section. These are historical results
+at `4c507f1`, not final evidence for the correction. The 27-file manifest in
 `/tmp/pr19-implementation-final-manifest.json` records implementation fingerprint
 `2ec0f677d123da8708578a176141859ea5f1b1b35b44c3bcd36539fc3d76a6a0`;
-each file was unchanged through final validation. Subsequent edits only finish
-this documentation. No preliminary or historical GUI run counts here.
+each file was unchanged through that initial validation. The correction below
+changes the implementation and records a new set of final-patch results.
 
 ```bash
 ./gradlew test --offline \
@@ -188,6 +191,101 @@ not large-project latency guarantees and do not justify cross-admission caching.
 | Five-member chain | 5 | 16 | 90 | 1.148 | 0.944 | 314.576 | 320.291 |
 | Inclusive 64-member boundary | 64 | 127 | 1204 | 2.916 | 4.723 | 283.744 | 300.327 |
 | Two independent groups | 8 | 14 | 128 | 1.310 | 0.627 | 267.857 | 274.691 |
+
+## Review correction — implicit mixed-batch method aliases
+
+[Review 5371710387](https://github.com/bostjanv/libjadx/pull/19#pullrequestreview-5371710387)
+identified a blocking gap: the proposed-name map contains explicit operation
+targets, but an ordinary one-record method rename may implicitly alias another
+owner's override declaration. The pinned
+[MethodNode.rename](https://github.com/skylot/jadx/blob/28ff15e4ae69950aebea110a13e5ab895d234dfc/jadx-core/src/main/java/jadx/core/dex/nodes/MethodNode.java#L665)
+sets aliases across METHOD_OVERRIDE candidates when called by UserRenames.
+Those incomplete candidates cannot bound the effects for group preflight.
+
+The conservative fix rejects every ordinary METHOD RENAME in a batch containing
+propagated groups, even if disjoint or no-op. Both item orders return indexed
+400 INVALID_REQUEST before staging/replacement and preserve native intent,
+revisions, dirty state and engine identity. Ordinary method renames alone retain
+their implicit behavior; fields and declaration comments can coexist with groups.
+The existing all-member fault test now uses a comment prefix, retaining its
+first/middle/final atomicity assertions without relying on an excluded batch.
+OpenAPI and current admission documentation describe this boundary.
+
+`RelatedGroupMixedBatchTest` owns a P/C override pair for foo and B/C complete
+family for bar. It proves a one-record P.foo rename reaches C.foo, and rejects
+mixed renames that would collide on target in C. Before the fix, all four
+cold/hot × ordinary-first/group-first regressions failed because no rejection
+was thrown. It also tests disjoint/no-op rejection, allowed field/comment batches
+and later propagation against an already-effective ordinary alias. HTTP tests
+capture both orders with omitted/false ordinary flags; the validator now requires
+all 36 propagation captures and exact ordinary-item error indices.
+
+### Final correction validation
+
+All gates below passed on the corrected implementation. The 28-file manifest in
+`/tmp/pr19-review-final-manifest.json` records implementation/contract/test hashes;
+every file remained unchanged through these runs. Only documentation was finished
+after validation. Initial-head results above are not counted here.
+
+```bash
+# Before the fix: all four cases failed because the unsafe batch was accepted.
+./gradlew test --offline \
+  --tests 'dev.libjadx.app.RelatedGroupMixedBatchTest.sharedOwnerImplicitRenameCannotCollideWithPropagatedGroup'
+
+# Corrected patch:
+./gradlew test --offline \
+  --tests dev.libjadx.app.RelatedGroupMixedBatchTest \
+  --tests dev.libjadx.app.RelatedGroupAdmissionTest \
+  --tests dev.libjadx.app.RelatedPropagationEndpointsTest \
+  --tests dev.libjadx.app.OpenApiDocumentTest
+./gradlew clean check --offline --rerun-tasks
+./gradlew installDist --offline
+JADX_GUI=/tmp/libjadx-rerun-jadx-1.5.6/bin/jadx-gui ./gradlew \
+  guiRoundTripTest rawGuiRoundTripTest nativeEditGuiRoundTripTest \
+  mappingExportGuiRoundTripTest mappingImportGuiRoundTripTest \
+  scopedEditGuiRoundTripTest relatedPropagationGuiRoundTripTest \
+  propagatedEditReplayGuiDiagnosticTest safeReplayGuiDiagnosticTest \
+  replacementEditGuiRoundTripTest propagatedEditGuiRoundTripTest \
+  --offline --rerun-tasks -x test
+/tmp/libjadx-rerun-contract-venv/bin/python tests/validate-edit-contract.py
+/tmp/libjadx-rerun-contract-venv/bin/python tests/validate-mapping-export-contract.py
+/tmp/libjadx-rerun-contract-venv/bin/python tests/validate-mapping-import-contract.py
+/tmp/libjadx-rerun-contract-venv/bin/python tests/validate-search-contract.py
+git diff --check
+git diff --check origin/main...HEAD
+```
+
+| Gate | Corrected-patch result |
+|---|---|
+| Reproduction before fix | Four cold/hot × item-order cases failed: expected rejection, but nothing was thrown |
+| Focused regression | BUILD SUCCESSFUL, 50s; four classes, 31 passed, zero skips/failures/errors |
+| Clean full check | BUILD SUCCESSFUL, 9m 19s; 84 classes, 468 tests: 457 passed, eleven opt-in GUI skips, zero failures/errors |
+| Installed distribution | BUILD SUCCESSFUL, 2s; clean check also passed packaged startup/save/restart regressions |
+| All eleven dedicated GUI tasks | BUILD SUCCESSFUL, 7m 8s; eleven passed, zero skips/failures/errors; 22 actual matching-1.5.6 GUI Save As operations, including all four propagation seeds |
+| Edit contract | OpenAPI 3.1 valid; 16 examples, 20 ordinary HTTP captures, four injected service results, 18 scoped captures, 36 propagation captures validated |
+| Other contracts | Export: three examples/31 captures; import: four examples/41 captures; search: four examples/33 captures; all OpenAPI 3.1 validation passed |
+| Patch hygiene | Both diff checks passed; new-file whitespace and review/admission documentation links checked |
+
+The GUI command reuses preparation from the clean check and reruns every
+dedicated Exec/Test task. Its eleven successful tests cover the ordinary suite's
+eleven opt-in skips; no earlier-head GUI result is substituted. Native save,
+restart/discard, unrelated records/comments/mappings, all four explicit group
+records and declaration tokens, fresh aliases and known GUI unknown-field
+behavior remain verified. Logs are `/tmp/pr19-review-regression-{red,green}.log`,
+`/tmp/pr19-review-{clean,distribution,gui}-final.log` and
+`/tmp/pr19-review-{edit,mapping-export,mapping-import,search}-contract-final.log`.
+Counts are `/tmp/pr19-review-{focused,clean,gui}-counts.json`.
+
+The corrected clean run refreshed `build/related-group-probe/performance.json`.
+With the same warm-metadata measurement limits described above:
+
+| Fixture | Verification work | Verification ms | Resolution/inventory ms | Replacement load ms | Service ms |
+|---|---:|---:|---:|---:|---:|
+| Singleton | 8 | 0.714 | 1.585 | 287.588 | 293.357 |
+| Joined | 75 | 0.775 | 0.318 | 141.764 | 146.910 |
+| Five-member chain | 90 | 1.765 | 0.935 | 286.126 | 294.792 |
+| Inclusive 64-member boundary | 1204 | 3.802 | 3.668 | 147.416 | 162.981 |
+| Two independent groups | 128 | 1.156 | 0.644 | 195.846 | 201.248 |
 
 ## Persistence and next milestone
 

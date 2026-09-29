@@ -256,8 +256,9 @@ explicit native rename per member. The receipt returns exact sorted original
 `affectedRefs`; omitted/false retains ordinary behavior and empty affected refs.
 
 Limits are 64 members per family, four propagated items and 128 total members
-per batch. Overlapping renames, parameter edits on group members and class
-renames in the same batch reject. Bridge/covariant, missing/external, duplicate
+per batch. Overlapping renames, parameter edits on group members, class renames
+and ordinary method renames in the same batch reject. Field renames and comments
+may coexist with a group. Bridge/covariant, missing/external, duplicate
 and other unproved families remain unsupported. Every edit stays in memory until
 explicit native save; saved groups survive matching-GUI Save As and restart.
 See [admission rules and persistence evidence](docs/phase-5-related-group-admission.md).

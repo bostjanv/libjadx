@@ -388,8 +388,11 @@ paths:
         work per batch (64 members, 10000 nodes, 200000 work per verification).
         Each owner is checked against all raw methods, including hidden synthetic/bridge
         declarations, using name plus original arguments (excluding return type).
-        Overlapping renames, parameter edits in a group and class renames in a batch
-        containing a group are rejected. Collision-removing batches are conservatively
+        Overlapping renames, parameter edits in a group, class renames and ordinary
+        METHOD renames in a batch containing a group return 400 INVALID_REQUEST.
+        Ordinary METHOD renames are excluded even when disjoint or no-op because
+        pinned Jadx can implicitly alias declarations in other owners. Field renames
+        and declaration comments may coexist with a group. Collision-removing batches are conservatively
         rejected to keep every possible committed prefix safe. One logical group stages
         privately and atomically, writing standard explicit native records for every
         member; native save remains explicit. APPLIED and verified NO_CHANGE return

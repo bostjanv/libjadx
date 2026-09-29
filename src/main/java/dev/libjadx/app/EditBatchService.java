@@ -285,6 +285,11 @@ public final class EditBatchService {
 		for (var item : plan) {
 			if (item.operation().kind() == EditDtos.Kind.RENAME && item.operation().target().kind() == SymbolRef.Kind.CLASS)
 				throw rejected(400, "INVALID_REQUEST", item.index(), "Class renames cannot share a batch with related propagation");
+			// An ordinary native record can alias override candidates in other owners.
+			// Their incomplete pinned-Jadx relation cannot authorize post-batch names.
+			if (item.operation().kind() == EditDtos.Kind.RENAME && item.operation().target().kind() == SymbolRef.Kind.METHOD
+					&& item.related() == null)
+				throw rejected(400, "INVALID_REQUEST", item.index(), "Ordinary method renames cannot share a batch with related propagation");
 			if (item.operation().kind() == EditDtos.Kind.RENAME_PARAMETER && grouped.contains(item.operation().target()))
 				throw rejected(400, "INVALID_REQUEST", item.index(), "Parameter rename overlaps a propagated method family");
 		}

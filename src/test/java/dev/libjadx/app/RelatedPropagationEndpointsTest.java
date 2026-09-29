@@ -82,6 +82,24 @@ class RelatedPropagationEndpointsTest {
 			assertEquals("MEMORY_ONLY_UNTIL_EXPLICIT_NATIVE_SAVE",related.path("persistence").asText());
 		}
 	}
+	@Test void mixedOrdinaryMethodAndGroupRejectInBothOrdersWithOmittedOrFalseFlag() throws Exception {
+		var input=RelatedGroupMixedBatchTest.fixture(dir);
+		try(var runtime=new ProjectRuntime(null,List.of(input),List.of(dir));var server=new HttpApiServer("127.0.0.1",0,runtime)) {
+			server.start();runtime.initializeAsync(null).get(30,TimeUnit.SECONDS);
+			var before=runtime.projectSnapshot();var identity=runtime.searchIdentity();var pending=runtime.pendingEdits();var engine=runtime.decompiler();
+			runtime.replacementHook(stage->{throw new AssertionError("Rejected batch must not construct a replacement");});
+			String group=wire(RelatedGroupAdmissionTest.propagated(RelatedGroupMixedBatchTest.B_BAR,"target"));
+			for(boolean explicitFalse:List.of(false,true))for(boolean groupFirst:List.of(false,true)) {
+				var ordinary=(com.fasterxml.jackson.databind.node.ObjectNode)JSON.readTree(wire(ReplacementStateTest.rename(RelatedGroupMixedBatchTest.P_FOO,"target")));
+				if(!explicitFalse)ordinary.remove("propagateRelated");
+				String items=groupFirst?group+","+ordinary:ordinary+","+group;
+				var response=capture(server,"mixed-"+(groupFirst?"group-first-":"ordinary-first-")+(explicitFalse?"false":"omitted"),body(runtime,items),400,"INVALID_REQUEST");
+				assertEquals(groupFirst?1:0,response.path("error").path("details").path("itemErrors").get(0).path("index").asInt());
+				assertEquals(before,runtime.projectSnapshot());assertEquals(identity,runtime.searchIdentity());assertEquals(pending,runtime.pendingEdits());assertSame(engine,runtime.decompiler());
+			}
+		}
+	}
+
 	private static String wire(EditDtos.Operation item) throws Exception {
 		return JSON.writeValueAsString(Map.of("kind",item.kind(),"target",item.target(),"newName",item.newName(),"propagateRelated",item.propagateRelated()));
 	}
