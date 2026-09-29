@@ -59,6 +59,15 @@ final class OpenApiExampleValidator {
 		if (value.isNumber() && schema.has("minimum") && value.asDouble() < schema.path("minimum").asDouble())
 			errors.add(path + " is below minimum");
 		if (value.isArray()) {
+			if (schema.has("contains")) {
+				int matched = 0;
+				for (JsonNode item : value) {
+					List<String> itemErrors = new ArrayList<>();
+					validate(document, schema.path("contains"), item, path, itemErrors);
+					if (itemErrors.isEmpty()) matched++;
+				}
+				if (matched < schema.path("minContains").asInt(1)) errors.add(path + " does not contain a matching item");
+			}
 			if (schema.has("maxItems") && value.size() > schema.path("maxItems").asInt()) errors.add(path + " exceeds maxItems");
 			for (int i = 0; i < value.size(); i++) validate(document, schema.path("items"), value.get(i), path + "[" + i + "]", errors);
 		}

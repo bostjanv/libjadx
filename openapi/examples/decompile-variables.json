@@ -1,0 +1,851 @@
+{
+  "outcome": "RESOLVED",
+  "queriedRef": {
+    "kind": "CLASS",
+    "originalClassDescriptor": "Lprobe/Variables;",
+    "inputIdentity": null,
+    "originalName": null,
+    "originalDescriptor": null
+  },
+  "sourceOwnerRef": {
+    "kind": "CLASS",
+    "originalClassDescriptor": "Lprobe/Variables;",
+    "inputIdentity": null,
+    "originalName": null,
+    "originalDescriptor": null
+  },
+  "candidates": [],
+  "sessionId": "492c49fe-db69-4dd2-a5da-d81e4b75e8d7",
+  "logicalRevision": 0,
+  "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac",
+  "effectiveSettings": {
+    "decompilationMode": "AUTO",
+    "fingerprint": "sha256:6ea56fae9eacbb0ebed74bbbe731cf1179b7d41146162fe9b8c26cf0615c2367"
+  },
+  "status": "COMPLETE",
+  "representation": "JAVA",
+  "source": "package probe;\n\n/* JADX INFO: loaded from: variables.jar:probe/Variables.class */\npublic class Variables {\n    public int field;\n\n    public int instance(int i, long j, double d, String str) {\n        int i2 = i + ((int) j);\n        int length = str.length() + ((int) d);\n        if (i2 > length) {\n            this.field = i2 * 2;\n        } else {\n            this.field = length * 3;\n        }\n        for (int i3 = 0; i3 < i; i3++) {\n            i2 += i3;\n        }\n        return i2 + length + this.field;\n    }\n\n    public static long statik(long j, int i, double d) {\n        return j + ((long) i) + ((long) d);\n    }\n\n    public int single(int i) {\n        return i + this.field;\n    }\n\n    public String single(String str) {\n        return str + this.field;\n    }\n\n    @Deprecated\n    public int annotated(@Deprecated int i) {\n        return i + this.field;\n    }\n\n    public <T> T generic(T t) {\n        return t;\n    }\n\n    public int zero() {\n        return this.field;\n    }\n\n    public int merged(int i) {\n        int i2 = i > 0 ? i + 1 : i - 1;\n        for (int i3 = 0; i3 < 3; i3++) {\n            i2 += i3;\n        }\n        return i2;\n    }\n\n    public int temporary(int i) {\n        return (i + 2) * (i + 3);\n    }\n}",
+  "methodRangeAvailable": null,
+  "methodRange": null,
+  "methodSource": null,
+  "annotations": [
+    {
+      "kind": "DECLARATION",
+      "position": {
+        "offsetUtf16": 95,
+        "line": 4,
+        "columnCodePoints": 13
+      },
+      "targetRef": {
+        "kind": "CLASS",
+        "originalClassDescriptor": "Lprobe/Variables;",
+        "inputIdentity": null,
+        "originalName": null,
+        "originalDescriptor": null
+      },
+      "precision": "EXACT",
+      "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac"
+    },
+    {
+      "kind": "DECLARATION",
+      "position": {
+        "offsetUtf16": 122,
+        "line": 5,
+        "columnCodePoints": 15
+      },
+      "targetRef": {
+        "kind": "FIELD",
+        "originalClassDescriptor": "Lprobe/Variables;",
+        "inputIdentity": null,
+        "originalName": "field",
+        "originalDescriptor": "I"
+      },
+      "precision": "EXACT",
+      "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac"
+    },
+    {
+      "kind": "DECLARATION",
+      "position": {
+        "offsetUtf16": 145,
+        "line": 7,
+        "columnCodePoints": 15
+      },
+      "targetRef": {
+        "kind": "METHOD",
+        "originalClassDescriptor": "Lprobe/Variables;",
+        "inputIdentity": null,
+        "originalName": "instance",
+        "originalDescriptor": "(IJDLjava/lang/String;)I"
+      },
+      "precision": "EXACT",
+      "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac"
+    },
+    {
+      "kind": "REFERENCE",
+      "position": {
+        "offsetUtf16": 316,
+        "line": 11,
+        "columnCodePoints": 17
+      },
+      "targetRef": {
+        "kind": "FIELD",
+        "originalClassDescriptor": "Lprobe/Variables;",
+        "inputIdentity": null,
+        "originalName": "field",
+        "originalDescriptor": "I"
+      },
+      "precision": "EXACT",
+      "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac"
+    },
+    {
+      "kind": "REFERENCE",
+      "position": {
+        "offsetUtf16": 366,
+        "line": 13,
+        "columnCodePoints": 17
+      },
+      "targetRef": {
+        "kind": "FIELD",
+        "originalClassDescriptor": "Lprobe/Variables;",
+        "inputIdentity": null,
+        "originalName": "field",
+        "originalDescriptor": "I"
+      },
+      "precision": "EXACT",
+      "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac"
+    },
+    {
+      "kind": "REFERENCE",
+      "position": {
+        "offsetUtf16": 503,
+        "line": 18,
+        "columnCodePoints": 34
+      },
+      "targetRef": {
+        "kind": "FIELD",
+        "originalClassDescriptor": "Lprobe/Variables;",
+        "inputIdentity": null,
+        "originalName": "field",
+        "originalDescriptor": "I"
+      },
+      "precision": "EXACT",
+      "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac"
+    },
+    {
+      "kind": "DECLARATION",
+      "position": {
+        "offsetUtf16": 540,
+        "line": 21,
+        "columnCodePoints": 23
+      },
+      "targetRef": {
+        "kind": "METHOD",
+        "originalClassDescriptor": "Lprobe/Variables;",
+        "inputIdentity": null,
+        "originalName": "statik",
+        "originalDescriptor": "(JID)J"
+      },
+      "precision": "EXACT",
+      "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac"
+    },
+    {
+      "kind": "DECLARATION",
+      "position": {
+        "offsetUtf16": 640,
+        "line": 25,
+        "columnCodePoints": 15
+      },
+      "targetRef": {
+        "kind": "METHOD",
+        "originalClassDescriptor": "Lprobe/Variables;",
+        "inputIdentity": null,
+        "originalName": "single",
+        "originalDescriptor": "(I)I"
+      },
+      "precision": "EXACT",
+      "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac"
+    },
+    {
+      "kind": "REFERENCE",
+      "position": {
+        "offsetUtf16": 680,
+        "line": 26,
+        "columnCodePoints": 24
+      },
+      "targetRef": {
+        "kind": "FIELD",
+        "originalClassDescriptor": "Lprobe/Variables;",
+        "inputIdentity": null,
+        "originalName": "field",
+        "originalDescriptor": "I"
+      },
+      "precision": "EXACT",
+      "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac"
+    },
+    {
+      "kind": "DECLARATION",
+      "position": {
+        "offsetUtf16": 712,
+        "line": 29,
+        "columnCodePoints": 18
+      },
+      "targetRef": {
+        "kind": "METHOD",
+        "originalClassDescriptor": "Lprobe/Variables;",
+        "inputIdentity": null,
+        "originalName": "single",
+        "originalDescriptor": "(Ljava/lang/String;)Ljava/lang/String;"
+      },
+      "precision": "EXACT",
+      "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac"
+    },
+    {
+      "kind": "REFERENCE",
+      "position": {
+        "offsetUtf16": 759,
+        "line": 30,
+        "columnCodePoints": 26
+      },
+      "targetRef": {
+        "kind": "FIELD",
+        "originalClassDescriptor": "Lprobe/Variables;",
+        "inputIdentity": null,
+        "originalName": "field",
+        "originalDescriptor": "I"
+      },
+      "precision": "EXACT",
+      "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac"
+    },
+    {
+      "kind": "DECLARATION",
+      "position": {
+        "offsetUtf16": 804,
+        "line": 34,
+        "columnCodePoints": 15
+      },
+      "targetRef": {
+        "kind": "METHOD",
+        "originalClassDescriptor": "Lprobe/Variables;",
+        "inputIdentity": null,
+        "originalName": "annotated",
+        "originalDescriptor": "(I)I"
+      },
+      "precision": "EXACT",
+      "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac"
+    },
+    {
+      "kind": "REFERENCE",
+      "position": {
+        "offsetUtf16": 859,
+        "line": 35,
+        "columnCodePoints": 24
+      },
+      "targetRef": {
+        "kind": "FIELD",
+        "originalClassDescriptor": "Lprobe/Variables;",
+        "inputIdentity": null,
+        "originalName": "field",
+        "originalDescriptor": "I"
+      },
+      "precision": "EXACT",
+      "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac"
+    },
+    {
+      "kind": "DECLARATION",
+      "position": {
+        "offsetUtf16": 890,
+        "line": 38,
+        "columnCodePoints": 17
+      },
+      "targetRef": {
+        "kind": "METHOD",
+        "originalClassDescriptor": "Lprobe/Variables;",
+        "inputIdentity": null,
+        "originalName": "generic",
+        "originalDescriptor": "(Ljava/lang/Object;)Ljava/lang/Object;"
+      },
+      "precision": "EXACT",
+      "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac"
+    },
+    {
+      "kind": "DECLARATION",
+      "position": {
+        "offsetUtf16": 945,
+        "line": 42,
+        "columnCodePoints": 15
+      },
+      "targetRef": {
+        "kind": "METHOD",
+        "originalClassDescriptor": "Lprobe/Variables;",
+        "inputIdentity": null,
+        "originalName": "zero",
+        "originalDescriptor": "()I"
+      },
+      "precision": "EXACT",
+      "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac"
+    },
+    {
+      "kind": "REFERENCE",
+      "position": {
+        "offsetUtf16": 974,
+        "line": 43,
+        "columnCodePoints": 20
+      },
+      "targetRef": {
+        "kind": "FIELD",
+        "originalClassDescriptor": "Lprobe/Variables;",
+        "inputIdentity": null,
+        "originalName": "field",
+        "originalDescriptor": "I"
+      },
+      "precision": "EXACT",
+      "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac"
+    },
+    {
+      "kind": "DECLARATION",
+      "position": {
+        "offsetUtf16": 1003,
+        "line": 46,
+        "columnCodePoints": 15
+      },
+      "targetRef": {
+        "kind": "METHOD",
+        "originalClassDescriptor": "Lprobe/Variables;",
+        "inputIdentity": null,
+        "originalName": "merged",
+        "originalDescriptor": "(I)I"
+      },
+      "precision": "EXACT",
+      "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac"
+    },
+    {
+      "kind": "DECLARATION",
+      "position": {
+        "offsetUtf16": 1173,
+        "line": 54,
+        "columnCodePoints": 15
+      },
+      "targetRef": {
+        "kind": "METHOD",
+        "originalClassDescriptor": "Lprobe/Variables;",
+        "inputIdentity": null,
+        "originalName": "temporary",
+        "originalDescriptor": "(I)I"
+      },
+      "precision": "EXACT",
+      "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac"
+    }
+  ],
+  "variables": [
+    {
+      "kind": "PARAMETER",
+      "method": {
+        "kind": "METHOD",
+        "originalClassDescriptor": "Lprobe/Variables;",
+        "inputIdentity": null,
+        "originalName": "instance",
+        "originalDescriptor": "(IJDLjava/lang/String;)I"
+      },
+      "parameterIndex": 0,
+      "displayName": "i",
+      "range": {
+        "startOffsetUtf16": 158,
+        "endOffsetUtf16": 159,
+        "start": {
+          "offsetUtf16": 158,
+          "line": 7,
+          "columnCodePoints": 28
+        },
+        "end": {
+          "offsetUtf16": 159,
+          "line": 7,
+          "columnCodePoints": 29
+        },
+        "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac"
+      },
+      "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac",
+      "persistability": "SUPPORTED"
+    },
+    {
+      "kind": "PARAMETER",
+      "method": {
+        "kind": "METHOD",
+        "originalClassDescriptor": "Lprobe/Variables;",
+        "inputIdentity": null,
+        "originalName": "instance",
+        "originalDescriptor": "(IJDLjava/lang/String;)I"
+      },
+      "parameterIndex": 1,
+      "displayName": "j",
+      "range": {
+        "startOffsetUtf16": 166,
+        "endOffsetUtf16": 167,
+        "start": {
+          "offsetUtf16": 166,
+          "line": 7,
+          "columnCodePoints": 36
+        },
+        "end": {
+          "offsetUtf16": 167,
+          "line": 7,
+          "columnCodePoints": 37
+        },
+        "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac"
+      },
+      "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac",
+      "persistability": "SUPPORTED"
+    },
+    {
+      "kind": "PARAMETER",
+      "method": {
+        "kind": "METHOD",
+        "originalClassDescriptor": "Lprobe/Variables;",
+        "inputIdentity": null,
+        "originalName": "instance",
+        "originalDescriptor": "(IJDLjava/lang/String;)I"
+      },
+      "parameterIndex": 2,
+      "displayName": "d",
+      "range": {
+        "startOffsetUtf16": 176,
+        "endOffsetUtf16": 177,
+        "start": {
+          "offsetUtf16": 176,
+          "line": 7,
+          "columnCodePoints": 46
+        },
+        "end": {
+          "offsetUtf16": 177,
+          "line": 7,
+          "columnCodePoints": 47
+        },
+        "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac"
+      },
+      "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac",
+      "persistability": "SUPPORTED"
+    },
+    {
+      "kind": "PARAMETER",
+      "method": {
+        "kind": "METHOD",
+        "originalClassDescriptor": "Lprobe/Variables;",
+        "inputIdentity": null,
+        "originalName": "instance",
+        "originalDescriptor": "(IJDLjava/lang/String;)I"
+      },
+      "parameterIndex": 3,
+      "displayName": "str",
+      "range": {
+        "startOffsetUtf16": 186,
+        "endOffsetUtf16": 189,
+        "start": {
+          "offsetUtf16": 186,
+          "line": 7,
+          "columnCodePoints": 56
+        },
+        "end": {
+          "offsetUtf16": 189,
+          "line": 7,
+          "columnCodePoints": 59
+        },
+        "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac"
+      },
+      "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac",
+      "persistability": "SUPPORTED"
+    },
+    {
+      "kind": "LOCAL",
+      "method": {
+        "kind": "METHOD",
+        "originalClassDescriptor": "Lprobe/Variables;",
+        "inputIdentity": null,
+        "originalName": "instance",
+        "originalDescriptor": "(IJDLjava/lang/String;)I"
+      },
+      "parameterIndex": null,
+      "displayName": "i2",
+      "range": {
+        "startOffsetUtf16": 205,
+        "endOffsetUtf16": 207,
+        "start": {
+          "offsetUtf16": 205,
+          "line": 8,
+          "columnCodePoints": 12
+        },
+        "end": {
+          "offsetUtf16": 207,
+          "line": 8,
+          "columnCodePoints": 14
+        },
+        "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac"
+      },
+      "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac",
+      "persistability": "UNSUPPORTED"
+    },
+    {
+      "kind": "LOCAL",
+      "method": {
+        "kind": "METHOD",
+        "originalClassDescriptor": "Lprobe/Variables;",
+        "inputIdentity": null,
+        "originalName": "instance",
+        "originalDescriptor": "(IJDLjava/lang/String;)I"
+      },
+      "parameterIndex": null,
+      "displayName": "length",
+      "range": {
+        "startOffsetUtf16": 237,
+        "endOffsetUtf16": 243,
+        "start": {
+          "offsetUtf16": 237,
+          "line": 9,
+          "columnCodePoints": 12
+        },
+        "end": {
+          "offsetUtf16": 243,
+          "line": 9,
+          "columnCodePoints": 18
+        },
+        "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac"
+      },
+      "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac",
+      "persistability": "UNSUPPORTED"
+    },
+    {
+      "kind": "LOCAL",
+      "method": {
+        "kind": "METHOD",
+        "originalClassDescriptor": "Lprobe/Variables;",
+        "inputIdentity": null,
+        "originalName": "instance",
+        "originalDescriptor": "(IJDLjava/lang/String;)I"
+      },
+      "parameterIndex": null,
+      "displayName": "i3",
+      "range": {
+        "startOffsetUtf16": 413,
+        "endOffsetUtf16": 415,
+        "start": {
+          "offsetUtf16": 413,
+          "line": 15,
+          "columnCodePoints": 17
+        },
+        "end": {
+          "offsetUtf16": 415,
+          "line": 15,
+          "columnCodePoints": 19
+        },
+        "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac"
+      },
+      "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac",
+      "persistability": "UNSUPPORTED"
+    },
+    {
+      "kind": "PARAMETER",
+      "method": {
+        "kind": "METHOD",
+        "originalClassDescriptor": "Lprobe/Variables;",
+        "inputIdentity": null,
+        "originalName": "statik",
+        "originalDescriptor": "(JID)J"
+      },
+      "parameterIndex": 0,
+      "displayName": "j",
+      "range": {
+        "startOffsetUtf16": 552,
+        "endOffsetUtf16": 553,
+        "start": {
+          "offsetUtf16": 552,
+          "line": 21,
+          "columnCodePoints": 35
+        },
+        "end": {
+          "offsetUtf16": 553,
+          "line": 21,
+          "columnCodePoints": 36
+        },
+        "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac"
+      },
+      "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac",
+      "persistability": "SUPPORTED"
+    },
+    {
+      "kind": "PARAMETER",
+      "method": {
+        "kind": "METHOD",
+        "originalClassDescriptor": "Lprobe/Variables;",
+        "inputIdentity": null,
+        "originalName": "statik",
+        "originalDescriptor": "(JID)J"
+      },
+      "parameterIndex": 1,
+      "displayName": "i",
+      "range": {
+        "startOffsetUtf16": 559,
+        "endOffsetUtf16": 560,
+        "start": {
+          "offsetUtf16": 559,
+          "line": 21,
+          "columnCodePoints": 42
+        },
+        "end": {
+          "offsetUtf16": 560,
+          "line": 21,
+          "columnCodePoints": 43
+        },
+        "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac"
+      },
+      "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac",
+      "persistability": "SUPPORTED"
+    },
+    {
+      "kind": "PARAMETER",
+      "method": {
+        "kind": "METHOD",
+        "originalClassDescriptor": "Lprobe/Variables;",
+        "inputIdentity": null,
+        "originalName": "statik",
+        "originalDescriptor": "(JID)J"
+      },
+      "parameterIndex": 2,
+      "displayName": "d",
+      "range": {
+        "startOffsetUtf16": 569,
+        "endOffsetUtf16": 570,
+        "start": {
+          "offsetUtf16": 569,
+          "line": 21,
+          "columnCodePoints": 52
+        },
+        "end": {
+          "offsetUtf16": 570,
+          "line": 21,
+          "columnCodePoints": 53
+        },
+        "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac"
+      },
+      "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac",
+      "persistability": "SUPPORTED"
+    },
+    {
+      "kind": "PARAMETER",
+      "method": {
+        "kind": "METHOD",
+        "originalClassDescriptor": "Lprobe/Variables;",
+        "inputIdentity": null,
+        "originalName": "single",
+        "originalDescriptor": "(I)I"
+      },
+      "parameterIndex": 0,
+      "displayName": "i",
+      "range": {
+        "startOffsetUtf16": 651,
+        "endOffsetUtf16": 652,
+        "start": {
+          "offsetUtf16": 651,
+          "line": 25,
+          "columnCodePoints": 26
+        },
+        "end": {
+          "offsetUtf16": 652,
+          "line": 25,
+          "columnCodePoints": 27
+        },
+        "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac"
+      },
+      "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac",
+      "persistability": "SUPPORTED"
+    },
+    {
+      "kind": "PARAMETER",
+      "method": {
+        "kind": "METHOD",
+        "originalClassDescriptor": "Lprobe/Variables;",
+        "inputIdentity": null,
+        "originalName": "single",
+        "originalDescriptor": "(Ljava/lang/String;)Ljava/lang/String;"
+      },
+      "parameterIndex": 0,
+      "displayName": "str",
+      "range": {
+        "startOffsetUtf16": 726,
+        "endOffsetUtf16": 729,
+        "start": {
+          "offsetUtf16": 726,
+          "line": 29,
+          "columnCodePoints": 32
+        },
+        "end": {
+          "offsetUtf16": 729,
+          "line": 29,
+          "columnCodePoints": 35
+        },
+        "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac"
+      },
+      "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac",
+      "persistability": "SUPPORTED"
+    },
+    {
+      "kind": "PARAMETER",
+      "method": {
+        "kind": "METHOD",
+        "originalClassDescriptor": "Lprobe/Variables;",
+        "inputIdentity": null,
+        "originalName": "generic",
+        "originalDescriptor": "(Ljava/lang/Object;)Ljava/lang/Object;"
+      },
+      "parameterIndex": null,
+      "displayName": "t",
+      "range": {
+        "startOffsetUtf16": 900,
+        "endOffsetUtf16": 901,
+        "start": {
+          "offsetUtf16": 900,
+          "line": 38,
+          "columnCodePoints": 27
+        },
+        "end": {
+          "offsetUtf16": 901,
+          "line": 38,
+          "columnCodePoints": 28
+        },
+        "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac"
+      },
+      "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac",
+      "persistability": "UNSUPPORTED"
+    },
+    {
+      "kind": "PARAMETER",
+      "method": {
+        "kind": "METHOD",
+        "originalClassDescriptor": "Lprobe/Variables;",
+        "inputIdentity": null,
+        "originalName": "merged",
+        "originalDescriptor": "(I)I"
+      },
+      "parameterIndex": 0,
+      "displayName": "i",
+      "range": {
+        "startOffsetUtf16": 1014,
+        "endOffsetUtf16": 1015,
+        "start": {
+          "offsetUtf16": 1014,
+          "line": 46,
+          "columnCodePoints": 26
+        },
+        "end": {
+          "offsetUtf16": 1015,
+          "line": 46,
+          "columnCodePoints": 27
+        },
+        "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac"
+      },
+      "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac",
+      "persistability": "SUPPORTED"
+    },
+    {
+      "kind": "LOCAL",
+      "method": {
+        "kind": "METHOD",
+        "originalClassDescriptor": "Lprobe/Variables;",
+        "inputIdentity": null,
+        "originalName": "merged",
+        "originalDescriptor": "(I)I"
+      },
+      "parameterIndex": null,
+      "displayName": "i2",
+      "range": {
+        "startOffsetUtf16": 1031,
+        "endOffsetUtf16": 1033,
+        "start": {
+          "offsetUtf16": 1031,
+          "line": 47,
+          "columnCodePoints": 12
+        },
+        "end": {
+          "offsetUtf16": 1033,
+          "line": 47,
+          "columnCodePoints": 14
+        },
+        "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac"
+      },
+      "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac",
+      "persistability": "UNSUPPORTED"
+    },
+    {
+      "kind": "LOCAL",
+      "method": {
+        "kind": "METHOD",
+        "originalClassDescriptor": "Lprobe/Variables;",
+        "inputIdentity": null,
+        "originalName": "merged",
+        "originalDescriptor": "(I)I"
+      },
+      "parameterIndex": null,
+      "displayName": "i3",
+      "range": {
+        "startOffsetUtf16": 1076,
+        "endOffsetUtf16": 1078,
+        "start": {
+          "offsetUtf16": 1076,
+          "line": 48,
+          "columnCodePoints": 17
+        },
+        "end": {
+          "offsetUtf16": 1078,
+          "line": 48,
+          "columnCodePoints": 19
+        },
+        "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac"
+      },
+      "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac",
+      "persistability": "UNSUPPORTED"
+    },
+    {
+      "kind": "PARAMETER",
+      "method": {
+        "kind": "METHOD",
+        "originalClassDescriptor": "Lprobe/Variables;",
+        "inputIdentity": null,
+        "originalName": "temporary",
+        "originalDescriptor": "(I)I"
+      },
+      "parameterIndex": 0,
+      "displayName": "i",
+      "range": {
+        "startOffsetUtf16": 1187,
+        "endOffsetUtf16": 1188,
+        "start": {
+          "offsetUtf16": 1187,
+          "line": 54,
+          "columnCodePoints": 29
+        },
+        "end": {
+          "offsetUtf16": 1188,
+          "line": 54,
+          "columnCodePoints": 30
+        },
+        "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac"
+      },
+      "sourceSnapshotId": "sha256:537ae51b720ac84beb562bc6f8c08703cf3555371668de88e68c49176acc05ac",
+      "persistability": "SUPPORTED"
+    }
+  ],
+  "rawDebugLines": null,
+  "classErrorCount": null,
+  "diagnostics": [
+    "Per-input origin and discarded definitions are not verified",
+    "Some Jadx annotations were omitted because their target or source token could not be verified",
+    "Class-local error count and original debug-line origin are not verified in pinned Jadx",
+    "Jadx does not certify complete declaration or reference coverage"
+  ],
+  "capabilities": {
+    "source": "EXACT",
+    "declarationPositions": "PARTIAL",
+    "referenceTargets": "PARTIAL",
+    "methodRange": "UNAVAILABLE",
+    "rawDebugLines": "UNAVAILABLE",
+    "originalBytecodeOffsets": "UNAVAILABLE",
+    "classErrors": "UNKNOWN"
+  }
+}

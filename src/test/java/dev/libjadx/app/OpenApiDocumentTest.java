@@ -76,6 +76,11 @@ class OpenApiDocumentTest {
 		assertTrue(yaml.path("components").path("schemas").path("RevisionSet")
 				.path("required").toString().contains("persistedIdentityState"));
 		ObjectMapper json = new ObjectMapper();
+		for (String name : List.of("edit-parameter-request.json", "edit-parameter-applied.json", "edit-parameter-no-change.json", "decompile-variables.json")) {
+			String schema = name.startsWith("decompile") ? "DecompileResult" : name.contains("request") ? "EditBatchRequest" : "EditBatchResult";
+			OpenApiExampleValidator.assertValid(yaml, schema, json.readTree(Path.of("openapi/examples", name).toFile()));
+		}
+		assertTrue(yaml.path("components").path("schemas").path("DecompileResult").path("required").toString().contains("variables"));
 		assertEquals("#/components/schemas/MappingExportReceipt", yaml.path("paths").path("/project/mappings/export").path("post")
 				.path("responses").path("200").path("content").path("application/json").path("schema").path("$ref").asText());
 		OpenApiExampleValidator.assertValid(yaml, "MappingExportRequest", json.readTree(Path.of("openapi/examples/mapping-export-request.json").toFile()));

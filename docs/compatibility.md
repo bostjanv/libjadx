@@ -112,3 +112,32 @@ retains explicit native save and the existing post-replacement FAILED lifecycle.
 The independent validator environment is Python 3.14.4, PyYAML 6.0.3,
 jsonschema 4.26.0 and openapi-spec-validator 0.9.0 (same environment as PR #11).
 Exact direct validation packages are pinned in `tests/requirements-contract.txt`.
+
+## PR #13 scoped variable evidence
+
+No pin, toolchain, dependency or lock changed. Exact pinned source was fetched
+into `/tmp/libjadx-pr13-source` from source commit
+`28ff15e4ae69950aebea110a13e5ab895d234dfc`. The audited `JadxCodeRef`,
+`JadxCodeRename`, `JavaVariable`, `VarNode`, `CodeRenameVisitor`, `MethodNode`,
+`MethodGen`, `ProcessClass`, GUI `JVariable` and `JadxProject` establish the
+consumer and serialization path. `MethodNode.initArguments` excludes `this`
+from `getArgRegs` and counts wide arguments once; `MethodGen` emits definitions
+in that order. Mutable argument registers unload after generation, so production
+uses verified definitions in the same emitted metadata, without retaining
+`DONT_UNLOAD_CLASS` (that flag is used only in probes).
+
+Parameters use native original-method `MTH_ARG` keys and source-snapshot admission.
+AUTO/RESTRUCTURE plain concrete signatures are the supported subset. Generic,
+annotated, skipped/transformed, bodyless and synthetic/special forms fail closed.
+Existing GUI VAR renames on the same method are conservatively ambiguous.
+Unused catch arguments can be emitted as NamedArg without VarNode metadata
+(`BlockExceptionHandler.fixMoveExceptionInsn`, `RegionGen.makeCatchBlock`).
+The owned `UnusedCatch.smali` probe proves the gap and native name reassignment
+in AUTO/RESTRUCTURE. Parameter support now requires verified catch declaration
+tokens within the same emitted method range; affected methods fail closed before
+batch staging. Verified catch declarations keep parameter support.
+Merged locals change emitted SSA metadata under SIMPLE, and FALLBACK emits no
+variable declarations; local renames remain unsupported. See
+[scoped editing evidence](phase-5-scoped-editing.md) for commands and matching-GUI
+results. GUI serialization drops unknown JSON fields, as established in Phase 0;
+LibJadx's native codec preserves them before the GUI resave.

@@ -128,8 +128,8 @@ public final class StatusServlet extends HttpServlet {
 					new Capability("edit.mapping_attach", "SUPPORTED", "EXISTING_SETTINGS_PATH", "EXPLICIT_SAVE_ONLY"),
 					new Capability("edit.mapping_import", "PARTIAL", "TINY_V2_DECLARATIONS_CONFLICT_SAFE_MERGE", "MEMORY_ONLY_UNTIL_EXPLICIT_NATIVE_SAVE"),
 					new Capability("edit.mapping_export", "PARTIAL", "TINY_V2_VERIFIED_DECLARATIONS_STRICT_COMPLETE", "NEW_OUTPUT_ONLY"),
-					new Capability("edit.parameter_rename", "UNSUPPORTED", "SCOPED_IDENTITY_NOT_VERIFIED", "UNAVAILABLE"),
-					new Capability("edit.local_rename", "UNSUPPORTED", "REGISTER_SSA_IDENTITY_NOT_VERIFIED", "UNAVAILABLE"),
+					new Capability("edit.parameter_rename", "SUPPORTED", "AUTO_RESTRUCTURE_PLAIN_SIGNATURE_SNAPSHOT_GUI_VERIFIED", "MEMORY_ONLY_UNTIL_EXPLICIT_NATIVE_SAVE"),
+					new Capability("edit.local_rename", "UNSUPPORTED", "MERGED_SSA_MODE_VARIATION_NO_SAFE_PERSISTED_SUBSET", "UNAVAILABLE"),
 					new Capability("edit.related_propagation", "UNSUPPORTED", "GUI_BEHAVIOR_NOT_VERIFIED", "UNAVAILABLE"),
 					new Capability("project.revisions", "PARTIAL", "CONTENT_HASH_AND_SESSION_TOKENS", "PROCESS_LOCAL_COUNTERS"),
 					new Capability("analysis.temporary_override", "PARTIAL", "ISOLATED_DECOMPILATION_MODE_WITH_UNSAVED_EDITS", "READ_ONLY"),
@@ -500,7 +500,7 @@ public final class StatusServlet extends HttpServlet {
 					throw new IllegalArgumentException("Each item requires a kind");
 				}
 				String kind = item.get("kind").asText();
-				if (!kind.equals("RENAME") && !kind.equals("SET_COMMENT")) {
+				if (!kind.equals("RENAME") && !kind.equals("SET_COMMENT") && !kind.equals("RENAME_PARAMETER")) {
 					writeError(response, 422, "UNSUPPORTED_CAPABILITY", "Edit kind is not supported", false,
 							Map.of("itemErrors", List.of(new EditDtos.ItemError(items.size(), "UNSUPPORTED_CAPABILITY",
 									"Edit kind is not supported"))));
@@ -512,16 +512,31 @@ public final class StatusServlet extends HttpServlet {
 									"Related-method propagation is not verified"))));
 					return;
 				}
-				requireFields(item, kind.equals("RENAME") ? Set.of("kind", "target", "newName")
+				boolean scoped = kind.equals("RENAME_PARAMETER");
+				requireFields(item, scoped ? Set.of("kind", "method", "parameterIndex", "sourceSnapshotId", "newName")
+						: kind.equals("RENAME") ? Set.of("kind", "target", "newName")
 						: Set.of("kind", "target", "comment", "style"));
-				if (!item.has("target") || !item.get("target").isObject()) {
-					throw new IllegalArgumentException("Each item requires a target object");
+				String targetField = scoped ? "method" : "target";
+				if (!item.has(targetField) || !item.get(targetField).isObject())
+					throw new IllegalArgumentException("Each item requires an original target object");
+				SymbolRef target = parseSymbolRef(item.get(targetField));
+				Integer parameterIndex = null;
+				String sourceSnapshotId = null;
+				if (scoped) {
+					if (target.kind() != SymbolRef.Kind.METHOD || session == null
+							|| !item.hasNonNull("parameterIndex") || !item.get("parameterIndex").isIntegralNumber()
+							|| !item.get("parameterIndex").canConvertToInt() || item.get("parameterIndex").asInt() < 0
+							|| item.get("parameterIndex").asInt() > 254 || !item.hasNonNull("sourceSnapshotId")
+							|| !item.get("sourceSnapshotId").isTextual()
+							|| !item.get("sourceSnapshotId").asText().matches("sha256:[0-9a-f]{64}"))
+						throw new IllegalArgumentException("Parameter edit requires method, index, source snapshot and revision preconditions");
+					parameterIndex = item.get("parameterIndex").asInt();
+					sourceSnapshotId = item.get("sourceSnapshotId").asText();
 				}
-				SymbolRef target = parseSymbolRef(item.get("target"));
 				String name = null;
 				String comment = null;
 				String style = null;
-				if (kind.equals("RENAME")) {
+				if (kind.equals("RENAME") || scoped) {
 					if (!item.hasNonNull("newName") || !item.get("newName").isTextual()) {
 						throw new IllegalArgumentException("RENAME requires newName string");
 					}
@@ -534,7 +549,7 @@ public final class StatusServlet extends HttpServlet {
 					comment = item.get("comment").asText();
 					style = item.get("style").asText();
 				}
-				items.add(new EditDtos.Operation(EditDtos.Kind.valueOf(kind), target, name, comment, style));
+				items.add(new EditDtos.Operation(EditDtos.Kind.valueOf(kind), target, name, comment, style, parameterIndex, sourceSnapshotId));
 			}
 			write(response, 200, editService.apply(new EditDtos.Request(session, revision, items)));
 		} catch (EditBatchService.Rejected rejected) {
@@ -548,6 +563,8 @@ public final class StatusServlet extends HttpServlet {
 			writeError(response, 409, "PROJECT_BUSY", busy.getMessage());
 		} catch (JadxNativeEditAdapter.EditLimitException | JadxSymbolAdapter.CatalogLimitException limit) {
 			writeError(response, 429, "RESOURCE_LIMIT", limit.getMessage());
+		} catch (JadxSourceAdapter.SourceLimitException | JadxSourceAdapter.AnnotationLimitException limit) {
+			writeError(response, 429, "RESOURCE_LIMIT", "Scoped source metadata exceeds the request budget");
 		} catch (IllegalArgumentException invalid) {
 			if ("Request body exceeds 64 KiB".equals(invalid.getMessage())) {
 				writeError(response, 429, "RESOURCE_LIMIT", invalid.getMessage());

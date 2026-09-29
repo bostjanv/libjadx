@@ -15,6 +15,7 @@ import dev.libjadx.core.source.SourceCoordinates;
 import dev.libjadx.core.source.SourceSnapshot;
 import dev.libjadx.core.symbols.SymbolRef;
 import jadx.api.ICodeInfo;
+import jadx.api.DecompilationMode;
 import jadx.api.CommentsLevel;
 import jadx.api.JadxDecompiler;
 import jadx.api.JavaClass;
@@ -126,7 +127,9 @@ public final class JadxSourceAdapter {
 		diagnostics.add("Class-local error count and original debug-line origin are not verified in pinned Jadx");
 		return new SourceData(ownerRef, source, snapshot, methodRange,
 				methodRange == null ? null : source.substring(methodRange.startOffsetUtf16(), methodRange.endOffsetUtf16()),
-				List.copyOf(annotations), List.copyOf(diagnostics), knownError ? DecompileResult.Status.PARTIAL : DecompileResult.Status.COMPLETE,
+				List.copyOf(annotations), JadxVariableAdapter.extract(jadx, source, snapshot, metadata,
+				(jadx.getArgs().getDecompilationMode() == DecompilationMode.RESTRUCTURE
+						|| jadx.getArgs().getDecompilationMode() == DecompilationMode.AUTO)), List.copyOf(diagnostics), knownError ? DecompileResult.Status.PARTIAL : DecompileResult.Status.COMPLETE,
 				declarations > 0 ? DecompileResult.Availability.PARTIAL : DecompileResult.Availability.UNKNOWN,
 				references > 0 ? DecompileResult.Availability.PARTIAL : DecompileResult.Availability.UNKNOWN);
 	}
@@ -181,11 +184,12 @@ public final class JadxSourceAdapter {
 
 	public record SourceData(SymbolRef ownerRef, String source, String sourceSnapshotId,
 			SourceCoordinates.Range methodRange, String methodSource, List<DecompileResult.Annotation> annotations,
+			List<DecompileResult.Variable> variables,
 			List<String> diagnostics, DecompileResult.Status status,
 			DecompileResult.Availability declarationAvailability,
 			DecompileResult.Availability referenceAvailability) {
 		static SourceData unavailable(String reason) {
-			return new SourceData(null, null, null, null, null, List.of(), List.of(reason),
+			return new SourceData(null, null, null, null, null, List.of(), List.of(), List.of(reason),
 					DecompileResult.Status.UNAVAILABLE, DecompileResult.Availability.UNAVAILABLE,
 					DecompileResult.Availability.UNAVAILABLE);
 		}

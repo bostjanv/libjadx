@@ -13,6 +13,13 @@ import javax.tools.ToolProvider;
 public final class SymbolFixtureSupport {
 	private SymbolFixtureSupport() { }
 
+	public static Path compileVariableFixture(Path root) throws IOException {
+		return compile(root, Path.of("tests/fixtures/variables/Variables.java"), "variables.jar");
+	}
+	public static Path unusedCatchFixture(Path root) throws IOException {
+		return Files.copy(Path.of("tests/fixtures/variables/UnusedCatch.smali"), root.resolve("UnusedCatch.smali"));
+	}
+
 	public static Path compileFixture(Path root) throws IOException {
 		return compile(root, Path.of("tests/fixtures/symbols/SymbolFixture.java"), "symbols.jar");
 	}

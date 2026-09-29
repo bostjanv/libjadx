@@ -14,6 +14,7 @@
   "methodRange": null,
   "methodSource": null,
   "annotations": [],
+  "variables": [],
   "rawDebugLines": null,
   "classErrorCount": null,
   "diagnostics": ["Multiple Jadx-visible definitions share this original class descriptor"],

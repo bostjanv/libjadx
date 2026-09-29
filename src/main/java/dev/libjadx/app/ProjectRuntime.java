@@ -295,6 +295,8 @@ public final class ProjectRuntime implements AutoCloseable {
 		}
 
 		ProjectSnapshot before() { return before; }
+		long publicationEpoch() { return publicationEpoch; }
+		EffectiveAnalysisConfig settings() { return effectiveConfig; }
 		JadxDecompiler decompiler() { return engine.decompiler(); }
 		JadxCodeData codeDataCopy() { return current.codeDataCopy(); }
 		NativeProjectRepository.MappingExportSource mappingSource() throws IOException { return current.mappingExportSource(); }

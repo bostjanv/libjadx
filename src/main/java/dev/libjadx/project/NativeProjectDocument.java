@@ -146,11 +146,19 @@ public final class NativeProjectDocument {
 				JsonElement old = oldEntries.getAsJsonArray().get(i);
 				if (used[i] || !old.isJsonObject()) continue;
 				JsonObject oldObject = old.getAsJsonObject();
-				if (Objects.equals(oldObject.get("nodeRef"), combined.get("nodeRef"))
-						&& Objects.equals(oldObject.get("codeRef"), combined.get("codeRef"))
+				if (sameNativeReference(oldObject.get("nodeRef"), combined.get("nodeRef"), JadxNodeRef.class)
+						&& sameNativeReference(oldObject.get("codeRef"), combined.get("codeRef"), JadxCodeRef.class)
 						&& (!comments || Objects.equals(commentStyle(oldObject), commentStyle(combined)))) {
 					JsonObject preserved = oldObject.deepCopy();
-					combined.entrySet().forEach(entry -> preserved.add(entry.getKey(), entry.getValue()));
+					combined.entrySet().forEach(entry -> {
+						String key = entry.getKey();
+						if (("nodeRef".equals(key) || "codeRef".equals(key)) && preserved.has(key)
+								&& preserved.get(key).isJsonObject() && entry.getValue().isJsonObject()) {
+							JsonObject reference = preserved.getAsJsonObject(key).deepCopy();
+							entry.getValue().getAsJsonObject().entrySet().forEach(field -> reference.add(field.getKey(), field.getValue()));
+							preserved.add(key, reference);
+						} else preserved.add(key, entry.getValue());
+					});
 					combined = preserved;
 					used[i] = true;
 					break;
@@ -159,6 +167,14 @@ public final class NativeProjectDocument {
 			result.add(combined);
 		}
 		return result;
+	}
+
+	/** Native identity ignores forward-compatible JSON members. Matching by the
+	 * entire raw object loses unrelated fields when the typed codec omits them. */
+	private static boolean sameNativeReference(JsonElement left, JsonElement right, Class<?> type) {
+		if (left == null || left.isJsonNull()) return right == null || right.isJsonNull();
+		if (right == null || right.isJsonNull()) return false;
+		return Objects.equals(CODE_DATA_GSON.fromJson(left, type), CODE_DATA_GSON.fromJson(right, type));
 	}
 
 	private static String commentStyle(JsonObject entry) {

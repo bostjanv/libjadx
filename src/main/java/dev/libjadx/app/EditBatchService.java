@@ -23,6 +23,8 @@ import dev.libjadx.core.symbols.SymbolResolution;
 import dev.libjadx.jadxadapter.JadxNativeEditAdapter;
 import dev.libjadx.jadxadapter.JadxNativeEditAdapter.Target;
 import dev.libjadx.jadxadapter.JadxSymbolAdapter;
+import dev.libjadx.jadxadapter.JadxSourceAdapter;
+import dev.libjadx.core.source.DecompileResult.Variable;
 import dev.libjadx.project.NativeProjectDocument;
 import jadx.api.data.impl.JadxCodeData;
 
@@ -57,10 +59,18 @@ public final class EditBatchService {
 		List<Target> visibleMembers = new ArrayList<>();
 		Map<String, List<Target>> memberOwners = new HashMap<>();
 		List<Planned> plan = new ArrayList<>();
+		Map<String, JadxSourceAdapter.SourceData> sources = new HashMap<>();
+		long[] scopedBudget = new long[2];
 		Set<String> editedKeys = new HashSet<>();
 		for (int i = 0; i < request.items().size(); i++) {
 			Operation item = request.items().get(i);
 			SymbolRef ref = item.target();
+			boolean scoped = item.kind() == EditDtos.Kind.RENAME_PARAMETER;
+			if (scoped && (request.expectedSessionId() == null || ref.kind() != SymbolRef.Kind.METHOD
+					|| item.parameterIndex() == null || item.parameterIndex() < 0 || item.parameterIndex() > 254
+					|| item.sourceSnapshotId() == null || !item.sourceSnapshotId().matches("sha256:[0-9a-f]{64}"))) {
+				throw rejected(400, "INVALID_REQUEST", i, "Parameter edit requires method, index, source snapshot and revision preconditions");
+			}
 			if (ref.inputIdentity() != null) {
 				throw rejected(422, "UNSUPPORTED_CAPABILITY", i, "Exact per-input provenance is unavailable");
 			}
@@ -96,10 +106,35 @@ public final class EditBatchService {
 				throw rejected(422, "UNSUPPORTED_CAPABILITY", i, "This declaration cannot be edited safely");
 			}
 			String key = item.kind() + ":" + target.nativeRef().getType() + ":"
-					+ target.nativeRef().getDeclaringClass() + ":" + target.nativeRef().getShortId();
+					+ target.nativeRef().getDeclaringClass() + ":" + target.nativeRef().getShortId()
+					+ (scoped ? ":" + item.parameterIndex() : "");
 			if (!editedKeys.add(key)) throw rejected(400, "INVALID_REQUEST", i, "Duplicate edit of one native declaration key");
 			boolean changed;
-			if (item.kind() == EditDtos.Kind.RENAME) {
+			if (scoped) {
+				validateName(item.newName(), i);
+				JadxSourceAdapter.SourceData source = sources.computeIfAbsent(ref.originalClassDescriptor(), ignored -> {
+					var extracted = JadxSourceAdapter.extract(context.decompiler(), cls, SymbolRef.classRef(ref.originalClassDescriptor()),
+							false, session, revision, context.publicationEpoch(), context.settings().fingerprint());
+					scopedBudget[0] += extracted.source() == null ? 0 : extracted.source().length() * 2L;
+					scopedBudget[1] += extracted.variables().size();
+					if (scopedBudget[0] > 16 * 1024 * 1024 || scopedBudget[1] > 20_000)
+						throw new JadxNativeEditAdapter.EditLimitException("Scoped batch source metadata exceeds the request budget");
+					return extracted;
+				});
+				if (!item.sourceSnapshotId().equals(source.sourceSnapshotId()))
+					throw rejected(409, "STALE_REVISION", i, "Parameter source snapshot is stale");
+				var matchesVariables = source.variables().stream().filter(v -> v.method().equals(ref)
+						&& v.kind().equals("PARAMETER") && Objects.equals(v.parameterIndex(), item.parameterIndex())).toList();
+				if (matchesVariables.size() != 1 || !matchesVariables.getFirst().persistability().equals("SUPPORTED"))
+					throw rejected(422, "UNSUPPORTED_CAPABILITY", i, "Parameter has no unique persistable declaration in this snapshot");
+				var scope = JadxNativeEditAdapter.parameterKey(item.parameterIndex());
+				if (JadxNativeEditAdapter.scopedRenameCount(admitted, target.nativeRef(), scope) > 1
+						|| JadxNativeEditAdapter.hasOtherScopedRenames(admitted, target.nativeRef()))
+					throw rejected(422, "INVALID_ENTITY_ID", i, "Native scoped rename identity is ambiguous");
+				String prior = JadxNativeEditAdapter.existingScopedRename(admitted, target.nativeRef(), scope);
+				changed = !Objects.equals(prior, item.newName())
+						&& !Objects.equals(matchesVariables.getFirst().displayName(), item.newName());
+			} else if (item.kind() == EditDtos.Kind.RENAME) {
 				validateName(item.newName(), i);
 				if (JadxNativeEditAdapter.renameCount(admitted, target.nativeRef()) > 1) {
 					throw rejected(422, "INVALID_ENTITY_ID", i, "Multiple native renames share this declaration key");
@@ -117,6 +152,7 @@ public final class EditBatchService {
 			plan.add(new Planned(i, item, target, changed));
 		}
 		validateCollisions(catalog, visibleMembers, plan);
+		validateParameterCollisions(sources, plan);
 		JadxCodeData working = NativeProjectDocument.copyCodeData(admitted);
 		List<ItemResult> results = new ArrayList<>();
 		int failedAt = -1;
@@ -127,7 +163,10 @@ public final class EditBatchService {
 					JadxCodeData candidate = NativeProjectDocument.copyCodeData(working);
 					if (item.operation().kind() == EditDtos.Kind.RENAME) {
 						JadxNativeEditAdapter.rename(candidate, item.target().nativeRef(), item.operation().newName());
-					} else JadxNativeEditAdapter.comment(candidate, item.target().nativeRef(), item.operation().comment());
+					} else if (item.operation().kind() == EditDtos.Kind.RENAME_PARAMETER) {
+							JadxNativeEditAdapter.renameParameter(candidate, item.target().nativeRef(),
+									item.operation().parameterIndex(), item.operation().newName());
+						} else JadxNativeEditAdapter.comment(candidate, item.target().nativeRef(), item.operation().comment());
 					working = candidate;
 				}
 				results.add(result(item, item.changed() ? "APPLIED" : "SKIPPED", item.changed() ? null : "NO_CHANGE"));
@@ -150,7 +189,7 @@ public final class EditBatchService {
 	}
 
 	private static ItemResult result(Planned planned, String status, String message) {
-		return new ItemResult(planned.index(), status, planned.operation().kind(), planned.operation().target(), List.of(), message);
+		return new ItemResult(planned.index(), status, planned.operation().kind(), planned.operation().target(), List.of(), message, planned.operation().parameterIndex(), planned.operation().sourceSnapshotId());
 	}
 
 	private static void validateCollisions(SymbolCatalog catalog, List<Target> visibleMembers, List<Planned> plan) {
@@ -184,6 +223,31 @@ public final class EditBatchService {
 				if (candidate.equals(renamed.getOrDefault(other.ref(), other.displayName()))) {
 					throw rejected(400, "INVALID_REQUEST", item.index(), "Alias collides with another visible declaration");
 				}
+			}
+		}
+	}
+
+	private static void validateParameterCollisions(Map<String, JadxSourceAdapter.SourceData> sources, List<Planned> plan) {
+		record Key(SymbolRef method, Integer index) { }
+		Map<Key, String> proposed = new HashMap<>();
+		for (Planned item : plan) {
+			if (item.operation().kind() == EditDtos.Kind.RENAME_PARAMETER)
+				proposed.put(new Key(item.operation().target(), item.operation().parameterIndex()), item.operation().newName());
+		}
+		for (Planned item : plan) {
+			Operation operation = item.operation();
+			if (operation.kind() != EditDtos.Kind.RENAME_PARAMETER || !item.changed()) continue;
+			for (Variable variable : sources.get(operation.target().originalClassDescriptor()).variables()) {
+				if (!variable.method().equals(operation.target())) continue;
+				if (variable.kind().equals("PARAMETER") && Objects.equals(variable.parameterIndex(), operation.parameterIndex())) continue;
+				String name = variable.displayName();
+				// Also reject transient collisions: a committed prefix must be safe if staging fails.
+				if (operation.newName().equals(name))
+					throw rejected(400, "INVALID_REQUEST", item.index(), "Alias collides with a declared variable in this method");
+				if (variable.kind().equals("PARAMETER"))
+					name = proposed.getOrDefault(new Key(variable.method(), variable.parameterIndex()), name);
+				if (operation.newName().equals(name))
+					throw rejected(400, "INVALID_REQUEST", item.index(), "Aliases in the batch collide within one method");
 			}
 		}
 	}

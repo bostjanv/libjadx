@@ -244,6 +244,40 @@ class StandaloneDistributionTest {
 			assertError(postReferences(port, query.put("cursor", "B" + cursor.substring(1)).toString()), 400, "INVALID_REQUEST");
 		} finally { stop(second, port); }
 	}
+	@Test
+	void installedScopedParameterSaveRestartDiscardAndOldSnapshotRejection() throws Exception {
+		Path script = Path.of(System.getProperty("libjadx.distributionScript"));
+		Path jar = SymbolFixtureSupport.compileVariableFixture(dir);
+		Path project = dir.resolve("scoped.jadx");
+		var document = dev.libjadx.project.NativeProjectDocument.newFromInputs(project, java.util.List.of(jar)); document.save();
+		int port;
+		try (ServerSocket socket = new ServerSocket(0)) { port = socket.getLocalPort(); }
+		JsonNode original = null;
+		for (int run = 0; run < 3; run++) {
+			Process process = start(script, project, port, "scoped-" + run);
+			try {
+				awaitReady(process, port);
+				JsonNode source = body(post(port, "/api/v1/decompile", ScopedParameterEndpointsTest.DECOMPILE));
+				if (run == 0) original = source;
+				else {
+					assertTrue(source.path("source").asText().contains("long savedWide"));
+					assertFalse(source.path("source").asText().contains("unsavedFraction"));
+					assertError(post(port, "/api/v1/edits/batch", ScopedParameterEndpointsTest.batch(original, 1, "old").toString()), 409, "STALE_REVISION");
+					var staleSnapshot = ScopedParameterEndpointsTest.batch(source, 1, "old");
+					((com.fasterxml.jackson.databind.node.ObjectNode) staleSnapshot.path("items").get(0)).put("sourceSnapshotId", original.path("sourceSnapshotId").asText());
+					assertError(post(port, "/api/v1/edits/batch", staleSnapshot.toString()), 409, "STALE_REVISION");
+				}
+				if (run == 0) {
+					assertEquals(200, post(port, "/api/v1/edits/batch", ScopedParameterEndpointsTest.batch(source, 1, "savedWide").toString()).statusCode());
+					assertFalse(Files.readString(project).contains("savedWide"));
+					assertEquals(200, post(port, "/api/v1/project/save", "{}").statusCode());
+				} else if (run == 1) {
+					assertEquals(200, post(port, "/api/v1/edits/batch", ScopedParameterEndpointsTest.batch(source, 2, "unsavedFraction").toString()).statusCode());
+				}
+			} finally { stop(process, port); }
+		}
+	}
+
 	private static HttpResponse<String> postReferences(int port, String body) throws Exception {
 		return HTTP.send(HttpRequest.newBuilder(uri(port, "/api/v1/references/query"))
 				.header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofString(body)).build(),

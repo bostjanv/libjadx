@@ -1,6 +1,6 @@
 """Validate the reviewed editing contract and captured real HTTP responses.
 
-Run EditBatchEndpointsTest and EditBatchServiceTest first. Requires PyYAML, jsonschema and
+Run EditBatchEndpointsTest, EditBatchServiceTest and ScopedParameterEndpointsTest first. Requires PyYAML, jsonschema and
 openapi-spec-validator in the selected Python environment.
 """
 import json
@@ -16,6 +16,10 @@ validate(spec)
 
 examples = {
     "edit-batch-request.json": "EditBatchRequest",
+    "edit-parameter-request.json": "EditBatchRequest",
+    "edit-parameter-applied.json": "EditBatchResult",
+    "edit-parameter-no-change.json": "EditBatchResult",
+    "decompile-variables.json": "DecompileResult",
     "edit-batch-applied.json": "EditBatchResult",
     "edit-batch-no-change.json": "EditBatchResult",
     "edit-batch-partial.json": "EditBatchResult",
@@ -43,3 +47,28 @@ for path in failures:
     document = {"$ref": "#/components/schemas/EditBatchResult", "components": spec["components"]}
     Draft202012Validator(document).validate(json.loads(path.read_text()))
 print(f"OpenAPI 3.1 valid; {len(examples)} edit examples, {len(responses)} live HTTP responses and {len(failures)} injected service results valid; statuses={sorted(statuses)}")
+
+scoped = sorted((root / "build/scoped-edit-contract-responses").glob("*.json"))
+assert len(scoped) == 18, "Run ScopedParameterEndpointsTest to capture all fresh HTTP responses"
+scoped_statuses = set()
+for path in scoped:
+    record = json.loads(path.read_text())
+    scoped_statuses.add(record["status"])
+    document = {"$ref": f'#/components/schemas/{record["schema"]}', "components": spec["components"]}
+    Draft202012Validator(document).validate(record["body"])
+assert {200, 400, 404, 409, 415, 422, 429, 503, 500} <= scoped_statuses
+for name in ("409-revision", "409-snapshot"):
+    assert json.loads((root / f"build/scoped-edit-contract-responses/{name}.json").read_text())["body"]["error"]["code"] == "STALE_REVISION"
+assert json.loads((root / "build/scoped-edit-contract-responses/422-ambiguous.json").read_text())["body"]["error"]["code"] == "INVALID_ENTITY_ID"
+assert json.loads((root / "build/scoped-edit-contract-responses/422-catch.json").read_text())["body"]["error"]["code"] == "UNSUPPORTED_CAPABILITY"
+catch_source = json.loads((root / "build/scoped-edit-contract-responses/200-catch-source.json").read_text())["body"]
+assert "catch (NumberFormatException unused)" in catch_source["source"]
+assert len(catch_source["variables"]) == 1
+assert catch_source["variables"][0]["persistability"] == "UNSUPPORTED"
+assert catch_source["variables"][0]["parameterIndex"] is None
+# Independently enforce the conditional revision requirement on scoped requests.
+request_schema = {"$ref": "#/components/schemas/EditBatchRequest", "components": spec["components"]}
+missing = json.loads((root / "openapi/examples/edit-parameter-request.json").read_text())
+missing.pop("expectedSessionId"); missing.pop("expectedLogicalRevision")
+assert not Draft202012Validator(request_schema).is_valid(missing)
+print(f"{len(scoped)} scoped live HTTP responses valid; statuses={sorted(scoped_statuses)}")

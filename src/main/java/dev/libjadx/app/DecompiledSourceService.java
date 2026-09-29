@@ -81,7 +81,7 @@ public final class DecompiledSourceService {
 			if (request.expectedSourceSnapshotId() != null) throw new StaleSourceException();
 			return new DecompileResult(resolved.outcome(), ref, null, resolved.candidates(), sessionId, revision,
 					null, effective, DecompileResult.Status.UNAVAILABLE, "JAVA", null, null, null, null,
-					List.of(), null, null, resolved.diagnostics(), unavailableCapabilities());
+					List.of(), List.of(), null, null, resolved.diagnostics(), unavailableCapabilities());
 		}
 		SymbolCatalog.Entry entry = catalog.matching(ref.originalClassDescriptor()).getFirst();
 		var cls = JadxSymbolAdapter.visibleClass(jadx, ref.originalClassDescriptor(), entry.occurrence());
@@ -112,7 +112,7 @@ public final class DecompiledSourceService {
 		return new DecompileResult(resolved.outcome(), ref, data.ownerRef(), resolved.candidates(), sessionId,
 				revision, data.sourceSnapshotId(), effective, data.status(), "JAVA", data.source(),
 				method ? data.methodRange() != null : null, data.methodRange(), data.methodSource(),
-				data.annotations(), null, null, boundedDiagnostics, capabilities);
+				data.annotations(), data.variables(), null, null, boundedDiagnostics, capabilities);
 	}
 
 	private static DecompileResult.Capabilities unavailableCapabilities() {

@@ -3,6 +3,7 @@ package dev.libjadx.app;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import dev.libjadx.core.source.SourceCoordinates;
 import dev.libjadx.core.source.SourceSnapshot;
@@ -11,6 +12,22 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class SourceCoordinatesTest {
+	@Test void catchVerificationRequiresEveryExactDeclarationWithinTheMethodRange() {
+		String source = "try {} catch (java.io.IOException | RuntimeException failure) {} catch (Exception unused2) {}";
+		var names = Map.of(source.indexOf("failure"), "failure", source.indexOf("unused2"), "unused2");
+		assertTrue(MethodRangeVerifier.catchDeclarationsVerified(source, 0, source.length(), names));
+		assertFalse(MethodRangeVerifier.catchDeclarationsVerified(source, 0, source.length(), Map.of(source.indexOf("failure"), "failure")));
+		assertFalse(MethodRangeVerifier.catchDeclarationsVerified(source, 0, source.length(), Map.of(source.indexOf("failure") + 1, "failure")));
+		int secondCatch = source.lastIndexOf("catch");
+		assertTrue(MethodRangeVerifier.catchDeclarationsVerified(source, 0, secondCatch, Map.of(source.indexOf("failure"), "failure")));
+		assertFalse(MethodRangeVerifier.catchDeclarationsVerified(source, secondCatch, source.length(), Map.of()));
+		String trivia = "{ String s = \"catch (Exception unused) \\\"\"; char c = '\\''; "
+				+ "/* catch (Exception unused) */ // catch (Exception unused)\n"
+				+ "String block = \"\"\"catch (Exception unused)\"\"\"; int catcher = 0; }";
+		assertTrue(MethodRangeVerifier.catchDeclarationsVerified(trivia, 0, trivia.length(), Map.of()));
+		String unfamiliar = "catch (@Annotation Exception failure) {}";
+		assertFalse(MethodRangeVerifier.catchDeclarationsVerified(unfamiliar, 0, unfamiliar.length(), Map.of()));
+	}
 	@Test
 	void positionsUseUtf16OffsetsAndCodePointColumnsWithoutNormalizingNewlines() {
 		String source = "A\r\n😀e\u0301\nZ\r";
