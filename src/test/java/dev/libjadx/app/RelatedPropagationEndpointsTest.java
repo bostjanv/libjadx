@@ -49,14 +49,16 @@ class RelatedPropagationEndpointsTest {
 				var hashes = new java.util.ArrayList<FileFingerprint>();
 				for (Path file : List.of(path, inputs.getFirst(), inputs.get(1))) hashes.add(FileFingerprint.of(file));
 				String preconditions = "\"expectedSessionId\":\"" + before.revisions().sessionId() + "\",\"expectedLogicalRevision\":" + before.revisions().logicalRevision() + ",";
-				for (String flag : List.of("true", "false", "null", "\"yes\"")) {
+				for (String flag : List.of("true", "false", "null", "\"yes\"", "7", "[]", "{}")) {
 					var response = post(server, "/api/v1/edits/batch", "{" + preconditions + "\"items\":[" + regular
 							+ ",{\"kind\":\"RENAME\",\"target\":" + method + ",\"newName\":\"renamedJoined\",\"propagateRelated\":" + flag + "}]}");
 					assertEquals(422, response.statusCode(), response.body());
 					var error = JSON.readTree(response.body()).path("error");
 					assertEquals("UNSUPPORTED_CAPABILITY", error.path("code").asText());
 					assertEquals(1, error.path("details").path("itemErrors").get(0).path("index").asInt());
-					String name = (dirty ? "dirty-" : "clean-") + (flag.equals("\"yes\"") ? "string" : flag);
+					String name = (dirty ? "dirty-" : "clean-") + switch (flag) {
+						case "\"yes\"" -> "string"; case "7" -> "number"; case "[]" -> "array"; case "{}" -> "object"; default -> flag;
+					};
 					Files.writeString(captures.resolve(name + ".json"), JSON.writeValueAsString(Map.of(
 							"status", 422, "schema", "ErrorEnvelope", "body", JSON.readTree(response.body()))));
 					assertEquals(before, runtime.projectSnapshot()); assertEquals(identity, runtime.searchIdentity());

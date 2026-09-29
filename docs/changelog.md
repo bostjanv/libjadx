@@ -1,5 +1,18 @@
 # Experimental API changelog
 
+## 2026-09-29 — PR #16 complete-family replay negative evidence
+
+- Retained `422 UNSUPPORTED_CAPABILITY` for every `propagateRelated` presence
+  and `edit.related_propagation=UNSUPPORTED`; the public contract is unchanged.
+- Added real EditBatchService explicit-record probes for seven independently
+  COMPLETE family shapes. Hot chain/interface/default/Joined cases also change
+  two unrelated CovariantLeaf aliases, which fresh native reopen restores.
+- Added a separate actual GUI Save As diagnostic for service-produced legacy
+  record batches from all four Joined seed positions, both cold and hot.
+  This diagnostic does not count as an accepted propagated-service gate.
+- Expanded clean/dirty HTTP rejection captures to numeric, array and object
+  flags. Phase 5.2 and the local-variable editing decision remain incomplete.
+
 ## 2026-09-29 — PR #15 original-input hierarchy verification
 
 - Added bounded immutable class/JAR/DEX declaration census using pinned Jadx input

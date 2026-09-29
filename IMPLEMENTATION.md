@@ -220,7 +220,8 @@ GUI/HTTP gates are recorded in
 recorded in `docs/phase-5-scoped-editing.md`. PR #14 completed the propagation
 feasibility gate with an executable completeness failure; explicit propagation
 remains unsupported. See `docs/phase-5-related-propagation.md`. Local editing and
-a separately proved propagation verifier remain outstanding; P5.2 is incomplete.
+safe propagated replay remain outstanding; PR #15 proved independent verification,
+while PR #16 found a separate hot/fresh nonmember replay failure. P5.2 is incomplete.
 
 Build validated native-saveable editing operations in this order: class rename, method/field rename, comments, native mapping import/export; then supported parameter/local rename and related-method propagation. Verify each type through Phase 0 and actual GUI round-trip before advertising persistence. Use original entity references plus snapshot-scoped local variable references. Report propagated affected entities when known.
 
@@ -234,11 +235,15 @@ PR #15 completes the bounded original-input census and independent hierarchy
 completeness prerequisite after PR #14's negative candidate evidence. The
 class/JAR/DEX subset, deterministic budgets and immutable lifecycle are documented
 in [hierarchy verifier evidence](docs/phase-5-hierarchy-verifier.md). This is an
-internal verification slice, with no accepted propagation contract. PR #16 must
-consume only COMPLETE results, prove all-owner collision preflight, group-private
-native staging, exact affectedRefs, prefix/failure behavior and actual propagated
-service/save/restart/GUI gates before enabling any subset. Bridge/covariant and
-external/duplicate families remain excluded. Phase 5.2 remains incomplete.
+internal verification slice, with no accepted propagation contract. PR #16
+delivers outcome B: service replay of explicit complete-family records changes
+unrelated bridge aliases in hot owners, while fresh native reopen restores the
+original aliases. See [negative replay evidence](docs/phase-5-propagated-edits.md).
+The public presence-based 422 rejection and UNSUPPORTED capability remain.
+Safe replay must be proved before group admission, collision preflight, atomic
+item staging, exact affectedRefs and propagated service/GUI guarantees can ship.
+Bridge/covariant and external/duplicate families remain excluded. The separate
+local-variable editing decision remains open; Phase 5.2 is incomplete.
 
 ## 7. Phase 6 — Python SDK and end-to-end experimental release
 

@@ -74,16 +74,16 @@ missing.pop("expectedSessionId"); missing.pop("expectedLogicalRevision")
 assert not Draft202012Validator(request_schema).is_valid(missing)
 print(f"{len(scoped)} scoped live HTTP responses valid; statuses={sorted(scoped_statuses)}")
 
-# Evidence-only PR #14: deliberately rejected requests, never a supported flag.
+# Evidence-only PR #14/#16: deliberately rejected requests, never a supported flag.
 related_request = json.loads((root / "openapi/examples/edit-related-rejected-request.json").read_text())
 validator = Draft202012Validator(request_schema)
-for flag in (True, False, None, "yes"):
+for flag in (True, False, None, "yes", 7, [], {}):
     related_request["items"][0]["propagateRelated"] = flag
     assert not validator.is_valid(related_request)
 related_request["items"][0].pop("propagateRelated")
 validator.validate(related_request)  # Legacy declaration request remains accepted.
 related = sorted((root / "build/related-contract-responses").glob("*.json"))
-assert len(related) == 8, "Run RelatedPropagationEndpointsTest for clean/dirty presence-rejection captures"
+assert len(related) == 14, "Run RelatedPropagationEndpointsTest for clean/dirty presence-rejection captures"
 for path in related:
     record = json.loads(path.read_text())
     assert record["status"] == 422

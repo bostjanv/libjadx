@@ -262,3 +262,41 @@ tasks.register<Test>("relatedPropagationGuiRoundTripTest") {
     filter { includeTestsMatching("dev.libjadx.probes.RelatedPropagationGuiReverseProbeTest") }
     environment("LIBJADX_RELATED_GUI_ROOT", relatedGuiRoot.get().asFile.absolutePath)
 }
+
+// PR #16 outcome B: actual service replay negative evidence, not an accepted propagation gate.
+val propagatedReplayGuiRoot = layout.buildDirectory.dir("propagated-replay-gui-fixture")
+var previousReplayGuiTask: String? = null
+for (state in listOf("cold", "hot")) for (position in 0..3) {
+    val case = "$state$position"
+    val taskName = "savePropagatedReplay${state.replaceFirstChar { it.uppercase() }}${position}WithMatchingGui"
+    val previousTask = previousReplayGuiTask
+    tasks.register<Exec>(taskName) {
+        dependsOn(tasks.test)
+        if (previousTask != null) mustRunAfter(previousTask)
+        val guiPath = providers.environmentVariable("JADX_GUI")
+        doFirst {
+            if (!guiPath.isPresent) throw GradleException("Set JADX_GUI to the matching jadx-gui executable")
+        }
+        commandLine(
+            "bash", "tests/gui-round-trip.sh", guiPath.orNull ?: "",
+            propagatedReplayGuiRoot.get().file("$case/diagnostic.jadx").asFile.absolutePath,
+            propagatedReplayGuiRoot.get().file("$case/gui-resaved.jadx").asFile.absolutePath,
+        )
+        doLast {
+            copy {
+                from("/tmp/libjadx-gui-roundtrip.log")
+                into(propagatedReplayGuiRoot.get().dir(case))
+                rename { "actual-gui.log" }
+            }
+        }
+    }
+    previousReplayGuiTask = taskName
+}
+tasks.register<Test>("propagatedEditReplayGuiDiagnosticTest") {
+    dependsOn((listOf("cold", "hot").flatMap { state -> (0..3).map { "savePropagatedReplay${state.replaceFirstChar { it.uppercase() }}${it}WithMatchingGui" } }))
+    useJUnitPlatform()
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    filter { includeTestsMatching("dev.libjadx.app.PropagatedNativeReplayTest.actualMatchingGuiConfirmsMemberPersistenceAndHotNonmemberDisagreement") }
+    environment("LIBJADX_PROPAGATED_REPLAY_GUI_ROOT", propagatedReplayGuiRoot.get().asFile.absolutePath)
+}

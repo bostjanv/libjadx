@@ -1,6 +1,6 @@
 # Compatibility and pinned dependencies
 
-Status: Phase 5.2 internal hierarchy verification prerequisite, updated 2026-09-29.
+Status: Phase 5.2 verified-group replay negative evidence, updated 2026-09-29.
 
 ## Jadx pin
 
@@ -161,3 +161,17 @@ and fresh engines. Original duplicate definitions remain collapsed. Explicit
 propagation remains UNSUPPORTED. See [pinned paths, fixtures, native strategies
 and actual GUI diagnostics](phase-5-related-propagation.md) and
 [exact validation outcomes](pr-14-review.md).
+
+## PR #16 complete-family replay evidence
+
+The same Jadx 1.5.6 artifacts/source, JDK 21 and dependency locks remain pinned.
+The production replay path unloads owners before notifying the global native
+rename listeners. With previously generated owned hierarchy source, explicit
+records for all independently verified family members also change unrelated
+CovariantLeaf Object/String declaration aliases to `m0value`. Fresh native
+reopen restores `value`, despite correct persisted records for the requested
+family. This violates the hot/fresh nonmember safety gate. All explicit
+propagation stays UNSUPPORTED; ordinary declaration editing is unchanged.
+See [source reasoning and replay matrix](phase-5-propagated-edits.md) and
+[PR #16 validation](pr-16-review.md). Actual GUI Save As is a diagnostic of
+the saved records, not permission to admit unsafe propagation.

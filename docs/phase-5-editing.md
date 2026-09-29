@@ -18,6 +18,13 @@ the complete four-declaration local interface family omitted by Jadx. It adds
 no mutation admission: ordinary RENAME, empty affectedRefs and propagation
 rejection remain unchanged. See [hierarchy rules and next gates](phase-5-hierarchy-verifier.md).
 
+PR #16 retains rejection under its required outcome B. Explicit records for
+every independently verified member rename those members correctly, but the
+hot replay path also changes unrelated bridge aliases; fresh native reopen
+restores different aliases. See [complete-family replay evidence](phase-5-propagated-edits.md).
+The diagnostic uses ordinary per-declaration service items, with empty legacy
+affectedRefs. It adds no public group operation or transaction guarantee.
+
 Ordinary method RENAME retains pinned Jadx's implicit candidate alias propagation.
 It may change related aliases, but the existing empty affectedRefs does not certify
 a complete group. Explicit propagateRelated is rejected before staging, including
@@ -263,8 +270,9 @@ PR #13 adds original positional parameter identities with source-snapshot
 admission and matching-GUI native persistence for verified plain signatures;
 see [scoped editing](phase-5-scoped-editing.md). Local editing remains unsupported
 after the merged-SSA mode-variation probe. Related-method propagation is not enabled
-because candidate enumeration is not a proof of
-complete GUI-compatible edits. See
+because independent completeness alone does not prove safe native replay:
+PR #16 demonstrates nonmember hot/fresh disagreement. See
+[replay evidence](phase-5-propagated-edits.md) and
 [ADR 0001](adr/0001-defer-advanced-native-edits.md).
 These remain Phase 5.2 exit criteria; this slice does not declare the overall
 milestone complete.
