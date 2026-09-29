@@ -155,3 +155,22 @@ PR #16 stops dependent accepted-controller/contract work at this mandatory
 safety gate, as instructed. Local-variable editing and permission to proceed to
 Phase 6 remain separate human decisions. Exact final commands/counts are in
 [PR #16 review](pr-16-review.md).
+
+## PR #17 safe replay feasibility
+
+Outcome B; production replay and every accepted edit contract remain unchanged.
+Fresh replacement reconstructs complete native/mapping/scoped state and fixes
+PR #16's unrelated hot bridge aliases on the owned Joined fixture. It also
+recomputes an unedited automatic collision alias in the existing return-only
+fixture (`m0value` → `value` after renaming the integer-return declaration).
+Current replay preserves that alias but fails fresh equivalence. Listener-first
+loses mapping comments; owner-only leaves another owner's generated references
+stale. No tested generic strategy passes every gate. Propagation still returns
+422 on every flag presence, with its existing UNSUPPORTED capability evidence.
+
+[Detailed strategies, pinned source, oracle and cost](phase-5-safe-replay.md) and
+[final validation](pr-17-review.md) distinguish positive reconstruction probes
+from the failed adoption gate. No engine swap, alias patch, native extra record,
+autosave, API/SDK or dependency change is shipped. The next decision concerns
+automatic nonmember alias recomputation; group admission remains dependent on
+safe publication and its separate service/native/GUI gates.

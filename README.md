@@ -264,3 +264,15 @@ unload; fresh native reopen restores different aliases. Propagation remains
 disabled under PR #16's required negative-evidence outcome. See
 [replay failure and actual GUI diagnostic](docs/phase-5-propagated-edits.md) and
 [verifier evidence](docs/phase-5-hierarchy-verifier.md).
+
+### Safe native code-data replay / replacement-engine feasibility (PR #17)
+
+Outcome B: production edits still use the existing in-place path. Four isolated
+strategies were tested. Fresh replacement fixes the hot CovariantLeaf bridge
+counterexample but violates an existing supported-edit invariant: renaming
+`ReturnClash.value()I` changes the untouched `value()String` automatic alias
+from `m0value` to `value`. Replay preserves that alias but differs from fresh
+loading. No strategy passes both requirements, so propagation remains disabled.
+See [strategy/oracle evidence](docs/phase-5-safe-replay.md) and
+[validation and next decision](docs/pr-17-review.md). No public schema or SDK
+changes, autosave, alias injection or replacement primitive are shipped.

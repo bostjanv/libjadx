@@ -174,3 +174,22 @@ native formats; no upstream fork, dependency upgrade or sidecar is proposed.
 This PR stops dependent implementation at the failed completeness gate. There are
 no propagated success/no-op/partial responses to validate. Phase 6 still requires
 human approval of the remaining Phase 5.2 exit interpretation.
+
+## PR #17 safe replay feasibility
+
+Outcome B; production replay and every accepted edit contract remain unchanged.
+Fresh replacement reconstructs complete native/mapping/scoped state and fixes
+PR #16's unrelated hot bridge aliases on the owned Joined fixture. It also
+recomputes an unedited automatic collision alias in the existing return-only
+fixture (`m0value` → `value` after renaming the integer-return declaration).
+Current replay preserves that alias but fails fresh equivalence. Listener-first
+loses mapping comments; owner-only leaves another owner's generated references
+stale. No tested generic strategy passes every gate. Propagation still returns
+422 on every flag presence, with its existing UNSUPPORTED capability evidence.
+
+[Detailed strategies, pinned source, oracle and cost](phase-5-safe-replay.md) and
+[final validation](pr-17-review.md) distinguish positive reconstruction probes
+from the failed adoption gate. No engine swap, alias patch, native extra record,
+autosave, API/SDK or dependency change is shipped. The next decision concerns
+automatic nonmember alias recomputation; group admission remains dependent on
+safe publication and its separate service/native/GUI gates.

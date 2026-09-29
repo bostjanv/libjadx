@@ -356,3 +356,26 @@ Next unblocked work package:
 ```
 
 Do not treat a checklist tick or written plan as test evidence. The coding agent's deliverable is working, verifiable code under the approved architecture, with truthful capability reporting and native Jadx project compatibility.
+
+## PR #17 handoff — safe native code-data replay / replacement-engine feasibility
+
+Outcome B. Current replay, listener-first replay, exact-owner invalidation and
+fresh replacement have executable probes on pinned 1.5.6. Replacement passes
+Joined hot/cold and complete-state fresh comparisons, but removing a return-only
+method collision changes an untouched automatic alias. The existing supported
+`returnTypeOnlyOverloadsHaveDistinctNativeKeys` regression caught this during a
+provisional implementation; that implementation was reverted. Current production
+editing, prefix/fault semantics, revisions and explicit-save behavior remain
+unchanged. The old bridge failure remains a hard negative control.
+
+Before implementing a generic replacement primitive, obtain an explicit decision
+on whether unedited automatic aliases may be recomputed when a mutation removes
+a collision, or investigate another pinned-engine strategy satisfying both
+fresh equivalence and nonmember stability. Merely accepting replacement cost does
+not resolve this semantic conflict. No bridge-project exclusion, Jadx upgrade,
+manual alias preservation or Phase 6 scope change is authorized. PR #18 cannot
+admit groups until this boundary is resolved and safe publication, complete-state,
+fault, lease, native/restart and service GUI gates pass. Then single-lease COMPLETE
+verification, all-owner collisions, immutable group staging and exact affectedRefs
+remain required. See [feasibility](docs/phase-5-safe-replay.md) and
+[review](docs/pr-17-review.md).

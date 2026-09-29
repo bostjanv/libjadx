@@ -1,6 +1,6 @@
 # ADR 0001: Strict mapping export and import; defer local/propagated renames
 
-Status: export and bounded import safety decisions implemented; scoped parameter subset implemented; local/propagated follow-ups deferred after PR #16 replay failure, 2026-09-29.
+Status: export and bounded import safety decisions implemented; scoped parameter subset implemented; local/propagated follow-ups deferred after PR #17 safe-replay feasibility, 2026-09-29.
 
 Phase 5.2 requires native mapping export, parameter/local renames and
 related-method propagation only where pinned Jadx and the matching GUI prove
@@ -118,3 +118,22 @@ native records to force agreement. The smallest next slice is safe engine replay
 feasibility before a group transaction can be admitted. No architecture or
 Phase 6 exit decision is made. See [replay evidence](../phase-5-propagated-edits.md)
 and [validation](../pr-16-review.md).
+
+## PR #17 replay preservation boundary
+
+Status: outcome B; the production edit path and unsupported propagation boundary
+are retained. Fresh replacement is preferable for independent mutable engine
+state and passes the owned Joined bridge and complete native-state probes.
+However, an ordinary supported rename of `ReturnClash.value()I` removes a
+return-only collision: a fresh engine changes untouched `value()String` from
+`m0value` to `value`, while the current path preserves `m0value`. The existing
+unchanged-overload regression failed in the provisional replacement path.
+
+Under PR #17's explicit unchanged-nonmember constraint, neither keeping old
+aliases nor recomputing them is an admissible generic solution. The provisional
+production implementation was removed. Manually setting aliases, adding unrelated
+native records or relaxing the assertion would weaken that constraint. A future
+replacement implementation therefore needs human approval specifically for
+consistent automatic-alias recomputation, or a different strategy that proves
+both invariants. Cost acceptance alone is insufficient. No such design change
+is adopted here. See [counterexamples and measurements](../phase-5-safe-replay.md).

@@ -1,6 +1,6 @@
 # Compatibility and pinned dependencies
 
-Status: Phase 5.2 verified-group replay negative evidence, updated 2026-09-29.
+Status: Phase 5.2 safe replay / replacement-engine feasibility, outcome B, updated 2026-09-29.
 
 ## Jadx pin
 
@@ -175,3 +175,22 @@ propagation stays UNSUPPORTED; ordinary declaration editing is unchanged.
 See [source reasoning and replay matrix](phase-5-propagated-edits.md) and
 [PR #16 validation](pr-16-review.md). Actual GUI Save As is a diagnostic of
 the saved records, not permission to admit unsafe propagation.
+
+## PR #17 safe replay feasibility
+
+Outcome B; production replay and every accepted edit contract remain unchanged.
+Fresh replacement reconstructs complete native/mapping/scoped state and fixes
+PR #16's unrelated hot bridge aliases on the owned Joined fixture. It also
+recomputes an unedited automatic collision alias in the existing return-only
+fixture (`m0value` → `value` after renaming the integer-return declaration).
+Current replay preserves that alias but fails fresh equivalence. Listener-first
+loses mapping comments; owner-only leaves another owner's generated references
+stale. No tested generic strategy passes every gate. Propagation still returns
+422 on every flag presence, with its existing UNSUPPORTED capability evidence.
+
+[Detailed strategies, pinned source, oracle and cost](phase-5-safe-replay.md) and
+[final validation](pr-17-review.md) distinguish positive reconstruction probes
+from the failed adoption gate. No engine swap, alias patch, native extra record,
+autosave, API/SDK or dependency change is shipped. The next decision concerns
+automatic nonmember alias recomputation; group admission remains dependent on
+safe publication and its separate service/native/GUI gates.

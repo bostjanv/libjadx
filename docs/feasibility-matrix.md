@@ -39,6 +39,7 @@ Evidence is tied to Jadx `1.5.6` source commit `28ff15e4ae69950aebea110a13e5ab89
 | Native mapping import/merge | PARTIAL, strict Tiny v2 declaration subset | `JadxMappingImportProbeTest`, `MappingImportServiceTest`, `MappingImportEndpointsTest` and matching `mappingImportGuiRoundTripTest` prove conservative original-key merge, additive LINE suffixes, one native commit, no-op/cache identity, source races and explicit save/reopen. Inner renames, arbitrary composites and conflicting existing aliases fail closed. See `phase-5-mapping-import.md`. |
 | Parameter rename | SUPPORTED for verified plain AUTO/RESTRUCTURE concrete signatures | `JadxVariableProbeTest`, `ScopedParameterServiceTest`, `ScopedParameterEndpointsTest`, packaged process restart and `scopedEditGuiRoundTripTest` cover original positional indexes, wide arguments, source binding, prevalidation and explicit persistence. Unsupported forms fail closed. See `phase-5-scoped-editing.md`. |
 | Local rename | UNSUPPORTED | Owned merged/loop/branch/register-reuse fixture proves changed emitted SSA identity under SIMPLE and missing declarations in FALLBACK. A persisted key is not a settings-independent local identity. No safe general persistence subset is exposed. |
+| Generic fresh-equivalent native edit replay | UNPROVED; Outcome B | `SafeReplayStrategyTest` rejects current/listener-first/owner-only replay and generic replacement. Replacement fixes Joined bridges but changes an untouched automatic alias when an ordinary return-only method rename removes a collision. See [PR #17](phase-5-safe-replay.md). |
 | Related override propagation | UNSUPPORTED | PR #15 independently proves closed-input families, including all four Joined declarations. PR #16 explicit complete-family service replay still changes unrelated CovariantLeaf aliases in hot owners; fresh native reopen disagrees. Retain all presence-based 422 rejections. Actual GUI resave diagnostics do not establish safe propagated transactions. See [replay evidence](phase-5-propagated-edits.md) and [candidate evidence](phase-5-related-propagation.md). |
 | Original-input declaration census | SUPPORTED for bounded class/JAR/DEX subset, internal only | `RawInputCensusProbeTest` and `InputCensusTest` retain duplicates and divergent methods/access/supertypes before RootNode selection, with exact configured origins, hard-limit boundaries and strict parse/checksum failures. No source bodies or mutable Jadx nodes are retained. |
 | Independent override-family completeness | SUPPORTED for conservative closed-input exact-return subset, internal only | `IndependentHierarchyVerifierTest` verifies chains/defaults/diamonds/independent branches, visibility, inherited interface implementations, two inputs and DEX. Every complete family is seed independent. Bridge/covariant/synthetic, missing/external/duplicate and resource-limited results expose no partial family. `HierarchyVerifierLifecycleTest` checks lifecycle and input invalidation. See [rules](phase-5-hierarchy-verifier.md). |
@@ -65,3 +66,22 @@ users, class dependencies and omitted-dependency original method descriptors
 on an owned JAR. Graphs exist before owner decompilation, but may be pruned by
 later processing. Recursive self edges can be absent. READ/WRITE, exhaustive
 coverage and original offsets remain unavailable. See [reference evidence](phase-4-references.md).
+
+## PR #17 safe replay feasibility
+
+Outcome B; production replay and every accepted edit contract remain unchanged.
+Fresh replacement reconstructs complete native/mapping/scoped state and fixes
+PR #16's unrelated hot bridge aliases on the owned Joined fixture. It also
+recomputes an unedited automatic collision alias in the existing return-only
+fixture (`m0value` → `value` after renaming the integer-return declaration).
+Current replay preserves that alias but fails fresh equivalence. Listener-first
+loses mapping comments; owner-only leaves another owner's generated references
+stale. No tested generic strategy passes every gate. Propagation still returns
+422 on every flag presence, with its existing UNSUPPORTED capability evidence.
+
+[Detailed strategies, pinned source, oracle and cost](phase-5-safe-replay.md) and
+[final validation](pr-17-review.md) distinguish positive reconstruction probes
+from the failed adoption gate. No engine swap, alias patch, native extra record,
+autosave, API/SDK or dependency change is shipped. The next decision concerns
+automatic nonmember alias recomputation; group admission remains dependent on
+safe publication and its separate service/native/GUI gates.

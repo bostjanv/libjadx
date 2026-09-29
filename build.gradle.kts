@@ -300,3 +300,33 @@ tasks.register<Test>("propagatedEditReplayGuiDiagnosticTest") {
     filter { includeTestsMatching("dev.libjadx.app.PropagatedNativeReplayTest.actualMatchingGuiConfirmsMemberPersistenceAndHotNonmemberDisagreement") }
     environment("LIBJADX_PROPAGATED_REPLAY_GUI_ROOT", propagatedReplayGuiRoot.get().asFile.absolutePath)
 }
+
+// PR #17 outcome B: saved records demonstrate alias recomputation, not safe production replacement.
+val safeReplayGuiDiagnostic = layout.buildDirectory.file("safe-replay-gui-diagnostic/gui-resaved.jadx")
+tasks.register<Exec>("saveSafeReplayDiagnosticWithMatchingGui") {
+    dependsOn(tasks.test)
+    val guiPath = providers.environmentVariable("JADX_GUI")
+    doFirst {
+        if (!guiPath.isPresent) throw GradleException("Set JADX_GUI to the matching jadx-gui executable")
+    }
+    commandLine(
+        "bash", "tests/gui-round-trip.sh", guiPath.orNull ?: "",
+        layout.buildDirectory.file("safe-replay-gui-diagnostic/diagnostic.jadx").get().asFile.absolutePath,
+        safeReplayGuiDiagnostic.get().asFile.absolutePath,
+    )
+    doLast {
+        copy {
+            from("/tmp/libjadx-gui-roundtrip.log")
+            into(layout.buildDirectory.dir("safe-replay-gui-diagnostic"))
+            rename { "actual-gui.log" }
+        }
+    }
+}
+tasks.register<Test>("safeReplayGuiDiagnosticTest") {
+    dependsOn("saveSafeReplayDiagnosticWithMatchingGui")
+    useJUnitPlatform()
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    filter { includeTestsMatching("dev.libjadx.app.SafeReplayStrategyTest.actualMatchingGuiConfirmsAutomaticNonmemberAliasIsRecomputed") }
+    environment("LIBJADX_SAFE_REPLAY_GUI_DIAGNOSTIC", safeReplayGuiDiagnostic.get().asFile.absolutePath)
+}
