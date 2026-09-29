@@ -217,8 +217,10 @@ mapping export and bounded conflict-safe import. Export's probes and independent
 GUI/HTTP gates are recorded in
 `docs/phase-5-mapping-export.md`; import gates are recorded in
 `docs/phase-5-mapping-import.md`. Snapshot-bound parameter editing for verified AUTO/RESTRUCTURE plain signatures is
-recorded in `docs/phase-5-scoped-editing.md`. Local editing and related-method
-propagation remain outstanding; P5.2 is incomplete.
+recorded in `docs/phase-5-scoped-editing.md`. PR #14 completed the propagation
+feasibility gate with an executable completeness failure; explicit propagation
+remains unsupported. See `docs/phase-5-related-propagation.md`. Local editing and
+a separately proved propagation verifier remain outstanding; P5.2 is incomplete.
 
 Build validated native-saveable editing operations in this order: class rename, method/field rename, comments, native mapping import/export; then supported parameter/local rename and related-method propagation. Verify each type through Phase 0 and actual GUI round-trip before advertising persistence. Use original entity references plus snapshot-scoped local variable references. Report propagated affected entities when known.
 

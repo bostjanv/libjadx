@@ -9,8 +9,14 @@ Strict mapping [export](phase-5-mapping-export.md) and
 [import](phase-5-mapping-import.md) have separate contracts and evidence.
 PR #13 adds snapshot-bound parameter editing for its verified signature subset;
 see [scoped editing](phase-5-scoped-editing.md). Local editing and related-method
-propagation remain unsupported;
+propagation remain unsupported; PR #14 preserves executable completeness
+counterexamples in [related propagation evidence](phase-5-related-propagation.md).
 Phase 5.2 is incomplete.
+
+Ordinary method RENAME retains pinned Jadx's implicit candidate alias propagation.
+It may change related aliases, but the existing empty affectedRefs does not certify
+a complete group. Explicit propagateRelated is rejected before staging, including
+false or malformed values. The accepted request schema still excludes the flag.
 
 ## Request and identity
 

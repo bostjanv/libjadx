@@ -130,7 +130,7 @@ public final class StatusServlet extends HttpServlet {
 					new Capability("edit.mapping_export", "PARTIAL", "TINY_V2_VERIFIED_DECLARATIONS_STRICT_COMPLETE", "NEW_OUTPUT_ONLY"),
 					new Capability("edit.parameter_rename", "SUPPORTED", "AUTO_RESTRUCTURE_PLAIN_SIGNATURE_SNAPSHOT_GUI_VERIFIED", "MEMORY_ONLY_UNTIL_EXPLICIT_NATIVE_SAVE"),
 					new Capability("edit.local_rename", "UNSUPPORTED", "MERGED_SSA_MODE_VARIATION_NO_SAFE_PERSISTED_SUBSET", "UNAVAILABLE"),
-					new Capability("edit.related_propagation", "UNSUPPORTED", "GUI_BEHAVIOR_NOT_VERIFIED", "UNAVAILABLE"),
+					new Capability("edit.related_propagation", "UNSUPPORTED", "INCOMPLETE_PINNED_OVERRIDE_GROUP", "UNAVAILABLE"),
 					new Capability("project.revisions", "PARTIAL", "CONTENT_HASH_AND_SESSION_TOKENS", "PROCESS_LOCAL_COUNTERS"),
 					new Capability("analysis.temporary_override", "PARTIAL", "ISOLATED_DECOMPILATION_MODE_WITH_UNSAVED_EDITS", "READ_ONLY"),
 					new Capability("analysis.cfg", "UNKNOWN", "NOT_PROBED", "UNAVAILABLE"),
@@ -507,9 +507,9 @@ public final class StatusServlet extends HttpServlet {
 					return;
 				}
 				if (item.has("propagateRelated")) {
-					writeError(response, 422, "UNSUPPORTED_CAPABILITY", "Related-method propagation is not verified", false,
+					writeError(response, 422, "UNSUPPORTED_CAPABILITY", "Pinned Jadx related-method membership is incomplete", false,
 							Map.of("itemErrors", List.of(new EditDtos.ItemError(items.size(), "UNSUPPORTED_CAPABILITY",
-									"Related-method propagation is not verified"))));
+									"Pinned Jadx related-method membership is incomplete"))));
 					return;
 				}
 				boolean scoped = kind.equals("RENAME_PARAMETER");
