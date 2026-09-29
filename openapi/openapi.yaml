@@ -366,8 +366,12 @@ paths:
         staging failure returns PARTIAL with itemized FAILED and SKIPPED results,
         committing a verified applied prefix when one exists. If no item was
         applied, logical/index revisions and dirty state remain unchanged.
-        Only LINE declaration comments are currently accepted. Explicit related-method
-        propagation and local editing are unsupported. Any propagateRelated field
+        Only LINE declaration comments are currently accepted.
+        Aliases without an explicit native, mapping or supported scoped rename are derived
+        Jadx analysis state and may be recomputed after an edit or rebuild. Automatic
+        recomputation creates no additional native edit record. Effective batches load
+        one private fresh replacement before committing; candidate failure publishes
+        no edits. Related propagation and local editing are unsupported. Any propagateRelated field
         (including false or a malformed value) returns 422 UNSUPPORTED_CAPABILITY
         before batch staging; it is not part of an accepted request schema. Omit it
         for legacy declaration behavior. Ordinary method RENAME retains pinned Jadx

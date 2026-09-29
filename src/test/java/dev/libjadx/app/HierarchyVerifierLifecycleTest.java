@@ -51,7 +51,8 @@ class HierarchyVerifierLifecycleTest {
 			new EditBatchService(runtime).apply(new EditDtos.Request(null, null, List.of(
 					new EditDtos.Operation(EditDtos.Kind.RENAME, SEED, "pendingJoined", null, null),
 					new EditDtos.Operation(EditDtos.Kind.SET_COMMENT, SymbolRef.classRef("Lrelated/Hierarchy;"), null, "pending", "LINE"))));
-			assertEquals(expected, verify(runtime)); assertSame(original, runtime.decompiler());
+			assertEquals(expected, verify(runtime)); assertNotSame(original, runtime.decompiler());
+			original = runtime.decompiler();
 			assertEquals(nativeHash, FileFingerprint.of(path));
 			runtime.saveProject(null, null); assertSame(original, runtime.decompiler());
 			assertEquals(expected, verify(runtime));

@@ -32,7 +32,7 @@ class PropagatedNativeReplayTest {
 			RelatedFixture.ref("CovariantLeaf", "value", "()Ljava/lang/String;"));
 
 	@ParameterizedTest @ValueSource(strings = {"work", "call", "run", "joined", "inherited", "simple", "dex"})
-	void completeFamilyRecordsExposeNonmemberReplayFailureDespiteCorrectMemberPersistence(String name) throws Exception {
+	void completeFamilyRecordsPublishFreshEquivalentNativeState(String name) throws Exception {
 		List<Path> inputs; SymbolRef seed;
 		if (name.equals("dex")) {
 			inputs = List.of(HierarchyFixture.dex(dir, "iface.dex", ".class public interface abstract Ldex/I;\n.super Ljava/lang/Object;\n.method public abstract f(I)I\n.end method\n"),
@@ -67,7 +67,7 @@ class PropagatedNativeReplayTest {
 					assertEquals(member.equals(family.getFirst()) ? "APPLIED" : "NO_CHANGE", result.outcome());
 					assertTrue(result.items().stream().allMatch(item -> item.affectedRefs().isEmpty()), "Legacy receipts must not claim propagation");
 					verify(runtime, family, ALIAS); generate(runtime);
-					assertNonmembers(before, aliases(runtime, family), hot && blocked);
+					assertNonmembers(before, aliases(runtime, family), false);
 				}
 				assertEquals(initialRevision + 1, runtime.projectSnapshot().revisions().logicalRevision());
 				assertEquals(disk, Files.readString(path), "No autosave");
@@ -77,20 +77,21 @@ class PropagatedNativeReplayTest {
 				try (var fresh = open(path)) {
 					verify(fresh, family, ALIAS); generate(fresh);
 					assertEquals(before, aliases(fresh, family), "Fresh native reopen restores original nonmember aliases");
-					if (hot && blocked) assertNotEquals(hotNonmembers, aliases(fresh, family), "Required hot/fresh gate fails outside the family");
+					assertEquals(hotNonmembers, aliases(fresh, family), "Replacement publication matches fresh native reopen");
+					assertEquals(SafeReplayStrategyTest.semantic(fresh.decompiler()), SafeReplayStrategyTest.semantic(runtime.decompiler()));
 					Path reports = Files.createDirectories(Path.of("build/propagated-replay-probe"));
 					Files.writeString(reports.resolve(name + "-" + (hot ? "hot" : "cold") + "-primary.java"), sources(runtime));
 					Files.writeString(reports.resolve(name + "-" + (hot ? "hot" : "cold") + "-fresh.java"), sources(fresh));
 					Files.writeString(reports.resolve(name + "-" + (hot ? "hot" : "cold") + ".json"), new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(Map.of(
 							"family", family, "sourceGeneratedBeforeEdit", hot, "nativeRecordCount", family.size(),
 							"readOnlyNonmembers", printable(before), "primaryNonmembers", printable(hotNonmembers),
-							"freshNonmembers", printable(aliases(fresh, family)), "safetyGate", hot && blocked ? "FAILED_NONMEMBER_ALIAS" : "CONTROL_AGREES")));
+							"freshNonmembers", printable(aliases(fresh, family)), "safetyGate", "REPLACEMENT_AGREES")));
 				}
 			}
 		}
 	}
 
-	@Test void prepareServiceReplayFailureForActualMatchingGuiSaveAs() throws Exception {
+	@Test void prepareReplacementServiceForActualMatchingGuiSaveAs() throws Exception {
 		Path root = Path.of("build/propagated-replay-gui-fixture").toAbsolutePath();
 		Files.createDirectories(root); List<Path> inputs = RelatedFixture.compile(root);
 		for (boolean hot : List.of(false, true)) for (int position = 0; position < 4; position++) {
@@ -102,7 +103,7 @@ class PropagatedNativeReplayTest {
 				if (hot) generate(runtime);
 				assertEquals("APPLIED", explicitRecords(runtime, family, family.get(position), ALIAS).outcome());
 				verify(runtime, family, ALIAS); generate(runtime);
-				for (var ref : BRIDGE_NONMEMBERS) assertEquals(hot ? "m0value" : "value", aliases(runtime, family).get(ref));
+				for (var ref : BRIDGE_NONMEMBERS) assertEquals("value", aliases(runtime, family).get(ref));
 				runtime.saveProject(null, null); assertRecords(path, family, ALIAS);
 			}
 		}
@@ -117,7 +118,7 @@ class PropagatedNativeReplayTest {
 				var verification = fresh.verifyRelatedHierarchy(RelatedFixture.ref("Joined", "joined", "(I)I"), RelatedHierarchyVerifier.VerificationBudget.defaults());
 				assertEquals(RelatedHierarchyVerifier.Status.COMPLETE, verification.status()); assertEquals(4, verification.members().size());
 				assertRecords(path, verification.members(), ALIAS); verify(fresh, verification.members(), ALIAS); generate(fresh);
-				for (var ref : BRIDGE_NONMEMBERS) assertEquals("value", aliases(fresh, verification.members()).get(ref), "GUI/fresh disagrees with primary m0value");
+				for (var ref : BRIDGE_NONMEMBERS) assertEquals("value", aliases(fresh, verification.members()).get(ref), "GUI/fresh agrees with replacement");
 			}
 		}
 	}

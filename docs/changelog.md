@@ -1,5 +1,13 @@
 # Experimental API changelog
 
+## 2026-09-29 — PR #18 fresh-equivalent replacement-engine edit publication
+
+- Effective native batches and mapping imports stage full native state, load one fresh production engine, then commit/publish under exclusive admission. Candidate failures preserve the old READY project; no-op retains engine and identities.
+- Automatic aliases without native/mapping/scoped persistence are derived and may recompute; explicit edits remain authoritative. ReturnClash's untouched String alias becomes value without an extra record.
+- Retained PR #17 replay negative controls and added production fault/lease/complete-state/fresh-oracle/performance tests plus a positive actual matching-GUI Save As gate.
+- Logical/index/publication counters advance once per effective edit. Old-engine cleanup exceptions do not undo publication. Saves remain explicit.
+- Public request/response schemas and SDK scope remain unchanged. Related propagation and local editing remain unsupported; PR #19 must implement group admission. See [publication](phase-5-replacement-publication.md) and [validation](pr-18-review.md).
+
 ## 2026-09-29 — PR #17 safe replay / replacement-engine feasibility
 
 - Outcome B: no production replay/publication, OpenAPI, DTO, SDK or dependency change.

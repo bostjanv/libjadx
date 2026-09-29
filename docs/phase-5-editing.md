@@ -73,20 +73,17 @@ the native file unchanged. The
 error shape. No-op requests return `NO_CHANGE` and `SKIPPED/NO_CHANGE`, with
 unchanged logical/index revisions and dirty state.
 
-Normal effective batches use one native replacement, unload generated owner
-code caches, clear declaration comment attributes, then notify Jadx code-data
-listeners once. Logical and index revisions each advance once. A deterministic test hook
-throws before staging item 1 after item 0 was staged. The service commits only
-that safe prefix and returns `PARTIAL` with `APPLIED`, `FAILED`, `SKIPPED`,
-revision 0→1, and only the first alias in pending native code data. This is
-fault-injection evidence, not a claim that any native consumer routinely fails
-mid-batch. A staging failure before any effective edit also returns `PARTIAL`,
-with `FAILED` and subsequent `SKIPPED/NOT_EXECUTED` items. A preceding no-op
-retains `SKIPPED/NO_CHANGE`; no native replacement or publication occurs, and
-logical/index revisions and dirty state are unchanged, including already-dirty
-projects. The [no-applied failure](../openapi/examples/edit-batch-partial-no-applied.json)
-example shows that distinction. A reload failure after repository replacement is a hard failure
-and leaves the runtime `FAILED`; it is never presented as a successful batch.
+Normal effective batches privately stage one complete native candidate and load
+one fresh engine before repository commit. Logical, index and publication
+revisions each advance once. A deterministic staging hook can fail at item 1:
+the verified prefix publishes through the same primitive and returns PARTIAL
+with APPLIED/FAILED/SKIPPED receipts. A failure before any effective edit publishes
+nothing, including when preceding items are no-ops. Replacement construction,
+load, verifier binding or consistency failure returns the existing internal
+error, leaves the old project READY and reports no APPLIED prefix. Complete
+no-op avoids engine construction and preserves source/search identities.
+See [replacement publication](phase-5-replacement-publication.md) for the
+production lifecycle and failure gates.
 The [success](../openapi/examples/edit-batch-applied.json),
 [no-op](../openapi/examples/edit-batch-no-change.json), and
 [partial](../openapi/examples/edit-batch-partial.json) examples describe these
@@ -106,7 +103,7 @@ identity is node plus code ref; the
 [`JadxCodeComment`](https://github.com/skylot/jadx/blob/28ff15e4ae69950aebea110a13e5ab895d234dfc/jadx-core/src/main/java/jadx/api/data/impl/JadxCodeComment.java)
 does not use that equality rule, so the adapter matches comments explicitly.
 
-This extra unload is necessary because pinned
+The retained historical replay negative control needs an extra unload because pinned
 [`JadxDecompiler.reloadCodeData()`](https://github.com/skylot/jadx/blob/28ff15e4ae69950aebea110a13e5ab895d234dfc/jadx-core/src/main/java/jadx/api/JadxDecompiler.java)
 only notifies code-data listeners. A pre-decompiled class otherwise returned
 old Java after a successful edit. `EditBatchEndpointsTest` now decompiles
@@ -137,11 +134,11 @@ refresh remains lazy and coverage remains explicit.
 The review regressions use the owned multi-class `EditOwner.java` fixture.
 `EditBatchServiceTest` checks unrelated classes' pinned Jadx processing state
 for class/method/field edits that apply, make no change or reject a later invalid
-item. Effective edits are also checked before publication unloads code caches,
+item. Effective edits are also checked before replacement publication,
 so unloading cannot hide eager processing. Class and same-owner method collision
 tests retain the safety checks. Fault injection before item 0 and after a no-op
 checks item indexes/statuses/messages, pending native data, revisions, dirty
-state and zero additional Jadx reloads for clean and already-dirty projects.
+state and zero additional engine constructions for clean and already-dirty projects.
 `tests/validate-edit-contract.py` validates these serialized service results
 separately from the actual HTTP responses captured by `EditBatchEndpointsTest`.
 
@@ -277,7 +274,7 @@ PR #16 demonstrates nonmember hot/fresh disagreement. See
 These remain Phase 5.2 exit criteria; this slice does not declare the overall
 milestone complete.
 
-## PR #17 safe replay feasibility
+## Historical PR #17 safe replay feasibility (superseded below)
 
 Outcome B; production replay and every accepted edit contract remain unchanged.
 Fresh replacement reconstructs complete native/mapping/scoped state and fixes
@@ -295,3 +292,25 @@ from the failed adoption gate. No engine swap, alias patch, native extra record,
 autosave, API/SDK or dependency change is shipped. The next decision concerns
 automatic nonmember alias recomputation; group admission remains dependent on
 safe publication and its separate service/native/GUI gates.
+
+## PR #18 approved alias semantics and replacement publication
+
+This section supersedes PR #17's requirement to preserve every incidental alias.
+Automatic Jadx aliases are derived analysis state: collision aliases,
+deobfuscation aliases without explicit persistence, and other generated aliases
+may be recomputed when an edit changes analysis. A declaration with no explicit
+rename may therefore change its display alias without a separate user edit.
+Native declaration renames, mapping aliases/comments, supported scoped renames,
+retained VAR records and declaration comments remain authoritative. Original
+identities, settings, ordered input references and unknown native fields retain
+their existing preservation rules. Never add native records to freeze generated
+aliases.
+
+Effective native batches now privately stage complete code data, load one fresh
+production engine, commit native data once, then publish that engine under the
+existing exclusive lease. No-op retains the engine and revisions; candidate
+failure publishes nothing. See [replacement publication](phase-5-replacement-publication.md) for ordering,
+failures, oracle, persistence and validation. Related propagation and local
+editing remain unsupported. PR #19 still requires same-lease COMPLETE verification,
+immutable group plans, all-owner collision admission, exact original native
+records and affectedRefs, and propagated HTTP/native/restart/actual-GUI gates.

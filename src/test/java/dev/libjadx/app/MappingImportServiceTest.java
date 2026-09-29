@@ -309,17 +309,20 @@ class MappingImportServiceTest {
 		}
 	}
 
-	@Test void postReplacementReplayFailureUsesFailedLifecycleRatherThanRollback() throws Exception {
+	@Test void replacementLoadFailurePreservesOldProjectRatherThanPublishingImport() throws Exception {
 		Path jar = SymbolFixtureSupport.compileEditFixture(dir); AtomicInteger replays = new AtomicInteger();
 		try (var runtime = new ProjectRuntime(null, List.of(jar), args -> new ProjectRuntime.ProjectEngine() {
 			final JadxDecompiler engine = new JadxDecompiler(args);
-			public void load() { engine.load(); } public JadxDecompiler decompiler() { return engine; }
-			public void reloadCodeData(JadxCodeData data) { replays.incrementAndGet(); throw new IllegalStateException("injected replay failure"); }
+			public void load() {
+				if (!((JadxCodeData) args.getCodeData()).getRenames().isEmpty()) { replays.incrementAndGet(); throw new IllegalStateException("injected candidate failure"); }
+				engine.load();
+			} public JadxDecompiler decompiler() { return engine; }
 			public void close() { engine.close(); }
 		}, () -> { })) {
 			runtime.initializeAsync(null).get(20, TimeUnit.SECONDS);
 			assertThrows(IllegalStateException.class, () -> new MappingImportService(runtime).importMappings(request(runtime, write(HAPPY))));
-			assertEquals(1, replays.get()); assertEquals("FAILED", runtime.status().state());
+			assertEquals(1, replays.get()); assertEquals("READY", runtime.status().state());
+			assertEquals(0, runtime.projectSnapshot().revisions().logicalRevision()); assertFalse(runtime.projectSnapshot().dirty());
 		}
 	}
 

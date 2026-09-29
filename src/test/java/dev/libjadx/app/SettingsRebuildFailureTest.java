@@ -30,7 +30,7 @@ class SettingsRebuildFailureTest {
 		AtomicInteger creations = new AtomicInteger();
 		AtomicInteger closes = new AtomicInteger();
 		ProjectRuntime runtime = new ProjectRuntime(nativeProject.getProjectPath(), nativeProject.getInputFiles(),
-				args -> new CountingEngine(args, creations.incrementAndGet() == 2, closes));
+				args -> new CountingEngine(args, creations.incrementAndGet() == 3, closes));
 		try {
 			runtime.initializeAsync(nativeProject).get(20, TimeUnit.SECONDS);
 			var edit = nativeProject.getCodeData();
@@ -48,11 +48,11 @@ class SettingsRebuildFailureTest {
 			assertEquals(dir.resolve("sample.tiny"), runtime.settingsSnapshot().mappingsPath());
 			assertTrue(runtime.decompiler().getClasses().stream()
 					.anyMatch(cls -> cls.getFullName().equals("probe.RetainedAlias")));
-			assertEquals(1, closes.get(), "failed replacement is closed");
+			assertEquals(2, closes.get(), "obsolete edit engine and failed replacement are closed");
 		} finally {
 			runtime.close();
 		}
-		assertEquals(2, closes.get());
+		assertEquals(3, closes.get());
 	}
 
 	@Test

@@ -177,25 +177,68 @@ public final class NativeProjectRepository {
 		return snapshot();
 	}
 
-	/** Internal edit seam for validated native edits; editing endpoints arrive in Phase 5. */
-	public synchronized void replaceCodeData(JadxCodeData edited, long expectedRevision) {
-		checkRevision(expectedRevision);
-		Objects.requireNonNull(edited, "edited");
-		if (document == null) {
-			String previous = codeDataJson();
-			rawCodeData = NativeProjectDocument.copyCodeData(edited);
-			if (!previous.equals(codeDataJson())) {
-				logicalRevision++;
-				indexRevision++;
-			}
-			return;
+	/** Repository-bound private candidate. Accessors never expose owned mutable data. */
+	public static final class CodeDataCandidate {
+		private final NativeProjectRepository owner;
+		private final long expectedRevision;
+		private final long expectedIdentityGeneration;
+		private final NativeProjectDocument document;
+		private final JadxCodeData codeData;
+		private final String baseline;
+		private final String next;
+		private boolean consumed;
+
+		private CodeDataCandidate(NativeProjectRepository owner, long expectedRevision,
+				NativeProjectDocument document, JadxCodeData codeData, String baseline, String next) {
+			this.owner = owner;
+			this.expectedRevision = expectedRevision;
+			this.expectedIdentityGeneration = owner.identityGeneration;
+			this.document = document;
+			this.codeData = codeData;
+			this.baseline = baseline;
+			this.next = next;
 		}
-		String previous = codeDataJson();
-		document.setCodeData(NativeProjectDocument.copyCodeData(edited));
-		if (!previous.equals(codeDataJson())) {
+		public JadxCodeData codeDataCopy() { return NativeProjectDocument.copyCodeData(codeData); }
+		public boolean effective() { return !baseline.equals(next); }
+	}
+
+	/** Stage all serialization/copy work before loading an engine or publishing repository state. */
+	public synchronized CodeDataCandidate stageCodeData(JadxCodeData edited, long expectedRevision) {
+		checkRevision(expectedRevision);
+		JadxCodeData copy = NativeProjectDocument.copyCodeData(Objects.requireNonNull(edited, "edited"));
+		NativeProjectDocument candidate = document == null ? null : document.withCodeData(copy);
+		String baseline = codeDataJson();
+		String next = candidate == null ? new com.google.gson.Gson().toJsonTree(copy).toString()
+				: candidate.toJsonTree().get("codeData").toString();
+		return new CodeDataCandidate(this, expectedRevision, candidate, copy, baseline, next);
+	}
+
+	/** Publish once, in memory only. Load the matching engine before committing an effective candidate. */
+	public synchronized ProjectSnapshot commitCodeData(CodeDataCandidate candidate) {
+		Objects.requireNonNull(candidate, "candidate");
+		if (candidate.owner != this || candidate.consumed) throw new IllegalStateException("Invalid or consumed code-data candidate");
+		checkRevision(candidate.expectedRevision);
+		if (candidate.expectedIdentityGeneration != identityGeneration) throw new IllegalStateException("Code-data candidate persistence baseline changed");
+		if (!candidate.baseline.equals(codeDataJson())) throw new IllegalStateException("Code-data candidate baseline changed");
+		boolean effective = candidate.effective();
+		// Allocate the receipt before the first authoritative assignment.
+		ProjectSnapshot result = new ProjectSnapshot(currentPath(), inputs,
+				!savedCodeData.equals(candidate.next) || !Objects.equals(savedMappingsPath, mappingsPath()),
+				new RevisionState(sessionId, logicalRevision + (effective ? 1 : 0),
+						indexRevision + (effective ? 1 : 0), persistedIdentity, persistedIdentityState));
+		candidate.consumed = true;
+		if (effective) {
+			if (document == null) rawCodeData = candidate.codeData;
+			else document = candidate.document;
 			logicalRevision++;
 			indexRevision++;
 		}
+		return result;
+	}
+
+	/** Repository-only convenience; runtime mutations use stage/load/commit/publication. */
+	public synchronized void replaceCodeData(JadxCodeData edited, long expectedRevision) {
+		commitCodeData(stageCodeData(edited, expectedRevision));
 	}
 
 	public synchronized SaveResult save(Path requestedTarget, Long expectedRevision) throws IOException {

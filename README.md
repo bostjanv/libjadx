@@ -18,6 +18,7 @@ The implementation currently includes:
 - Explicit native save, reload, mapping-path updates, transient pending-edit export, bounded job polling/cancellation/SSE, and requested shutdown policies.
 - Bounded listing of Jadx-visible classes and exact lookup of classes, methods, and fields by original JVM descriptors. Current aliases are separate from identity.
 - Class-oriented Java source with validated token annotations, source snapshots, and method excerpts only where the pinned Jadx metadata and boundary checks agree. Per-request mode overrides use an isolated engine.
+- Fresh-equivalent replacement publication for effective native batches; private loading before commit preserves the old state on candidate failure. Automatic aliases may recompute; explicit native/mapping/scoped edits remain authoritative.
 - Validated in-memory batches for original class/method/field renames and single-line native declaration comments. Explicit save is required for durability. Safe Tiny v2 export creates a new local artifact, bounded Tiny v2 import stages pending edits, and verified parameter targets support snapshot-bound renames. Local edits and override propagation remain unsupported.
 - Controlled startup/shutdown behavior, including bounded waiting for loader cleanup on ordinary shutdown and separate handling of fatal startup errors.
 - An internal bounded original-input census and independent hierarchy verifier for a closed class/JAR/DEX subset. It detects missing Jadx related-method candidates; it does not admit propagation edits.
@@ -161,6 +162,7 @@ JADX_GUI=/absolute/path/to/jadx-gui ./gradlew guiRoundTripTest
 JADX_GUI=/absolute/path/to/jadx-gui ./gradlew nativeEditGuiRoundTripTest
 JADX_GUI=/absolute/path/to/jadx-gui ./gradlew mappingExportGuiRoundTripTest
 JADX_GUI=/absolute/path/to/jadx-gui ./gradlew scopedEditGuiRoundTripTest
+JADX_GUI=/absolute/path/to/jadx-gui ./gradlew replacementEditGuiRoundTripTest
 ```
 
 The opt-in GUI test is not part of a normal `./gradlew test` run. Results from the small fixture and GUI round-trip probes do not establish correctness for all Jadx-supported input formats or all edit types.
@@ -265,7 +267,7 @@ disabled under PR #16's required negative-evidence outcome. See
 [replay failure and actual GUI diagnostic](docs/phase-5-propagated-edits.md) and
 [verifier evidence](docs/phase-5-hierarchy-verifier.md).
 
-### Safe native code-data replay / replacement-engine feasibility (PR #17)
+### Historical safe replay feasibility (PR #17, superseded by PR #18)
 
 Outcome B: production edits still use the existing in-place path. Four isolated
 strategies were tested. Fresh replacement fixes the hot CovariantLeaf bridge
@@ -276,3 +278,25 @@ loading. No strategy passes both requirements, so propagation remains disabled.
 See [strategy/oracle evidence](docs/phase-5-safe-replay.md) and
 [validation and next decision](docs/pr-17-review.md). No public schema or SDK
 changes, autosave, alias injection or replacement primitive are shipped.
+
+## PR #18 approved alias semantics and replacement publication
+
+This section supersedes PR #17's requirement to preserve every incidental alias.
+Automatic Jadx aliases are derived analysis state: collision aliases,
+deobfuscation aliases without explicit persistence, and other generated aliases
+may be recomputed when an edit changes analysis. A declaration with no explicit
+rename may therefore change its display alias without a separate user edit.
+Native declaration renames, mapping aliases/comments, supported scoped renames,
+retained VAR records and declaration comments remain authoritative. Original
+identities, settings, ordered input references and unknown native fields retain
+their existing preservation rules. Never add native records to freeze generated
+aliases.
+
+Effective native batches now privately stage complete code data, load one fresh
+production engine, commit native data once, then publish that engine under the
+existing exclusive lease. No-op retains the engine and revisions; candidate
+failure publishes nothing. See [replacement publication](docs/phase-5-replacement-publication.md) for ordering,
+failures, oracle, persistence and validation. Related propagation and local
+editing remain unsupported. PR #19 still requires same-lease COMPLETE verification,
+immutable group plans, all-owner collision admission, exact original native
+records and affectedRefs, and propagated HTTP/native/restart/actual-GUI gates.

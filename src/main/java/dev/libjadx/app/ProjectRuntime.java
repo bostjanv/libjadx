@@ -237,48 +237,13 @@ public final class ProjectRuntime implements AutoCloseable {
 		}
 	}
 
-	/** Internal edit entry point; callers must validate native edit semantics before invoking it. */
+	/** Internal edit entry point, sharing the service's already-admitted replacement primitive. */
 	void replaceCodeData(JadxCodeData edited, long expectedRevision) {
-		try (var lease = admitReloading(OperationRequest.projectExclusive("code-data-edit"), "APPLYING_CODE_DATA")) {
-			ProjectEngine engine = activeEngine;
-			JadxCodeData codeData;
-			Error fatal = null;
-			boolean nativeEditApplied = false;
-			try {
-				repository.replaceCodeData(edited, expectedRevision);
-				nativeEditApplied = true;
-				codeData = repository.codeDataCopy();
-				engine.reloadCodeData(codeData);
-				synchronized (lifecycleLock) {
-					if (lifecycle == Lifecycle.RELOADING) {
-						lifecycle = Lifecycle.READY;
-						publicationEpoch++;
-						publishedAdmission = admission(repository.snapshot());
-						status = status("READY", "READY", new RuntimeStatus.Progress(1, 1, "project"), null);
-					}
-				}
-			} catch (RuntimeException failure) {
-				synchronized (lifecycleLock) {
-					if (lifecycle == Lifecycle.RELOADING) {
-						if (nativeEditApplied) {
-							lifecycle = Lifecycle.FAILED;
-							status = status("FAILED", "FAILED", status.progress(),
-									new RuntimeStatus.ApiError("PROJECT_LOAD_FAILED", "Code-data reload failed", null));
-						} else {
-							lifecycle = Lifecycle.READY;
-							publishedAdmission = admission(repository.snapshot());
-							status = status("READY", "READY", new RuntimeStatus.Progress(1, 1, "project"), null);
-						}
-					}
-				}
-				throw failure;
-			} catch (Error failure) {
-				fatal = failure;
-				throw failure;
-			} finally {
-				if (fatal != null) reportFatalRebuild(fatal);
-			}
-		}
+		withExclusiveEdit(context -> {
+			if (context.before().revisions().logicalRevision() != expectedRevision)
+				throw new NativeProjectRepository.StaleRevisionException(context.before().revisions().logicalRevision());
+			return context.commit(edited);
+		});
 	}
 
 	/** One admitted edit operation. Validation may read the primary engine and copied native data;
@@ -344,34 +309,20 @@ public final class ProjectRuntime implements AutoCloseable {
 		NativeProjectRepository.MappingExportSource mappingSource() throws IOException { return current.mappingExportSource(); }
 		void checkMappingBaselines() throws IOException { current.checkExportBaselines(); }
 
-		/** A single native replacement and reload. A reload failure after replacement fails the runtime. */
+		/** Load a private fresh engine before the single authoritative native commit. */
 		ProjectSnapshot commit(JadxCodeData edited) {
 			if (committed) throw new IllegalStateException("Edit context already committed");
 			committed = true;
-			boolean replaced = false;
+			var candidate = current.stageCodeData(edited, before.revisions().logicalRevision());
+			if (!candidate.effective()) return before;
 			try {
-				current.replaceCodeData(edited, before.revisions().logicalRevision());
-				replaced = true;
-				engine.reloadCodeData(current.codeDataCopy());
-				ProjectSnapshot after = current.snapshot();
-				synchronized (lifecycleLock) {
-					publicationEpoch++;
-					publishedAdmission = admission(after);
-				}
-				return after;
+				JadxArgs args = JadxEngineFactory.arguments(inputPaths, current.mappingsPath(),
+						candidate.codeDataCopy(), effectiveConfig);
+				return publishReplacement(current, engine, new StagedRebuild(args, () -> current.commitCodeData(candidate), before.revisions().logicalRevision() + 1), Lifecycle.READY);
 			} catch (RuntimeException failure) {
-				if (replaced) {
-					synchronized (lifecycleLock) {
-						lifecycle = Lifecycle.FAILED;
-						publishedSearchIdentity = null;
-						status = status("FAILED", "FAILED", status.progress(),
-								new RuntimeStatus.ApiError("PROJECT_LOAD_FAILED", "Code-data reload failed", null));
-					}
-				}
 				throw failure;
-			} catch (Error fatal) {
-				reportFatalRebuild(fatal);
-				throw fatal;
+			} catch (Exception failure) {
+				throw new IllegalStateException("Replacement engine publication failed", failure);
 			}
 		}
 	}
@@ -432,7 +383,7 @@ public final class ProjectRuntime implements AutoCloseable {
 					current.prepareReload(discardUnsaved, expectedSessionId, expectedRevision);
 			JadxArgs args = JadxEngineFactory.arguments(inputPaths, candidate.document().getMappingsPath(),
 					candidate.document().getCodeData(), effectiveConfig);
-			return new StagedRebuild(args, () -> current.commitReload(candidate));
+			return new StagedRebuild(args, () -> current.commitReload(candidate), expectedRevision + 1);
 		});
 	}
 
@@ -442,56 +393,98 @@ public final class ProjectRuntime implements AutoCloseable {
 					current.stageMappingsPath(mappings, expectedSessionId, expectedRevision);
 			JadxArgs args = JadxEngineFactory.arguments(inputPaths, candidate.path(),
 					candidate.document().getCodeData(), effectiveConfig);
-			return new StagedRebuild(args, () -> current.commitMappingsPath(candidate));
+			return new StagedRebuild(args, () -> current.commitMappingsPath(candidate),
+					expectedRevision + (Objects.equals(current.mappingsPath(), candidate.path()) ? 0 : 1));
 		});
 	}
 
 	private ProjectSnapshot rebuild(RebuildStager stager) throws Exception {
 		try (var lease = admitReloading(OperationRequest.projectExclusive("project-rebuild"), "STAGING_PROJECT")) {
-			NativeProjectRepository current = repository;
-			ProjectEngine replacement = null;
-			Error fatal = null;
 			try {
-				StagedRebuild staged = stager.stage(current);
-				synchronized (lifecycleLock) {
-					if (lifecycle != Lifecycle.RELOADING) throw unavailable();
-					status = status("RELOADING", "LOADING_JADX", new RuntimeStatus.Progress(0, 1, "project"), null);
-				}
-				replacement = engineFactory.create(staged.args());
-				replacement.load();
-				ProjectEngine old;
-				// Native fingerprint checks may perform I/O; no lifecycle monitor is held.
-				ProjectSnapshot snapshot = staged.commit().apply();
-				synchronized (lifecycleLock) {
-					if (lifecycle != Lifecycle.RELOADING) throw unavailable();
-					old = activeEngine;
-					activeEngine = replacement;
-					replacement = null;
-					publicationEpoch++;
-					publishedAdmission = admission(snapshot);
-					lifecycle = Lifecycle.READY;
-					status = status("READY", "READY", new RuntimeStatus.Progress(1, 1, "project"), null);
-				}
-				closeOwned(old, null);
-				return snapshot;
+				return publishReplacement(repository, activeEngine, stager.stage(repository), Lifecycle.RELOADING);
 			} catch (Exception failure) {
 				synchronized (lifecycleLock) {
 					if (lifecycle == Lifecycle.RELOADING) {
 						lifecycle = Lifecycle.READY;
-						publishedAdmission = admission(current.snapshot());
+						publishedAdmission = admission(repository.snapshot());
 						status = status("READY", "READY", new RuntimeStatus.Progress(1, 1, "project"), null);
 					}
 				}
 				throw failure;
-			} catch (Error failure) {
-				fatal = failure;
-				throw failure;
-			} finally {
-				try {
-					if (replacement != null) closeOwned(replacement, fatal);
-				} finally {
-					if (fatal != null) reportFatalRebuild(fatal);
+			} catch (Error fatal) {
+				reportFatalRebuild(fatal);
+				throw fatal;
+			}
+		}
+	}
+
+	/** Test-only checkpoints. All throwable preparation checkpoints precede repository commit. */
+	enum ReplacementStage { BEFORE_CONSTRUCTION, LOADED, VERIFIER_BOUND, CONSISTENT, BEFORE_COMMIT, BEFORE_PUBLICATION, REPOSITORY_COMMIT }
+	private java.util.function.Consumer<ReplacementStage> replacementHook = ignored -> { };
+	void replacementHook(java.util.function.Consumer<ReplacementStage> hook) { replacementHook = Objects.requireNonNull(hook); }
+
+	/** Caller owns the project-exclusive lease. No nested admission, old-root replay or shared code data.
+	 * Repository readers hold its monitor; retain it across commit/swap so optimistic readPublished
+	 * cannot observe a committed repository until the matching publication epoch is visible. */
+	private ProjectSnapshot publishReplacement(NativeProjectRepository current, ProjectEngine old,
+			StagedRebuild staged, Lifecycle expectedLifecycle) throws Exception {
+		ProjectEngine replacement = null;
+		Throwable failure = null;
+		try {
+			var expectedInputs = List.copyOf(staged.args().getInputFiles());
+			var expectedMapping = staged.args().getUserRenamesMappingsPath();
+			var expectedMode = staged.args().getDecompilationMode();
+			var expectedCode = NativeProjectDocument.copyCodeData((JadxCodeData) staged.args().getCodeData());
+			replacementHook.accept(ReplacementStage.BEFORE_CONSTRUCTION);
+			replacement = engineFactory.create(staged.args());
+			replacement.load();
+			replacementHook.accept(ReplacementStage.LOADED);
+			Objects.requireNonNull(replacement.hierarchyVerifier(), "Replacement hierarchy verifier");
+			replacementHook.accept(ReplacementStage.VERIFIER_BOUND);
+			JadxArgs loadedArgs = replacement.decompiler().getArgs();
+			if (!loadedArgs.getInputFiles().equals(expectedInputs)
+					|| !Objects.equals(loadedArgs.getUserRenamesMappingsPath(), expectedMapping)
+					|| loadedArgs.getDecompilationMode() != expectedMode
+					|| !NativeProjectDocument.codeDataEquivalent(loadedArgs.getCodeData(), expectedCode))
+				throw new IllegalStateException("Replacement logical state mismatch");
+			replacementHook.accept(ReplacementStage.CONSISTENT);
+			// Run throwable swap preparation before commit; ordinary post-commit code is assignments.
+			replacementHook.accept(ReplacementStage.BEFORE_COMMIT);
+			replacementHook.accept(ReplacementStage.BEFORE_PUBLICATION);
+			RuntimeStatus ready = status("READY", "READY", new RuntimeStatus.Progress(1, 1, "project"), null);
+			ProjectSnapshot snapshot;
+			synchronized (current) {
+				synchronized (lifecycleLock) {
+					if (lifecycle != expectedLifecycle || activeEngine != old || repository != current) throw unavailable();
+					var nextAdmission = new OperationCoordinator.Admission(current.snapshot().revisions().sessionId(), staged.resultingRevision());
+					var nextSearchIdentity = new SearchIndexKey(nextAdmission.sessionId(), staged.resultingRevision(),
+							publicationEpoch + 1, effectiveConfig.fingerprint());
+					replacementHook.accept(ReplacementStage.REPOSITORY_COMMIT);
+					snapshot = staged.commit().apply();
+					activeEngine = replacement;
+					replacement = null;
+					publicationEpoch++;
+					publishedAdmission = nextAdmission;
+					publishedSearchIdentity = nextSearchIdentity;
+					lifecycle = Lifecycle.READY;
+					status = ready;
 				}
+			}
+			closeOwned(old, null);
+			return snapshot;
+		} catch (Exception problem) {
+			failure = problem;
+			throw problem;
+		} catch (Error fatal) {
+			failure = fatal;
+			reportFatalRebuild(fatal);
+			throw fatal;
+		} finally {
+			try {
+				if (replacement != null) closeOwned(replacement, failure);
+			} catch (Error cleanupFatal) {
+				reportFatalRebuild(cleanupFatal);
+				throw cleanupFatal;
 			}
 		}
 	}
@@ -506,7 +499,7 @@ public final class ProjectRuntime implements AutoCloseable {
 		ProjectSnapshot apply() throws Exception;
 	}
 
-	private record StagedRebuild(JadxArgs args, RebuildCommit commit) { }
+	private record StagedRebuild(JadxArgs args, RebuildCommit commit, long resultingRevision) { }
 
 	public CompletableFuture<Void> fatalRuntimeFailure() {
 		return fatalRuntimeFailure;
@@ -1061,37 +1054,33 @@ public final class ProjectRuntime implements AutoCloseable {
 					dev.libjadx.core.hierarchy.RelatedHierarchyVerifier.Status.UNSUPPORTED_INPUT, seed, null, "Engine has no raw census");
 		}
 
-		default void reloadCodeData(JadxCodeData codeData) {
-			JadxDecompiler jadx = decompiler();
-			jadx.getArgs().setCodeData(codeData);
-			// In 1.5.6 reloadCodeData only notifies code-data listeners. Previously
-			// decompiled Java remains cached until each owner is explicitly unloaded.
-			// An edit can change references in any owner, so invalidate all owners.
-			// Unload BEFORE notifying listeners: deepUnload clears CODE_COMMENTS,
-			// including attached mapping comments reapplied by ApplyMappingsPass.
-			for (var cls : jadx.getClasses()) cls.unload();
-			dev.libjadx.jadxadapter.JadxNativeEditAdapter.prepareCodeDataReplay(jadx);
-			jadx.reloadCodeData();
-		}
-
 		@Override
 		void close() throws Exception;
 	}
 
-	private static final class JadxProjectEngine implements ProjectEngine {
+	enum EngineLoadStage { CENSUS, LOAD, BIND }
+
+	static final class JadxProjectEngine implements ProjectEngine {
 		private final JadxDecompiler decompiler;
 		private dev.libjadx.core.hierarchy.RelatedHierarchyVerifier hierarchyVerifier;
 
-		private JadxProjectEngine(JadxArgs args) {
+		private final java.util.function.Consumer<EngineLoadStage> loadHook;
+
+		JadxProjectEngine(JadxArgs args) { this(args, ignored -> { }); }
+		JadxProjectEngine(JadxArgs args, java.util.function.Consumer<EngineLoadStage> loadHook) {
 			this.decompiler = new JadxDecompiler(args);
+			this.loadHook = loadHook;
 		}
 
 		@Override
 		public void load() {
+			loadHook.accept(EngineLoadStage.CENSUS);
 			var capture = dev.libjadx.jadxadapter.JadxInputCensusAdapter.capture(
 					decompiler.getArgs().getInputFiles().stream().map(java.io.File::toPath).toList(),
 					dev.libjadx.core.hierarchy.CensusLimits.defaults());
+			loadHook.accept(EngineLoadStage.LOAD);
 			decompiler.load();
+			loadHook.accept(EngineLoadStage.BIND);
 			hierarchyVerifier = capture.bind(decompiler);
 		}
 

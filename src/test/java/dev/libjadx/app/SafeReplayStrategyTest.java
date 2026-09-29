@@ -69,11 +69,11 @@ class SafeReplayStrategyTest {
 
 	static void replay(JadxDecompiler engine, JadxCodeData code, Strategy strategy, List<String> owners) {
 		if (strategy == Strategy.CURRENT) {
-			new ProjectRuntime.ProjectEngine() {
-				public void load() { }
-				public JadxDecompiler decompiler() { return engine; }
-				public void close() { }
-			}.reloadCodeData(NativeProjectDocument.copyCodeData(code));
+			// Exact PR #17 production implementation, retained solely as a negative control.
+			engine.getArgs().setCodeData(NativeProjectDocument.copyCodeData(code));
+			for (var cls : engine.getClasses()) cls.unload();
+			JadxNativeEditAdapter.prepareCodeDataReplay(engine);
+			engine.reloadCodeData();
 			return;
 		}
 		engine.getArgs().setCodeData(NativeProjectDocument.copyCodeData(code));
@@ -261,7 +261,7 @@ class SafeReplayStrategyTest {
 			try (var old = open(inputs, null, new JadxCodeData()); var fresh = open(inputs, null, code)) {
 				if (hot) semantic(old);
 				before = semantic(old); reference = semantic(fresh);
-				assertEquals("m0value", before.get(other), "Existing supported declaration-edit invariant");
+				assertEquals("m0value", before.get(other), "Initial automatic collision alias");
 				assertEquals("value", reference.get(other), "Fresh candidate recomputes automatic collision aliases");
 			}
 			for (var strategy : Strategy.values()) try (var engine = open(inputs, null, new JadxCodeData())) {
@@ -270,7 +270,7 @@ class SafeReplayStrategyTest {
 				if (strategy == Strategy.REPLACEMENT) {
 					try (var replacement = open(inputs, null, code)) { candidate = semantic(replacement); }
 					assertEquals(reference, candidate);
-					assertNotEquals(before.get(other), candidate.get(other), "Outcome A unchanged-nonmember gate fails");
+					assertNotEquals(before.get(other), candidate.get(other), "Approved automatic alias recomputation");
 				} else {
 					replay(engine, code, strategy, List.of("probe.ReturnClash")); candidate = semantic(engine);
 					assertEquals("m0value", candidate.get(other));
@@ -281,7 +281,7 @@ class SafeReplayStrategyTest {
 						new com.fasterxml.jackson.databind.ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(Map.of(
 								"strategy", strategy, "hot", hot, "untouchedOriginalKey", other, "before", before,
 								"candidate", candidate, "fresh", reference, "gate", strategy == Strategy.REPLACEMENT
-										? "FAILED_UNCHANGED_NONMEMBER" : "FAILED_FRESH_EQUIVALENCE")));
+										? "FRESH_DERIVED_ALIAS_ACCEPTED" : "FAILED_FRESH_EQUIVALENCE")));
 			}
 		}
 	}
@@ -311,7 +311,7 @@ class SafeReplayStrategyTest {
 			assertEquals("APPLIED", result.outcome()); assertEquals(1, result.logicalRevisionAfter()); assertEquals(1, result.indexRevisionAfter());
 			assertEquals(baseline, dev.libjadx.project.FileFingerprint.of(path), "No autosave");
 			String other = "method:" + new SymbolRef(SymbolRef.Kind.METHOD, "Lprobe/ReturnClash;", null, "value", "()Ljava/lang/String;");
-			var hot = semantic(runtime.decompiler()); assertEquals("m0value", hot.get(other)); assertEquals(before.get(other), hot.get(other));
+			var hot = semantic(runtime.decompiler()); assertEquals("value", hot.get(other)); assertNotEquals(before.get(other), hot.get(other));
 			runtime.saveProject(null, null);
 			var saved = NativeProjectDocument.open(path);
 			assertEquals("headless preserves", saved.toJsonTree().get("futureRoot").getAsString());

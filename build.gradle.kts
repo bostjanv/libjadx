@@ -330,3 +330,33 @@ tasks.register<Test>("safeReplayGuiDiagnosticTest") {
     filter { includeTestsMatching("dev.libjadx.app.SafeReplayStrategyTest.actualMatchingGuiConfirmsAutomaticNonmemberAliasIsRecomputed") }
     environment("LIBJADX_SAFE_REPLAY_GUI_DIAGNOSTIC", safeReplayGuiDiagnostic.get().asFile.absolutePath)
 }
+
+// PR #18 positive production replacement + actual matching-GUI Save As gate.
+val replacementGuiProject = layout.buildDirectory.file("replacement-edit-gui-fixture/gui-resaved.jadx")
+tasks.register<Exec>("saveReplacementEditsWithMatchingGui") {
+    dependsOn(tasks.test)
+    val guiPath = providers.environmentVariable("JADX_GUI")
+    doFirst {
+        if (!guiPath.isPresent) throw GradleException("Set JADX_GUI to the matching jadx-gui executable")
+    }
+    commandLine(
+        "bash", "tests/gui-round-trip.sh", guiPath.orNull ?: "",
+        layout.buildDirectory.file("replacement-edit-gui-fixture/replacement.jadx").get().asFile.absolutePath,
+        replacementGuiProject.get().asFile.absolutePath,
+    )
+    doLast {
+        copy {
+            from("/tmp/libjadx-gui-roundtrip.log")
+            into(layout.buildDirectory.dir("replacement-edit-gui-fixture"))
+            rename { "actual-gui.log" }
+        }
+    }
+}
+tasks.register<Test>("replacementEditGuiRoundTripTest") {
+    dependsOn("saveReplacementEditsWithMatchingGui")
+    useJUnitPlatform()
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    filter { includeTestsMatching("dev.libjadx.app.ReplacementStateTest.actualMatchingGuiSaveAsReopensExactIntentAndFreshAliases") }
+    environment("LIBJADX_REPLACEMENT_GUI_PROJECT", replacementGuiProject.get().asFile.absolutePath)
+}

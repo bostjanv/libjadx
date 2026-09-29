@@ -102,13 +102,15 @@ class ScopedParameterEndpointsTest {
 		} finally { runtime.close(); }
 	}
 
-	@Test void postReplacementReplayFailureIsBoundedHttp500AndFailedLifecycle() throws Exception {
+	@Test void replacementLoadFailureIsBoundedHttp500AndPreservesReadyProject() throws Exception {
 		Path jar = SymbolFixtureSupport.compileVariableFixture(dir);
 		var runtime = new ProjectRuntime(null, List.of(jar), args -> new ProjectRuntime.ProjectEngine() {
 			private final JadxDecompiler engine = new JadxDecompiler(args);
-			public void load() { engine.load(); }
+			public void load() {
+				if (!((JadxCodeData) args.getCodeData()).getRenames().isEmpty()) throw new IllegalStateException("private internal secret");
+				engine.load();
+			}
 			public JadxDecompiler decompiler() { return engine; }
-			public void reloadCodeData(JadxCodeData data) { throw new IllegalStateException("private internal secret"); }
 			public void close() { engine.close(); }
 		});
 		try (var server = new HttpApiServer("127.0.0.1", 0, runtime)) {
@@ -117,7 +119,8 @@ class ScopedParameterEndpointsTest {
 			var response = post(server, "/edits/batch", batch(source, 1, "wideCount").toString());
 			capture(Files.createDirectories(Path.of("build/scoped-edit-contract-responses")), "500-replay", response, 500, "ErrorEnvelope");
 			assertFalse(response.body().contains("secret")); assertFalse(response.body().contains("Exception"));
-			assertEquals("FAILED", runtime.status().state());
+			assertEquals("READY", runtime.status().state());
+			assertEquals(0, runtime.projectSnapshot().revisions().logicalRevision()); assertFalse(runtime.projectSnapshot().dirty());
 		} finally { runtime.close(); }
 	}
 

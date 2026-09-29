@@ -1,6 +1,6 @@
-# PR #17: safe native code-data replay / replacement-engine feasibility
+# Safe native replay: PR #17 historical evidence and PR #18 approved interpretation
 
-**Outcome B: no production mutation change.** No investigated generic strategy
+**Historical PR #17 outcome B (superseded by PR #18 below): no production mutation change.** No investigated generic strategy
 passes both fresh-engine equivalence and unchanged raw nonmember aliases for all
 currently supported declaration edits. Explicit propagation and local editing
 remain unsupported. Jadx remains **1.5.6**, source
@@ -228,3 +228,25 @@ Same-exclusive-lease verification, all-owner collision preflight, immutable grou
 staging, exact affectedRefs, prefix/fault receipts and propagated service/native/
 restart/GUI gates remain outstanding. Local editing and Phase 6 scope remain
 separate decisions. No schema accepts propagateRelated in this PR.
+
+## PR #18 approved alias semantics and replacement publication
+
+This section supersedes PR #17's requirement to preserve every incidental alias.
+Automatic Jadx aliases are derived analysis state: collision aliases,
+deobfuscation aliases without explicit persistence, and other generated aliases
+may be recomputed when an edit changes analysis. A declaration with no explicit
+rename may therefore change its display alias without a separate user edit.
+Native declaration renames, mapping aliases/comments, supported scoped renames,
+retained VAR records and declaration comments remain authoritative. Original
+identities, settings, ordered input references and unknown native fields retain
+their existing preservation rules. Never add native records to freeze generated
+aliases.
+
+Effective native batches now privately stage complete code data, load one fresh
+production engine, commit native data once, then publish that engine under the
+existing exclusive lease. No-op retains the engine and revisions; candidate
+failure publishes nothing. See [replacement publication](phase-5-replacement-publication.md) for ordering,
+failures, oracle, persistence and validation. Related propagation and local
+editing remain unsupported. PR #19 still requires same-lease COMPLETE verification,
+immutable group plans, all-owner collision admission, exact original native
+records and affectedRefs, and propagated HTTP/native/restart/actual-GUI gates.
