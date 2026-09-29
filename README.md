@@ -244,7 +244,7 @@ also expose unsupported parameter targets and reject edits before staging. Chang
 in memory until explicit native save. Tiny export continues to reject scoped
 code refs. See [evidence and limits](docs/phase-5-scoped-editing.md).
 
-### Related-method propagation (PR #14 evidence)
+### Related-method propagation (PR #14–16 evidence)
 
 Explicit propagation remains unsupported: pinned Jadx omits a resolved interface
 branch from an owned related-method fixture. Any `propagateRelated` field returns
@@ -258,6 +258,9 @@ PR #15 establishes a bounded original-input census before Jadx duplicate selecti
 and an independent hierarchy verifier. The four-member independent-interface
 family verifies from every seed, while comparison detects Jadx's three-member /
 empty candidate sets. Bridges, covariance, unresolved branches and duplicates
-fail closed. Native group staging, all-owner conflicts and propagated persistence
-remain PR #16 gates; the public contract is unchanged. See
+fail closed. PR #16's service replay probe finds that explicit records for every
+verified member can also rename unrelated bridge declarations after hot-owner
+unload; fresh native reopen restores different aliases. Propagation remains
+disabled under PR #16's required negative-evidence outcome. See
+[replay failure and actual GUI diagnostic](docs/phase-5-propagated-edits.md) and
 [verifier evidence](docs/phase-5-hierarchy-verifier.md).

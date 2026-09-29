@@ -255,6 +255,14 @@ and callback-failure expiration/admission release.
 
 ## Next boundary
 
+PR #16 investigated this boundary and delivered required outcome B: explicit
+per-member records correctly persist the independent families but hot native
+replay also changes unrelated bridge aliases. The unchanged verifier remains
+valid evidence of original family membership; COMPLETE is insufficient to
+guarantee safe engine replay. See [executable nonmember failure](phase-5-propagated-edits.md).
+The remaining requirements below apply to a follow-up after that blocker is
+resolved; no accepted propagation contract or exclusive verification API shipped.
+
 PR #16 can consume this internal verifier only on COMPLETE. It must still prove
 verification and native staging under one current project-exclusive lease with
 the current session/engine and expected revision checked. A cached COMPLETE

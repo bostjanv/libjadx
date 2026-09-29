@@ -1,6 +1,6 @@
 # ADR 0001: Strict mapping export and import; defer local/propagated renames
 
-Status: export and bounded import safety decisions implemented; scoped parameter subset implemented; local/propagated follow-ups deferred, 2026-09-28.
+Status: export and bounded import safety decisions implemented; scoped parameter subset implemented; local/propagated follow-ups deferred after PR #16 replay failure, 2026-09-29.
 
 Phase 5.2 requires native mapping export, parameter/local renames and
 related-method propagation only where pinned Jadx and the matching GUI prove
@@ -99,3 +99,22 @@ input dependencies gain compile visibility without an upgrade. Propagation stays
 UNSUPPORTED until PR #16 proves group admission, collision/staging/failure
 semantics and actual propagated service/native/restart/GUI behavior. See
 [the exact subset and evidence](../phase-5-hierarchy-verifier.md).
+
+## PR #16 replay safety decision
+
+Status: outcome B; explicit propagation remains unsupported. PR #15 resolved
+independent completeness for the conservative subset, but that does not resolve
+native replay. Real service batches containing every verified original member
+record rename the requested family and persist those records. After generated
+owner unload/replay, however, two unrelated CovariantLeaf aliases become
+`m0value`; fresh native reopen restores `value`. The read-only generated control
+does not show that change. This fails the required unchanged-nonmember and
+hot/fresh gates even for the retained four-member Joined family.
+
+Retain existing presence-based 422 rejection, UNSUPPORTED capability, accepted
+schema and legacy behavior. Preserve the executable counterexample and separate
+actual GUI Save As diagnostic. Do not persist automatic suffixes or add unrelated
+native records to force agreement. The smallest next slice is safe engine replay
+feasibility before a group transaction can be admitted. No architecture or
+Phase 6 exit decision is made. See [replay evidence](../phase-5-propagated-edits.md)
+and [validation](../pr-16-review.md).

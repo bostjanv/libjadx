@@ -8,6 +8,13 @@ not a claim that every future independent hierarchy verifier is impossible.
 No production `RelatedMethodPlan`, propagation transaction or new mutation route
 is shipped. Phase 5.2 remains incomplete; local editing is a separate open gate.
 
+PR #15 subsequently proves the conservative closed-input family independently.
+PR #16 extends actual service replay and finds a separate nonmember alias
+failure despite writing every verified declaration record. Explicit propagation
+still remains disabled. The PR #14 all-member GUI result below only establishes
+requested-member persistence; it does not prove unchanged nonmembers. See
+[PR #16 replay matrix](phase-5-propagated-edits.md).
+
 ## Original hierarchy evidence
 
 The independently owned [Hierarchy.java](../tests/fixtures/related/Hierarchy.java)
