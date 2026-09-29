@@ -1,5 +1,11 @@
 # Experimental API changelog
 
+## 2026-09-29 — PR #18 external analysis change rejection
+
+- Effective edits and mapping imports check every input and the attached mapping against accepted analysis fingerprints before and after candidate loading. External changes return `409 EXTERNAL_MODIFICATION_CONFLICT` and preserve the old engine, edits, revisions and source/search identities.
+- Startup and explicit reload verify files across loading. Only explicit reload accepts changed input bytes; save and settings rebuild cannot refresh that baseline. No-op avoids replacement as before.
+- Added real-Jadx preexisting-change, deletion, mid-load race, clean/dirty, reload and HTTP regressions. Request/response schemas, SDK scope, native serialization and dependency pins are unchanged.
+
 ## 2026-09-29 — PR #18 fresh-equivalent replacement-engine edit publication
 
 - Effective native batches and mapping imports stage full native state, load one fresh production engine, then commit/publish under exclusive admission. Candidate failures preserve the old READY project; no-op retains engine and identities.

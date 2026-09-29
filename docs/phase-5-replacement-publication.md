@@ -17,6 +17,28 @@ revision, accepted persistence generation, baseline JSON and candidate JSON. No 
 revision change, disk write or native JSON mutation occurs. Candidate accessors
 return copies. Raw projects use the same in-memory native semantics.
 
+The review follow-up retains streaming SHA-256 fingerprints for every ordered
+input when the repository opens, separately from persisted-identity generation
+and its asynchronous publication. Effective staging checks those accepted input
+bytes and the current attached mapping before candidate construction. Commit
+checks them again after loading and all throwable preparation checkpoints, before
+any assignment. Attached mappings use their accepted unsaved attachment baseline
+when present, rather than the last saved attachment. Changed or removed files
+return `409 EXTERNAL_MODIFICATION_CONFLICT`; no candidate is constructed for a
+preexisting conflict. A mid-load conflict closes the candidate and leaves the
+old engine, pending edits, dirty state, revisions and source/search identities
+unchanged. No-op continues to avoid loading or adopting external bytes.
+
+Startup rechecks the accepted files after load before publishing READY. Explicit
+reload captures new input fingerprints and verifies them after candidate load
+before advancing the accepted baseline. Saves and mapping-setting rebuilds check
+input equality and cannot advance that baseline. Reattaching the same mapping
+path cannot accept an externally changed mapping implicitly. These streaming
+checks add file I/O to effective edits and initialization; they do not stage
+copies of input files, create a journal or provide filesystem locking. A writer
+after the final check, or one that changes and restores bytes between checks,
+remains outside optimistic fingerprint detection.
+
 `commitCodeData(candidate)` rejects foreign, consumed, stale or mismatched
 candidates, including a save that changed the persistence baseline without a
 logical revision change. It prepares the receipt before authoritative assignments, consumes

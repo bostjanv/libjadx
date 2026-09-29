@@ -313,17 +313,26 @@ public final class ProjectRuntime implements AutoCloseable {
 		ProjectSnapshot commit(JadxCodeData edited) {
 			if (committed) throw new IllegalStateException("Edit context already committed");
 			committed = true;
-			var candidate = current.stageCodeData(edited, before.revisions().logicalRevision());
-			if (!candidate.effective()) return before;
 			try {
+				var candidate = current.stageCodeData(edited, before.revisions().logicalRevision());
+				if (!candidate.effective()) return before;
 				JadxArgs args = JadxEngineFactory.arguments(inputPaths, current.mappingsPath(),
 						candidate.codeDataCopy(), effectiveConfig);
 				return publishReplacement(current, engine, new StagedRebuild(args, () -> current.commitCodeData(candidate), before.revisions().logicalRevision() + 1), Lifecycle.READY);
+			} catch (NativeProjectRepository.ExternalModificationException conflict) {
+				throw new NativeEditConflictException(conflict);
 			} catch (RuntimeException failure) {
 				throw failure;
 			} catch (Exception failure) {
 				throw new IllegalStateException("Replacement engine publication failed", failure);
 			}
+		}
+	}
+
+	/** Unchecked boundary for the synchronous edit callback; HTTP reports the native conflict. */
+	public static final class NativeEditConflictException extends IllegalStateException {
+		private NativeEditConflictException(NativeProjectRepository.ExternalModificationException cause) {
+			super(cause.getMessage(), cause);
 		}
 	}
 
@@ -841,6 +850,7 @@ public final class ProjectRuntime implements AutoCloseable {
 			}
 			local.load();
 			beforePublish.run();
+			if (localRepository != null) localRepository.checkAnalysisBaselines();
 			synchronized (lifecycleLock) {
 				if (lifecycle == Lifecycle.LOADING) {
 					activeEngine = local;

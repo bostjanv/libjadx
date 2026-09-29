@@ -6,7 +6,7 @@ full regression and actual matching-GUI gates passed. Propagation remains unsupp
 Implementation is on `pr-18-replacement-publication`, based on the requested
 merged PR #17 commit `d3d0ef4a4959e6f8d96f11babd57a4a6dd389631`. The workspace
 initially held PR #17's topic head; fetching main confirmed its tree was identical
-and the patch was moved to a new branch at the exact target base. The final implementation fingerprint is
+and the patch was moved to a new branch at the exact target base. The original implementation fingerprint is
 `sha256:d272120c5c91c98bdc80866f4787cadfea7b3bcae0f6286918d777f9c0556ce9`;
 `/tmp/pr18-implementation-final-manifest.json` records 17 changed implementation/
 contract/test paths and hashes. Documentation is validated separately. No dependency,
@@ -206,3 +206,70 @@ sidecar, persistent index, replacement cache, journal or project switching.
 PR #19 is the next group-admission milestone; no further human alias decision is
 required for this approved replacement path. Phase 5.2 and the Python release gate
 are not declared complete by PR #18.
+
+## Review 5364743206 follow-up: accepted external-file baselines
+
+The [remaining review blocker](https://github.com/bostjanv/libjadx/pull/18#pullrequestreview-5364743206)
+is fixed. `NativeProjectRepository` retains ordered input fingerprints separately
+from persisted-identity generation. Effective code-data staging checks every
+input and the current accepted attached mapping before replacement construction;
+commit repeats those checks after loading, before any authoritative assignment.
+Changed/removed files produce `409 EXTERNAL_MODIFICATION_CONFLICT` for ordinary
+edits and effective mapping imports. Existing unsaved mapping attachments use
+their own accepted baseline. No-op retains its prior behavior. OpenAPI describes
+the conflict; request/response schemas, dependency locks and SDK scope are unchanged.
+
+Startup verifies the accepted bytes again after engine loading. Explicit reload
+captures and verifies new input fingerprints before advancing the accepted
+baseline. Save and settings rebuild verify the accepted inputs; saving cannot
+silently refresh that baseline, and a same-path mapping rebuild cannot accept
+changed mapping bytes implicitly. All checks use streaming hashes and the
+existing allowed-root/reference validation. This adds file I/O, without file
+copies, backups, journals or filesystem locks. Changes after the final check
+and transient change/restore races retain the optimistic detection limitation.
+
+Pinned source evidence remains Jadx 1.5.6 at
+`28ff15e4ae69950aebea110a13e5ab895d234dfc`, inspected in
+`/tmp/libjadx-pr13-source`: `jadx-core/src/main/java/jadx/api/JadxDecompiler.java`
+(`load`, `loadInputFiles`) loads from the configured paths, and
+`jadx-plugins/jadx-rename-mappings/src/main/java/jadx/plugins/mappings/load/LoadMappingsPass.java`
+(`loadMapping`) reads attached mappings from disk. No Jadx API or version changes.
+
+`ReplacementExternalChangeTest` adds **22 passing real-Jadx cases** using owned
+`SymbolFixture.java` and generated `ExternalBytes.java` JARs. It covers both
+inputs, changed/deleted mappings and inputs, clean/dirty projects, HTTP conflict
+responses, retained engine/repository/revisions/source/search snapshots and
+cursor continuity, candidate cleanup at construction/load/bind/commit checkpoints,
+explicit reload acceptance and races, startup races, raw-input saves and unsaved
+mapping attachments. The edit contract validator requires all ten clean/dirty
+HTTP external-conflict captures and verifies their exact error code.
+
+Final verification commands and outcomes:
+
+```text
+./gradlew test
+  BUILD SUCCESSFUL (8m 22s): 426 tests, 416 passed, 10 opt-in GUI skips,
+  zero failures/errors; includes installed-distribution/restart checks.
+JADX_GUI=/tmp/libjadx-rerun-jadx-1.5.6/bin/jadx-gui ./gradlew replacementEditGuiRoundTripTest -x test
+  BUILD SUCCESSFUL (48s): 1 actual matching-GUI test passed, zero skips/failures.
+  -x test reuses the completed ordinary suite and its freshly prepared fixture.
+/tmp/libjadx-rerun-contract-venv/bin/python tests/validate-edit-contract.py
+  OpenAPI valid: 11 examples, 20 edit HTTP captures, 4 injected results,
+  18 scoped responses and 14 propagation-rejection responses validated.
+/tmp/libjadx-rerun-contract-venv/bin/python tests/validate-mapping-import-contract.py
+  OpenAPI valid: 4 examples and 41 HTTP captures validated.
+/tmp/libjadx-rerun-contract-venv/bin/python tests/validate-mapping-export-contract.py
+  OpenAPI valid: 3 examples and 31 HTTP captures validated.
+/tmp/libjadx-rerun-contract-venv/bin/python tests/validate-search-contract.py
+  OpenAPI valid: 4 examples and 66 HTTP captures validated.
+git diff --check
+  Passed.
+```
+
+Explicit native save, actual matching-GUI Save As and headless reopen still pass
+the production mixed-edit fresh-oracle gate; artifacts/log are in
+`build/replacement-edit-gui-fixture`. The other nine dedicated opt-in GUI cases
+were not rerun for this follow-up; their earlier evidence above remains historical.
+Persistence remains explicit and native-only. Propagation/local editing remain
+unsupported, and PR #19 group admission remains the next milestone. No human
+design decision is required for this fix.

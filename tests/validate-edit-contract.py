@@ -1,6 +1,6 @@
 """Validate the reviewed editing contract and captured real HTTP responses.
 
-Run EditBatchEndpointsTest, EditBatchServiceTest and ScopedParameterEndpointsTest first. Requires PyYAML, jsonschema and
+Run EditBatchEndpointsTest, EditBatchServiceTest, ScopedParameterEndpointsTest and ReplacementExternalChangeTest first. Requires PyYAML, jsonschema and
 openapi-spec-validator in the selected Python environment.
 """
 import json
@@ -42,6 +42,12 @@ for path in responses:
 
 required = {200, 400, 403, 404, 409, 415, 422, 429, 503}
 assert required <= statuses, (required - statuses, statuses)
+external_conflicts = sorted((root / "build/edit-contract-responses").glob("409-external-*.json"))
+assert len(external_conflicts) == 10, "Run ReplacementExternalChangeTest to capture clean/dirty input and mapping conflicts"
+for path in external_conflicts:
+    record = json.loads(path.read_text())
+    assert record["status"] == 409
+    assert record["body"]["error"]["code"] == "EXTERNAL_MODIFICATION_CONFLICT"
 failures = sorted((root / "build/edit-service-results").glob("partial-*.json"))
 assert len(failures) == 4, "Run EditBatchServiceTest to capture both failure positions with clean/dirty state"
 for path in failures:
