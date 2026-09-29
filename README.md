@@ -20,6 +20,7 @@ The implementation currently includes:
 - Class-oriented Java source with validated token annotations, source snapshots, and method excerpts only where the pinned Jadx metadata and boundary checks agree. Per-request mode overrides use an isolated engine.
 - Validated in-memory batches for original class/method/field renames and single-line native declaration comments. Explicit save is required for durability. Safe Tiny v2 export creates a new local artifact, bounded Tiny v2 import stages pending edits, and verified parameter targets support snapshot-bound renames. Local edits and override propagation remain unsupported.
 - Controlled startup/shutdown behavior, including bounded waiting for loader cleanup on ordinary shutdown and separate handling of fatal startup errors.
+- An internal bounded original-input census and independent hierarchy verifier for a closed class/JAR/DEX subset. It detects missing Jadx related-method candidates; it does not admit propagation edits.
 
 Native declaration edits and a matching-GUI save/reopen round trip are exercised by real Jadx tests. The capability endpoint identifies narrower support and remaining unverified edit forms.
 
@@ -189,6 +190,7 @@ For implementation sequencing and known technical limits, see [`IMPLEMENTATION.m
 - [`docs/phase-5-search.md`](docs/phase-5-search.md) — incremental search, coverage, jobs, cursors and pinned-source evidence.
 - [`docs/phase-5-editing.md`](docs/phase-5-editing.md) — native declaration editing, batch semantics, GUI evidence and remaining gates.
 - [`docs/phase-5-scoped-editing.md`](docs/phase-5-scoped-editing.md) — snapshot-bound parameter targets, native persistence and unsupported local forms.
+- [`docs/phase-5-hierarchy-verifier.md`](docs/phase-5-hierarchy-verifier.md) — raw declaration census, independent completeness rules, budgets and propagation prerequisites.
 
 ## License and attribution
 
@@ -251,3 +253,11 @@ renames. Ordinary method rename retains Jadx's implicit candidate alias behavior
 without an exhaustive affected-group guarantee. See [counterexamples, native replay
 and actual GUI diagnostics](docs/phase-5-related-propagation.md). Phase 5.2 remains
 incomplete; local-variable feasibility is separate.
+
+PR #15 establishes a bounded original-input census before Jadx duplicate selection
+and an independent hierarchy verifier. The four-member independent-interface
+family verifies from every seed, while comparison detects Jadx's three-member /
+empty candidate sets. Bridges, covariance, unresolved branches and duplicates
+fail closed. Native group staging, all-owner conflicts and propagated persistence
+remain PR #16 gates; the public contract is unchanged. See
+[verifier evidence](docs/phase-5-hierarchy-verifier.md).

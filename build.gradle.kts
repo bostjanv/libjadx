@@ -21,8 +21,9 @@ dependencies {
     // jadx-core alone has no input loaders in the standalone distribution.
     // Match the pinned CLI's headless runtime plugin set, without jadx-gui.
     runtimeOnly("io.github.skylot:jadx-analysis:1.5.6")
-    runtimeOnly("io.github.skylot:jadx-dex-input:1.5.6")
-    runtimeOnly("io.github.skylot:jadx-java-input:1.5.6")
+    // The bounded census uses these already shipped, pinned input readers.
+    implementation("io.github.skylot:jadx-dex-input:1.5.6")
+    implementation("io.github.skylot:jadx-java-input:1.5.6")
     runtimeOnly("io.github.skylot:jadx-java-convert:1.5.6")
     runtimeOnly("io.github.skylot:jadx-smali-input:1.5.6")
     implementation("io.github.skylot:jadx-rename-mappings:1.5.6")

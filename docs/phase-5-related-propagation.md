@@ -149,6 +149,14 @@ omitted branch. Its affectedRefs remains empty and makes no exhaustiveness claim
 
 ## Smallest follow-up
 
+PR #15 now implements and proves that bounded original-input census and
+independent hierarchy verifier for a conservative class/JAR/DEX subset. It
+detects this document's four-versus-three/empty candidate omission without
+modifying live override attributes. See [hierarchy verifier evidence](phase-5-hierarchy-verifier.md)
+and [PR #15 review](pr-15-review.md). Public propagation remains unsupported.
+The following discovery work is historical PR #14 guidance; all-owner native
+transactions and actual propagated service/GUI persistence are now PR #16.
+
 Before enabling any subset, implement and prove a bounded original-input census
 and independent hierarchy completeness check, accounting for discarded originals,
 all resolved branches, visibility, bridges and cache reload. Compare it with Jadx's

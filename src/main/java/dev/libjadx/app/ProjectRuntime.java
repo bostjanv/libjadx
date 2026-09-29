@@ -136,6 +136,48 @@ public final class ProjectRuntime implements AutoCloseable {
 		return readPublished(NativeProjectRepository::snapshot);
 	}
 
+	/** Internal immutable hierarchy read. The verifier is usable only on the callback thread until
+	 * the callback returns. Returned verification data is evidence, never native edit admission. */
+	<T> T withHierarchyVerifier(Function<dev.libjadx.core.hierarchy.RelatedHierarchyVerifier, T> operation) {
+		try (var lease = admit(OperationRequest.queryRead("hierarchy-verification"))) {
+			dev.libjadx.core.hierarchy.RelatedHierarchyVerifier verifier;
+			synchronized (lifecycleLock) {
+				requireReady();
+				verifier = activeEngine.hierarchyVerifier();
+			}
+			var scoped = new CallbackHierarchyVerifier(verifier);
+			try {
+				return operation.apply(scoped);
+			} finally {
+				scoped.expire();
+			}
+		}
+	}
+
+	/** Thread confinement keeps verification inside the lease even if a callback starts background work. */
+	private static final class CallbackHierarchyVerifier implements dev.libjadx.core.hierarchy.RelatedHierarchyVerifier {
+		private final Thread owner = Thread.currentThread();
+		private dev.libjadx.core.hierarchy.RelatedHierarchyVerifier delegate;
+
+		CallbackHierarchyVerifier(dev.libjadx.core.hierarchy.RelatedHierarchyVerifier delegate) {
+			this.delegate = delegate;
+		}
+
+		@Override public Verification verify(dev.libjadx.core.symbols.SymbolRef seed, VerificationBudget budget) {
+			if (Thread.currentThread() != owner || delegate == null)
+				throw new IllegalStateException("Hierarchy verifier requires its active admitting callback");
+			return delegate.verify(seed, budget);
+		}
+
+		private void expire() { delegate = null; }
+	}
+
+	dev.libjadx.core.hierarchy.RelatedHierarchyVerifier.Verification verifyRelatedHierarchy(
+			dev.libjadx.core.symbols.SymbolRef seed,
+			dev.libjadx.core.hierarchy.RelatedHierarchyVerifier.VerificationBudget budget) {
+		return withHierarchyVerifier(verifier -> verifier.verify(seed, budget));
+	}
+
 	public SettingsSnapshot settingsSnapshot() {
 		return readPublished(current -> {
 			synchronized (current) {
@@ -1014,6 +1056,11 @@ public final class ProjectRuntime implements AutoCloseable {
 
 		JadxDecompiler decompiler();
 
+		default dev.libjadx.core.hierarchy.RelatedHierarchyVerifier hierarchyVerifier() {
+			return (seed, budget) -> dev.libjadx.core.hierarchy.RelatedHierarchyVerifier.Verification.incomplete(
+					dev.libjadx.core.hierarchy.RelatedHierarchyVerifier.Status.UNSUPPORTED_INPUT, seed, null, "Engine has no raw census");
+		}
+
 		default void reloadCodeData(JadxCodeData codeData) {
 			JadxDecompiler jadx = decompiler();
 			jadx.getArgs().setCodeData(codeData);
@@ -1033,6 +1080,7 @@ public final class ProjectRuntime implements AutoCloseable {
 
 	private static final class JadxProjectEngine implements ProjectEngine {
 		private final JadxDecompiler decompiler;
+		private dev.libjadx.core.hierarchy.RelatedHierarchyVerifier hierarchyVerifier;
 
 		private JadxProjectEngine(JadxArgs args) {
 			this.decompiler = new JadxDecompiler(args);
@@ -1040,8 +1088,14 @@ public final class ProjectRuntime implements AutoCloseable {
 
 		@Override
 		public void load() {
+			var capture = dev.libjadx.jadxadapter.JadxInputCensusAdapter.capture(
+					decompiler.getArgs().getInputFiles().stream().map(java.io.File::toPath).toList(),
+					dev.libjadx.core.hierarchy.CensusLimits.defaults());
 			decompiler.load();
+			hierarchyVerifier = capture.bind(decompiler);
 		}
+
+		@Override public dev.libjadx.core.hierarchy.RelatedHierarchyVerifier hierarchyVerifier() { return hierarchyVerifier; }
 
 		@Override
 		public JadxDecompiler decompiler() {
