@@ -1,5 +1,13 @@
 # PR #15: bounded original-input census and independent hierarchy verifier
 
+**Current PR #19 boundary:** [verified related-method group admission](phase-5-related-group-admission.md)
+now admits the independently COMPLETE conservative subset under the same exclusive
+edit lease, with raw all-owner collisions, exact native records and affectedRefs.
+Earlier unsupported-contract statements below describe historical milestones;
+candidate/replay counterexamples remain valid. Local and parameter propagation
+remain unsupported. Final validation is in [PR #19 review](pr-19-review.md).
+
+
 Jadx **1.5.6**, source commit **28ff15e4ae69950aebea110a13e5ab895d234dfc**.
 This is an internal Phase 5.2 prerequisite. It exposes no HTTP endpoint or
 accepted mutation, and `edit.related_propagation` remains UNSUPPORTED.

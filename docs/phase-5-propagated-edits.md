@@ -1,5 +1,13 @@
 # PR #16: verified family replay safety gate
 
+**Current PR #19 boundary:** [verified related-method group admission](phase-5-related-group-admission.md)
+now admits the independently COMPLETE conservative subset under the same exclusive
+edit lease, with raw all-owner collisions, exact native records and affectedRefs.
+Earlier unsupported-contract statements below describe historical milestones;
+candidate/replay counterexamples remain valid. Local and parameter propagation
+remain unsupported. Final validation is in [PR #19 review](pr-19-review.md).
+
+
 The counterexample below records the historical PR #16 implementation. PR #18
 moves `PropagatedNativeReplayTest` to positive production replacement gates;
 `SafeReplayStrategyTest` retains the exact old in-place implementation and its

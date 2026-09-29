@@ -25,56 +25,74 @@ class RelatedPropagationEndpointsTest {
 	private static final HttpClient CLIENT = HttpClient.newHttpClient();
 	@TempDir Path dir;
 
-	@Test void propagationRemainsUnsupportedBeforeAnyMixedBatchStagingInCleanAndDirtyState() throws Exception {
-		var inputs = RelatedFixture.compile(dir);
-		Path path = dir.resolve("project.jadx");
-		var project = NativeProjectDocument.newFromInputs(path, inputs);
-		project.save();
-		try (var runtime = new ProjectRuntime(path, inputs, List.of(dir));
-				var server = new HttpApiServer("127.0.0.1", 0, runtime)) {
-			server.start(); runtime.initializeAsync(project).get(20, TimeUnit.SECONDS);
-			Path captures = Path.of("build/related-contract-responses"); Files.createDirectories(captures);
-			String method = JSON.writeValueAsString(RelatedFixture.ref("Joined", "joined", "(I)I"));
-			String regular = "{\"kind\":\"RENAME\",\"target\":{\"kind\":\"CLASS\",\"originalClassDescriptor\":\"Lrelated/UnrelatedCold;\"},\"newName\":\"ShouldNotApply\"}";
-			var cold = runtime.decompiler().searchJavaClassByOrigFullName("related.UnrelatedCold").getClassNode();
-			var coldState = cold.getState();
+	@Test void relatedContractAdmitsOnlyVerifiedRequestsAndInvalidatesSnapshots() throws Exception {
+		var inputs = RelatedFixture.compile(dir); Path path = dir.resolve("project.jadx");
+		var project = NativeProjectDocument.newFromInputs(path, inputs); project.save();
+		try (var runtime = new ProjectRuntime(path, inputs, List.of(dir)); var server = new HttpApiServer("127.0.0.1", 0, runtime)) {
+			server.start(); runtime.initializeAsync(project).get(30, TimeUnit.SECONDS);
+			String target = JSON.writeValueAsString(RelatedGroupAdmissionTest.SEED);
+			String base = "{\"kind\":\"RENAME\",\"target\":" + target + ",\"newName\":\"renamedJoined\"";
 			for (boolean dirty : List.of(false, true)) {
-				if (dirty) new EditBatchService(runtime).apply(new EditDtos.Request(null, null, List.of(
-						new EditDtos.Operation(EditDtos.Kind.SET_COMMENT, SymbolRef.classRef("Lrelated/Hierarchy;"), null, "pending comment", "LINE"))));
-				String sourceRequest = "{\"ref\":{\"kind\":\"CLASS\",\"originalClassDescriptor\":\"Lrelated/Hierarchy;\"}}";
-				var source = JSON.readTree(post(server, "/api/v1/decompile", sourceRequest).body());
-				String snapshot = source.path("sourceSnapshotId").asText(); assertFalse(snapshot.isEmpty());
-				var before = runtime.projectSnapshot(); var identity = runtime.searchIdentity();
-				String pending = runtime.pendingEdits().toString();
-				var hashes = new java.util.ArrayList<FileFingerprint>();
-				for (Path file : List.of(path, inputs.getFirst(), inputs.get(1))) hashes.add(FileFingerprint.of(file));
-				String preconditions = "\"expectedSessionId\":\"" + before.revisions().sessionId() + "\",\"expectedLogicalRevision\":" + before.revisions().logicalRevision() + ",";
-				for (String flag : List.of("true", "false", "null", "\"yes\"", "7", "[]", "{}")) {
-					var response = post(server, "/api/v1/edits/batch", "{" + preconditions + "\"items\":[" + regular
-							+ ",{\"kind\":\"RENAME\",\"target\":" + method + ",\"newName\":\"renamedJoined\",\"propagateRelated\":" + flag + "}]}");
-					assertEquals(422, response.statusCode(), response.body());
-					var error = JSON.readTree(response.body()).path("error");
-					assertEquals("UNSUPPORTED_CAPABILITY", error.path("code").asText());
-					assertEquals(1, error.path("details").path("itemErrors").get(0).path("index").asInt());
-					String name = (dirty ? "dirty-" : "clean-") + switch (flag) {
-						case "\"yes\"" -> "string"; case "7" -> "number"; case "[]" -> "array"; case "{}" -> "object"; default -> flag;
-					};
-					Files.writeString(captures.resolve(name + ".json"), JSON.writeValueAsString(Map.of(
-							"status", 422, "schema", "ErrorEnvelope", "body", JSON.readTree(response.body()))));
-					assertEquals(before, runtime.projectSnapshot()); assertEquals(identity, runtime.searchIdentity());
-					assertEquals(pending, runtime.pendingEdits().toString()); assertEquals(coldState, cold.getState());
-					for (int i = 0; i < hashes.size(); i++) assertEquals(hashes.get(i), FileFingerprint.of(List.of(path, inputs.getFirst(), inputs.get(1)).get(i)));
+				if (dirty) new EditBatchService(runtime).apply(new EditDtos.Request(null,null,List.of(
+						new EditDtos.Operation(EditDtos.Kind.SET_COMMENT,SymbolRef.classRef("Lrelated/Hierarchy;"),null,"pending comment","LINE"))));
+				var before = runtime.projectSnapshot(); var identity = runtime.searchIdentity(); var pending = runtime.pendingEdits();
+				String prefix = "{\"expectedSessionId\":\""+before.revisions().sessionId()+"\",\"expectedLogicalRevision\":"+before.revisions().logicalRevision()+",\"items\":[";
+				for(String flag:List.of("null","\"yes\"","7","[]","{}")) {
+					String name=switch(flag){case "\"yes\""->"string";case "7"->"number";case "[]"->"array";case "{}"->"object";default->flag;};
+					capture(server,(dirty?"dirty-":"clean-")+name, prefix+base+",\"propagateRelated\":"+flag+"}]}",400,"INVALID_REQUEST");
 				}
-				assertEquals(snapshot, JSON.readTree(post(server, "/api/v1/decompile", sourceRequest).body()).path("sourceSnapshotId").asText());
-				var capabilities = JSON.readTree(get(server, "/api/v1/capabilities").body());
-				assertTrue(capabilities.toString().contains("edit.related_propagation"));
-				var related = java.util.stream.StreamSupport.stream(capabilities.path("capabilities").spliterator(), false)
-						.filter(c -> c.path("name").asText().equals("edit.related_propagation")).findFirst().orElseThrow();
-				assertEquals("UNSUPPORTED", related.path("status").asText());
-				assertEquals("INCOMPLETE_PINNED_OVERRIDE_GROUP", related.path("evidence").asText());
-				assertEquals(coldState, cold.getState());
+				capture(server,(dirty?"dirty-":"clean-")+"missing-revisions","{\"items\":["+base+",\"propagateRelated\":true}]}",400,"INVALID_REQUEST");
+				for(String kind:List.of("CLASS","FIELD")) {
+					String ref=kind.equals("CLASS")?JSON.writeValueAsString(SymbolRef.classRef("Lrelated/Hierarchy;")):
+						"{\"kind\":\"FIELD\",\"originalClassDescriptor\":\"Lrelated/Hierarchy;\",\"originalName\":\"field\",\"originalDescriptor\":\"I\"}";
+					capture(server,(dirty?"dirty-":"clean-")+kind,prefix+"{\"kind\":\"RENAME\",\"target\":"+ref+",\"newName\":\"Alias\",\"propagateRelated\":true}]}",400,"INVALID_REQUEST");
+				}
+				for(String owner:List.of("MissingParent","External","CovariantLeaf","Base")) {
+					String name=switch(owner){case "MissingParent"->"lost";case "External"->"run";case "CovariantLeaf"->"value";default->"hidden";};
+					String desc=switch(owner){case "External"->"()V";case "CovariantLeaf"->"()Ljava/lang/String;";default->"(I)I";};
+					capture(server,(dirty?"dirty-":"clean-")+owner,prefix+wire(RelatedGroupAdmissionTest.propagated(RelatedFixture.ref(owner,name,desc),"Alias"))+"]}",422,"UNSUPPORTED_CAPABILITY");
+				}
+				capture(server,(dirty?"dirty-":"clean-")+"collision",prefix+wire(RelatedGroupAdmissionTest.propagated(RelatedFixture.ref("Base","work","(I)I"),"collision"))+"]}",400,"INVALID_REQUEST");
+				assertEquals(before,runtime.projectSnapshot()); assertEquals(identity,runtime.searchIdentity()); assertEquals(pending,runtime.pendingEdits());
 			}
+			// False is ordinary behavior; the later explicit request must still add missing family records.
+			var legacy=capture(server,"false","{\"items\":["+base+",\"propagateRelated\":false}]}",200,null);
+			assertTrue(legacy.path("items").get(0).path("affectedRefs").isEmpty());
+			String sourceRequest="{\"ref\":{\"kind\":\"CLASS\",\"originalClassDescriptor\":\"Lrelated/Hierarchy;\"}}";
+			String snapshot=JSON.readTree(post(server,"/api/v1/decompile",sourceRequest).body()).path("sourceSnapshotId").asText();
+			String cursor=JSON.readTree(get(server,"/api/v1/classes?pageSize=1").body()).path("nextCursor").asText();
+			String searchRequest="{\"query\":\"Hierarchy\",\"domains\":[\"CLASS_NAME\"],\"pageSize\":1}";
+			String searchCursor=JSON.readTree(post(server,"/api/v1/search",searchRequest).body()).path("nextCursor").asText();
+			var result=capture(server,"applied",body(runtime,base+",\"propagateRelated\":true}"),200,null);
+			assertEquals(JSON.valueToTree(RelatedGroupAdmissionTest.FAMILY),result.path("items").get(0).path("affectedRefs"));
+			capture(server,"no-change",body(runtime,base+",\"propagateRelated\":true}"),200,null);
+			var budgetItems=List.of(RelatedGroupAdmissionTest.SEED,RelatedFixture.ref("Base","work","(I)I"),RelatedFixture.ref("Root","call","(I)I"),RelatedFixture.ref("DefaultRoot","run","(I)I"),RelatedFixture.ref("Unrelated","work","(I)I"));
+			var budgetWire=new java.util.ArrayList<String>();for(var ref:budgetItems)budgetWire.add(wire(RelatedGroupAdmissionTest.propagated(ref,"budgetAlias")));
+			capture(server,"resource-limit",body(runtime,String.join(",",budgetWire)),429,"RESOURCE_LIMIT");
+			capture(server,"missing-method",body(runtime,wire(RelatedGroupAdmissionTest.propagated(RelatedFixture.ref("Joined","absent","(I)I"),"Alias"))),404,"NOT_FOUND");
+			capture(server,"stale","{\"expectedSessionId\":\""+runtime.projectSnapshot().revisions().sessionId()+"\",\"expectedLogicalRevision\":0,\"items\":["+base+",\"propagateRelated\":true}]}",409,"STALE_REVISION");
+			assertEquals("STALE_REVISION",JSON.readTree(get(server,"/api/v1/classes?pageSize=1&cursor="+cursor).body()).path("error").path("code").asText());
+			assertEquals("STALE_REVISION",JSON.readTree(post(server,"/api/v1/decompile",sourceRequest.substring(0,sourceRequest.length()-1)+",\"expectedSourceSnapshotId\":\""+snapshot+"\"}").body()).path("error").path("code").asText());
+			assertFalse(searchCursor.isEmpty());
+			assertEquals(409,post(server,"/api/v1/search",searchRequest.substring(0,searchRequest.length()-1)+",\"cursor\":\""+searchCursor+"\"}").statusCode());
+			var caps=JSON.readTree(get(server,"/api/v1/capabilities").body());
+			var related=java.util.stream.StreamSupport.stream(caps.path("capabilities").spliterator(),false).filter(c->c.path("name").asText().equals("edit.related_propagation")).findFirst().orElseThrow();
+			assertEquals("PARTIAL",related.path("status").asText());
+			assertEquals("INDEPENDENT_CLOSED_INPUT_FAMILY_GUI_VERIFIED",related.path("evidence").asText());
+			assertEquals("MEMORY_ONLY_UNTIL_EXPLICIT_NATIVE_SAVE",related.path("persistence").asText());
 		}
+	}
+	private static String wire(EditDtos.Operation item) throws Exception {
+		return JSON.writeValueAsString(Map.of("kind",item.kind(),"target",item.target(),"newName",item.newName(),"propagateRelated",item.propagateRelated()));
+	}
+	private static String body(ProjectRuntime runtime,String item) {
+		var r=runtime.projectSnapshot().revisions();return "{\"expectedSessionId\":\""+r.sessionId()+"\",\"expectedLogicalRevision\":"+r.logicalRevision()+",\"items\":["+item+"]}";
+	}
+	private static com.fasterxml.jackson.databind.JsonNode capture(HttpApiServer server,String name,String body,int status,String error) throws Exception {
+		var response=post(server,"/api/v1/edits/batch",body);assertEquals(status,response.statusCode(),response.body());
+		var parsed=JSON.readTree(response.body());if(error!=null)assertEquals(error,parsed.path("error").path("code").asText());
+		Path captures=Path.of("build/related-contract-responses");Files.createDirectories(captures);
+		Files.writeString(captures.resolve(name+".json"),JSON.writeValueAsString(Map.of("status",status,"schema",status==200?"EditBatchResult":"ErrorEnvelope","body",parsed,"request",JSON.readTree(body))));return parsed;
 	}
 
 	@Test void ordinaryRenameRetainsExistingImplicitCandidatePropagationAndEmptyAffectedRefs() throws Exception {

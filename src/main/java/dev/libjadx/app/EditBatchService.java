@@ -24,6 +24,7 @@ import dev.libjadx.jadxadapter.JadxNativeEditAdapter;
 import dev.libjadx.jadxadapter.JadxNativeEditAdapter.Target;
 import dev.libjadx.jadxadapter.JadxSymbolAdapter;
 import dev.libjadx.jadxadapter.JadxSourceAdapter;
+import dev.libjadx.jadxadapter.RawMethodCollisionInventory;
 import dev.libjadx.core.source.DecompileResult.Variable;
 import dev.libjadx.project.NativeProjectDocument;
 import jadx.api.data.impl.JadxCodeData;
@@ -31,12 +32,18 @@ import jadx.api.data.impl.JadxCodeData;
 /** Validates and stages one native declaration batch under a single exclusive runtime lease. */
 public final class EditBatchService {
 	@FunctionalInterface interface StageHook { void beforeItem(int index); }
+	@FunctionalInterface interface GroupStageHook { void beforeMember(int item, int member); }
 
 	private final ProjectRuntime runtime;
 	private final StageHook hook;
+	private final GroupStageHook groupHook;
 
 	public EditBatchService(ProjectRuntime runtime) { this(runtime, ignored -> { }); }
-	EditBatchService(ProjectRuntime runtime, StageHook hook) { this.runtime = runtime; this.hook = hook; }
+	EditBatchService(ProjectRuntime runtime, StageHook hook) { this(runtime, hook, (item, member) -> { }); }
+
+	EditBatchService(ProjectRuntime runtime, StageHook hook, GroupStageHook groupHook) {
+		this.runtime = runtime; this.hook = hook; this.groupHook = groupHook;
+	}
 
 	public Result apply(Request request) {
 		if (request.items().isEmpty() || request.items().size() > 64) {
@@ -62,6 +69,22 @@ public final class EditBatchService {
 		Map<String, JadxSourceAdapter.SourceData> sources = new HashMap<>();
 		long[] scopedBudget = new long[2];
 		Set<String> editedKeys = new HashSet<>();
+		var relatedPlanner = new RelatedMethodPlanner();
+		Map<Integer, RelatedMethodPlan> groups = new HashMap<>();
+		List<Planned> expanded = new ArrayList<>();
+		for (int i = 0; i < request.items().size(); i++) {
+			var item = request.items().get(i); var ref = item.target();
+			if (item.propagateRelated()) {
+				if (item.kind() != EditDtos.Kind.RENAME || ref.kind() != SymbolRef.Kind.METHOD
+						|| request.expectedSessionId() == null || request.expectedLogicalRevision() == null)
+					throw rejected(400, "INVALID_REQUEST", i, "Related propagation requires a method rename and revision preconditions");
+				if (ref.inputIdentity() != null) throw rejected(422, "UNSUPPORTED_CAPABILITY", i, "Exact per-input provenance is unavailable");
+				validateName(item.newName(), i);
+				groups.put(i, relatedPlanner.plan(context, catalog, admitted, ref, item.newName(), i));
+			}
+			expanded.add(new Planned(i, item, null, false, groups.get(i)));
+		}
+		if (!groups.isEmpty()) validateRelatedOverlaps(expanded);
 		for (int i = 0; i < request.items().size(); i++) {
 			Operation item = request.items().get(i);
 			SymbolRef ref = item.target();
@@ -109,6 +132,7 @@ public final class EditBatchService {
 					+ target.nativeRef().getDeclaringClass() + ":" + target.nativeRef().getShortId()
 					+ (scoped ? ":" + item.parameterIndex() : "");
 			if (!editedKeys.add(key)) throw rejected(400, "INVALID_REQUEST", i, "Duplicate edit of one native declaration key");
+			RelatedMethodPlan related = groups.get(i);
 			boolean changed;
 			if (scoped) {
 				validateName(item.newName(), i);
@@ -140,7 +164,9 @@ public final class EditBatchService {
 					throw rejected(422, "INVALID_ENTITY_ID", i, "Multiple native renames share this declaration key");
 				}
 				String prior = JadxNativeEditAdapter.existingRename(admitted, target.nativeRef());
-				changed = !Objects.equals(prior, item.newName())
+				changed = related != null ? related.members().stream().anyMatch(member ->
+						!Objects.equals(JadxNativeEditAdapter.existingRename(admitted, member.nativeRef()), item.newName()))
+						: !Objects.equals(prior, item.newName())
 						&& !(prior == null && Objects.equals(target.displayName(), item.newName()));
 			} else {
 				validateComment(item, i);
@@ -149,8 +175,9 @@ public final class EditBatchService {
 				}
 				changed = !Objects.equals(JadxNativeEditAdapter.existingComment(admitted, target.nativeRef()), item.comment());
 			}
-			plan.add(new Planned(i, item, target, changed));
+			plan.add(new Planned(i, item, target, changed, related));
 		}
+		validateRelatedBatch(context, catalog, admitted, plan);
 		validateCollisions(catalog, visibleMembers, plan);
 		validateParameterCollisions(sources, plan);
 		JadxCodeData working = NativeProjectDocument.copyCodeData(admitted);
@@ -162,7 +189,11 @@ public final class EditBatchService {
 				if (item.changed()) {
 					JadxCodeData candidate = NativeProjectDocument.copyCodeData(working);
 					if (item.operation().kind() == EditDtos.Kind.RENAME) {
-						JadxNativeEditAdapter.rename(candidate, item.target().nativeRef(), item.operation().newName());
+						if (item.related() == null) JadxNativeEditAdapter.rename(candidate, item.target().nativeRef(), item.operation().newName());
+						else for (int member = 0; member < item.related().members().size(); member++) {
+							groupHook.beforeMember(item.index(), member);
+							JadxNativeEditAdapter.rename(candidate, item.related().members().get(member).nativeRef(), item.related().alias());
+						}
 					} else if (item.operation().kind() == EditDtos.Kind.RENAME_PARAMETER) {
 							JadxNativeEditAdapter.renameParameter(candidate, item.target().nativeRef(),
 									item.operation().parameterIndex(), item.operation().newName());
@@ -180,7 +211,16 @@ public final class EditBatchService {
 			for (int i = failedAt + 1; i < plan.size(); i++) results.add(result(plan.get(i), "SKIPPED", "NOT_EXECUTED"));
 		}
 		boolean effective = results.stream().anyMatch(item -> item.status().equals("APPLIED"));
-		ProjectSnapshot after = effective ? context.commit(working) : before;
+		ProjectSnapshot after;
+		try {
+			if (!effective && !groups.isEmpty()) context.checkAnalysisBaselines();
+			after = effective ? context.commit(working) : before;
+		}
+		catch (ProjectRuntime.NativeEditConflictException conflict) {
+			var group = plan.stream().filter(p -> p.related() != null).findFirst();
+			if (group.isEmpty()) throw conflict;
+			throw rejected(409, "EXTERNAL_MODIFICATION_CONFLICT", group.get().index(), "Project analysis files changed during related edit publication");
+		}
 		return new Result(failedAt >= 0 ? "PARTIAL" : effective ? "APPLIED" : "NO_CHANGE", session,
 				revision, after.revisions().logicalRevision(), after.revisions().indexRevision(), after.dirty(), false,
 				results, failedAt >= 0 ? List.of(effective
@@ -189,14 +229,16 @@ public final class EditBatchService {
 	}
 
 	private static ItemResult result(Planned planned, String status, String message) {
-		return new ItemResult(planned.index(), status, planned.operation().kind(), planned.operation().target(), List.of(), message, planned.operation().parameterIndex(), planned.operation().sourceSnapshotId());
+		return new ItemResult(planned.index(), status, planned.operation().kind(), planned.operation().target(), planned.related() != null
+				&& (status.equals("APPLIED") || "NO_CHANGE".equals(message)) ? planned.related().affectedRefs() : List.of(), message, planned.operation().parameterIndex(), planned.operation().sourceSnapshotId());
 	}
 
 	private static void validateCollisions(SymbolCatalog catalog, List<Target> visibleMembers, List<Planned> plan) {
 		Map<SymbolRef, String> renamed = new HashMap<>();
 		for (Planned item : plan) {
 			if (item.operation().kind() == EditDtos.Kind.RENAME && item.changed()) {
-				renamed.put(item.operation().target(), item.operation().newName());
+				if (item.related() == null) renamed.put(item.operation().target(), item.operation().newName());
+				else for (var member : item.related().members()) renamed.put(member.ref(), item.operation().newName());
 			}
 		}
 		for (Planned item : plan) {
@@ -224,6 +266,67 @@ public final class EditBatchService {
 					throw rejected(400, "INVALID_REQUEST", item.index(), "Alias collides with another visible declaration");
 				}
 			}
+		}
+	}
+
+	private static Map<SymbolRef, String> validateRelatedOverlaps(List<Planned> plan) {
+		Map<SymbolRef, Planned> claimed = new HashMap<>();
+		Map<SymbolRef, String> proposed = new HashMap<>();
+		for (Planned item : plan) if (item.operation().kind() == EditDtos.Kind.RENAME) {
+			var refs = item.related() == null ? List.of(item.operation().target()) : item.related().affectedRefs();
+			for (var ref : refs) {
+				var prior = claimed.putIfAbsent(ref, item);
+				if (prior != null) throw rejected(400, "INVALID_REQUEST", item.index(), "Overlapping native rename operations");
+				proposed.put(ref, item.operation().newName());
+			}
+		}
+		Set<SymbolRef> grouped = new HashSet<>();
+		for (var group : plan.stream().filter(p -> p.related() != null).toList()) grouped.addAll(group.related().affectedRefs());
+		for (var item : plan) {
+			if (item.operation().kind() == EditDtos.Kind.RENAME && item.operation().target().kind() == SymbolRef.Kind.CLASS)
+				throw rejected(400, "INVALID_REQUEST", item.index(), "Class renames cannot share a batch with related propagation");
+			if (item.operation().kind() == EditDtos.Kind.RENAME_PARAMETER && grouped.contains(item.operation().target()))
+				throw rejected(400, "INVALID_REQUEST", item.index(), "Parameter rename overlaps a propagated method family");
+		}
+		return proposed;
+	}
+
+	private static void validateRelatedBatch(ProjectRuntime.EditContext context, SymbolCatalog catalog,
+			JadxCodeData code, List<Planned> plan) {
+		var groups = plan.stream().filter(p -> p.related() != null).toList();
+		if (groups.isEmpty()) return;
+		Map<SymbolRef, String> proposed = validateRelatedOverlaps(plan);
+		Map<String, List<RawMethodCollisionInventory.Method>> inventory = new HashMap<>();
+		int count = 0;
+		for (var group : groups) for (var member : group.related().members()) {
+			String owner = member.ref().originalClassDescriptor();
+			if (!inventory.containsKey(owner)) {
+				var cls = JadxSymbolAdapter.visibleClass(context.decompiler(), owner, catalog.matching(owner).getFirst().occurrence());
+				try {
+					var methods = RawMethodCollisionInventory.methods(cls, 200_000 - count);
+					inventory.put(owner, methods); count += methods.size();
+				} catch (JadxNativeEditAdapter.EditLimitException limit) {
+					throw rejected(429, "RESOURCE_LIMIT", group.index(), limit.getMessage());
+				} catch (RawMethodCollisionInventory.InvalidInventoryException invalid) {
+					throw rejected(422, "INVALID_ENTITY_ID", group.index(), "Raw method collision inventory is not representable");
+				}
+			}
+			for (var other : inventory.get(owner)) {
+				if (other.ref().equals(member.ref()) || !other.arguments().equals(member.arguments())) continue;
+				if (JadxNativeEditAdapter.renameCount(code, other.nativeRef()) > 1)
+					throw rejected(422, "INVALID_ENTITY_ID", group.index(), "Raw method native alias is ambiguous");
+				String explicit = JadxNativeEditAdapter.existingRename(code, other.nativeRef());
+				String mapped = RawMethodCollisionInventory.mappingAlias(context.decompiler(), other.ref());
+				String current = explicit != null ? explicit : mapped != null ? mapped : other.displayName();
+				// Current names also block: every possible published prefix must be safe.
+				if (group.related().alias().equals(current)
+						|| group.related().alias().equals(proposed.getOrDefault(other.ref(), current)))
+					throw rejected(400, "INVALID_REQUEST", group.index(), "Related method alias collides in one declaring type");
+			}
+		}
+		try { context.checkAnalysisBaselines(); }
+		catch (ProjectRuntime.NativeEditConflictException conflict) {
+			throw rejected(409, "EXTERNAL_MODIFICATION_CONFLICT", groups.getFirst().index(), "Project analysis files changed during related verification");
 		}
 	}
 
@@ -266,12 +369,12 @@ public final class EditBatchService {
 		}
 	}
 
-	private static Rejected rejected(int status, String code, int index, String message) {
+	static Rejected rejected(int status, String code, int index, String message) {
 		return new Rejected(status, code, message,
 				index < 0 ? List.of() : List.of(new ItemError(index, code, message)));
 	}
 
-	private record Planned(int index, Operation operation, Target target, boolean changed) { }
+	private record Planned(int index, Operation operation, Target target, boolean changed, RelatedMethodPlan related) { }
 
 	public static final class Rejected extends RuntimeException {
 		private final int status;

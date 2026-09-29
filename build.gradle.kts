@@ -360,3 +360,41 @@ tasks.register<Test>("replacementEditGuiRoundTripTest") {
     filter { includeTestsMatching("dev.libjadx.app.ReplacementStateTest.actualMatchingGuiSaveAsReopensExactIntentAndFreshAliases") }
     environment("LIBJADX_REPLACEMENT_GUI_PROJECT", replacementGuiProject.get().asFile.absolutePath)
 }
+
+// PR #19 positive service propagation from all four independent Joined seeds.
+val propagatedEditGuiRoot = layout.buildDirectory.dir("propagated-edit-gui-fixture")
+var previousPropagatedEditTask: String? = null
+val propagatedEditGuiTasks = listOf("ExtendedLeft", "Joined", "SeparateLeft", "SeparateRight").map { seed ->
+    val taskName = "savePropagated${seed}EditWithMatchingGui"
+    val previousTask = previousPropagatedEditTask
+    tasks.register<Exec>(taskName) {
+        dependsOn(tasks.test)
+        if (previousTask != null) mustRunAfter(previousTask)
+        val guiPath = providers.environmentVariable("JADX_GUI")
+        doFirst {
+            if (!guiPath.isPresent) throw GradleException("Set JADX_GUI to the matching jadx-gui executable")
+        }
+        commandLine(
+            "bash", "tests/gui-round-trip.sh", guiPath.orNull ?: "",
+            propagatedEditGuiRoot.get().file("$seed/replacement.jadx").asFile.absolutePath,
+            propagatedEditGuiRoot.get().file("$seed/gui-resaved.jadx").asFile.absolutePath,
+        )
+        doLast {
+            copy {
+                from("/tmp/libjadx-gui-roundtrip.log")
+                into(propagatedEditGuiRoot.get().dir(seed))
+                rename { "actual-gui.log" }
+            }
+        }
+    }
+    previousPropagatedEditTask = taskName
+    taskName
+}
+tasks.register<Test>("propagatedEditGuiRoundTripTest") {
+    dependsOn(propagatedEditGuiTasks)
+    useJUnitPlatform()
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    filter { includeTestsMatching("dev.libjadx.app.RelatedGroupGuiTest.actualMatchingGuiSaveAsPreservesEveryServiceProducedFamily") }
+    environment("LIBJADX_PROPAGATED_EDIT_GUI_ROOT", propagatedEditGuiRoot.get().asFile.absolutePath)
+}

@@ -1,5 +1,13 @@
 # Fresh-equivalent replacement-engine edit publication
 
+**Current PR #19 boundary:** [verified related-method group admission](phase-5-related-group-admission.md)
+now admits the independently COMPLETE conservative subset under the same exclusive
+edit lease, with raw all-owner collisions, exact native records and affectedRefs.
+Earlier unsupported-contract statements below describe historical milestones;
+candidate/replay counterexamples remain valid. Local and parameter propagation
+remain unsupported. Final validation is in [PR #19 review](pr-19-review.md).
+
+
 PR #18 implements the approved automatic-alias decision on pinned Jadx 1.5.6,
 source `28ff15e4ae69950aebea110a13e5ab895d234dfc`. Explicit native declaration
 renames/comments, mapping aliases/comments, supported parameter renames and
@@ -161,7 +169,7 @@ Final commands, counts, source audit, actual GUI evidence and cost observations
 are recorded in [PR #18 review](pr-18-review.md). A normal opt-in skip is never
 counted as a GUI pass.
 
-## PR #19 boundary
+## Historical PR #18 handoff for PR #19 (superseded)
 
 `edit.related_propagation` stays UNSUPPORTED. Boolean/null/string/number/array/
 object flag presence stays rejected; affectedRefs remains empty for ordinary

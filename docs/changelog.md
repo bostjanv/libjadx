@@ -1,5 +1,17 @@
 # Experimental API changelog
 
+## PR #19 — verified related-method rename group admission
+
+- METHOD RENAME accepts boolean `propagateRelated` (default false). True requires
+  current session/revision and independently COMPLETE closed-input membership.
+- Raw per-owner method collisions, overlapping batches and scoped-member conflicts
+  fail closed before staging. Whole groups stage privately as standard native records.
+- APPLIED and verified NO_CHANGE return exact sorted affectedRefs. Explicit native
+  save, fresh replacement, restart/discard and matching-GUI Save As are preserved.
+- Per-family 64; per-batch four groups, 128 members and 800000 reserved work units.
+  Unproved bridge/covariant/external/missing/duplicate/local families stay unsupported.
+
+
 ## 2026-09-29 — PR #18 external analysis change rejection
 
 - Effective edits and mapping imports check every input and the attached mapping against accepted analysis fingerprints before and after candidate loading. External changes return `409 EXTERNAL_MODIFICATION_CONFLICT` and preserve the old engine, edits, revisions and source/search identities.

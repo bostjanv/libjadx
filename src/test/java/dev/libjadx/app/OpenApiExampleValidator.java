@@ -26,6 +26,15 @@ final class OpenApiExampleValidator {
 			validate(document, document.path("components").path("schemas").path(ref.substring(21)), value, path, errors);
 			return;
 		}
+		if (schema.has("anyOf")) {
+			boolean valid = false;
+			for (JsonNode option : schema.path("anyOf")) {
+				List<String> optionErrors = new ArrayList<>();
+				validate(document, option, value, path, optionErrors);
+				valid |= optionErrors.isEmpty();
+			}
+			if (!valid) errors.add(path + " must match an alternative schema");
+		}
 		if (schema.has("oneOf")) {
 			int valid = 0;
 			for (JsonNode option : schema.path("oneOf")) {

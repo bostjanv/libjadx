@@ -1,0 +1,57 @@
+{
+  "outcome": "NO_CHANGE",
+  "sessionId": "11111111-1111-4111-8111-111111111111",
+  "logicalRevisionBefore": 13,
+  "logicalRevisionAfter": 13,
+  "indexRevisionAfter": 13,
+  "dirty": true,
+  "saved": false,
+  "items": [
+    {
+      "index": 0,
+      "status": "SKIPPED",
+      "kind": "RENAME",
+      "target": {
+        "kind": "METHOD",
+        "originalClassDescriptor": "Lrelated/Hierarchy$Joined;",
+        "inputIdentity": null,
+        "originalName": "joined",
+        "originalDescriptor": "(I)I"
+      },
+      "affectedRefs": [
+        {
+          "kind": "METHOD",
+          "originalClassDescriptor": "Lrelated/Hierarchy$ExtendedLeft;",
+          "inputIdentity": null,
+          "originalName": "joined",
+          "originalDescriptor": "(I)I"
+        },
+        {
+          "kind": "METHOD",
+          "originalClassDescriptor": "Lrelated/Hierarchy$Joined;",
+          "inputIdentity": null,
+          "originalName": "joined",
+          "originalDescriptor": "(I)I"
+        },
+        {
+          "kind": "METHOD",
+          "originalClassDescriptor": "Lrelated/Hierarchy$SeparateLeft;",
+          "inputIdentity": null,
+          "originalName": "joined",
+          "originalDescriptor": "(I)I"
+        },
+        {
+          "kind": "METHOD",
+          "originalClassDescriptor": "Lrelated/Hierarchy$SeparateRight;",
+          "inputIdentity": null,
+          "originalName": "joined",
+          "originalDescriptor": "(I)I"
+        }
+      ],
+      "message": "NO_CHANGE",
+      "parameterIndex": null,
+      "sourceSnapshotId": null
+    }
+  ],
+  "diagnostics": []
+}

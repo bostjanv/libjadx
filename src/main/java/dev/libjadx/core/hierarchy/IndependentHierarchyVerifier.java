@@ -21,8 +21,9 @@ public final class IndependentHierarchyVerifier implements RelatedHierarchyVerif
 	public IndependentHierarchyVerifier(HierarchyGraph graph) { this.graph = graph; }
 
 	@Override public Verification verify(SymbolRef seed, VerificationBudget budget) {
-		try { return new Walk(seed, budget).verify(); }
-		catch (Incomplete e) { return Verification.incomplete(e.status, seed, e.descriptor, e.getMessage()); }
+		var walk = new Walk(seed, budget);
+		try { return walk.verify(); }
+		catch (Incomplete e) { return new Verification(e.status, seed, List.of(), List.of(new Diagnostic(e.status, e.descriptor, e.getMessage())), walk.work); }
 	}
 
 	private final class Walk {
@@ -119,7 +120,7 @@ public final class IndependentHierarchyVerifier implements RelatedHierarchyVerif
 				}
 			}
 			family.sort(Comparator.comparing(SymbolRef::toString));
-			return new Verification(Status.COMPLETE, seed, family, List.of());
+			return new Verification(Status.COMPLETE, seed, family, List.of(), work);
 		}
 
 		ClassRecord unique(String descriptor) {

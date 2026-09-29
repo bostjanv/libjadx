@@ -19,9 +19,9 @@ The implementation currently includes:
 - Bounded listing of Jadx-visible classes and exact lookup of classes, methods, and fields by original JVM descriptors. Current aliases are separate from identity.
 - Class-oriented Java source with validated token annotations, source snapshots, and method excerpts only where the pinned Jadx metadata and boundary checks agree. Per-request mode overrides use an isolated engine.
 - Fresh-equivalent replacement publication for effective native batches; private loading before commit preserves the old state on candidate failure. Automatic aliases may recompute; explicit native/mapping/scoped edits remain authoritative.
-- Validated in-memory batches for original class/method/field renames and single-line native declaration comments. Explicit save is required for durability. Safe Tiny v2 export creates a new local artifact, bounded Tiny v2 import stages pending edits, and verified parameter targets support snapshot-bound renames. Local edits and override propagation remain unsupported.
+- Validated in-memory batches for original class/method/field renames and single-line native declaration comments. Explicit save is required for durability. Safe Tiny v2 export creates a new local artifact, bounded Tiny v2 import stages pending edits, and verified parameter targets support snapshot-bound renames. Local edits remain unsupported; explicit related-method renames admit independently COMPLETE closed-input families.
 - Controlled startup/shutdown behavior, including bounded waiting for loader cleanup on ordinary shutdown and separate handling of fatal startup errors.
-- An internal bounded original-input census and independent hierarchy verifier for a closed class/JAR/DEX subset. It detects missing Jadx related-method candidates; it does not admit propagation edits.
+- An internal bounded original-input census and independent hierarchy verifier for a closed class/JAR/DEX subset. It proves the conservative family subset admitted by explicit related-method renames, independently of incomplete Jadx candidates.
 
 Native declaration edits and a matching-GUI save/reopen round trip are exercised by real Jadx tests. The capability endpoint identifies narrower support and remaining unverified edit forms.
 
@@ -173,7 +173,7 @@ Before contributing, read [`AGENTS.md`](AGENTS.md), [`DESIGN.md`](DESIGN.md), an
 
 The intended architecture separates application lifecycle and HTTP transport from native project persistence, Jadx-version-sensitive integration, analysis, in-memory search, and operation scheduling. The current Gradle application is the initial implementation slice; the full logical architecture is documented in [`DESIGN.md`](DESIGN.md).
 
-Completed slices cover native save/reload and external-change detection, revisions, coordinated operations, process-local jobs, shutdown, original symbol lookup, Java source, basic references, incremental search, native declaration editing and strict Tiny v2 export/import. Snapshot-bound parameter renames are available for the proved AUTO/RESTRUCTURE signature subset. Local editing and related-method propagation remain outstanding; the Python SDK follows in Phase 6. Smali, CFG and resource capabilities depend on further tests against the pinned Jadx release.
+Completed slices cover native save/reload and external-change detection, revisions, coordinated operations, process-local jobs, shutdown, original symbol lookup, Java source, basic references, incremental search, native declaration editing and strict Tiny v2 export/import. Snapshot-bound parameter renames are available for the proved AUTO/RESTRUCTURE signature subset. Local editing remains outstanding; verified related-method group renames are available; the Python SDK follows in Phase 6. Smali, CFG and resource capabilities depend on further tests against the pinned Jadx release.
 
 The long-term design retains **one project per process**, native Jadx persistence, explicit saves, and no HTTP file uploads. Planned endpoints and behavior must not be mistaken for features already delivered.
 
@@ -246,57 +246,30 @@ also expose unsupported parameter targets and reject edits before staging. Chang
 in memory until explicit native save. Tiny export continues to reject scoped
 code refs. See [evidence and limits](docs/phase-5-scoped-editing.md).
 
-### Related-method propagation (PR #14–16 evidence)
+### Verified related-method group renames (PR #19)
 
-Explicit propagation remains unsupported: pinned Jadx omits a resolved interface
-branch from an owned related-method fixture. Any `propagateRelated` field returns
-`422 UNSUPPORTED_CAPABILITY` before staging, including `false`; omit it for legacy
-renames. Ordinary method rename retains Jadx's implicit candidate alias behavior,
-without an exhaustive affected-group guarantee. See [counterexamples, native replay
-and actual GUI diagnostics](docs/phase-5-related-propagation.md). Phase 5.2 remains
-incomplete; local-variable feasibility is separate.
+On METHOD `RENAME`, optional `propagateRelated: true` requires both current
+session and logical revision preconditions. The service independently verifies
+a COMPLETE closed-input family under the exclusive edit lease, collision-checks
+all declaring owners including hidden bridge/synthetic blockers, and stages one
+explicit native rename per member. The receipt returns exact sorted original
+`affectedRefs`; omitted/false retains ordinary behavior and empty affected refs.
 
-PR #15 establishes a bounded original-input census before Jadx duplicate selection
-and an independent hierarchy verifier. The four-member independent-interface
-family verifies from every seed, while comparison detects Jadx's three-member /
-empty candidate sets. Bridges, covariance, unresolved branches and duplicates
-fail closed. PR #16's service replay probe finds that explicit records for every
-verified member can also rename unrelated bridge declarations after hot-owner
-unload; fresh native reopen restores different aliases. Propagation remains
-disabled under PR #16's required negative-evidence outcome. See
-[replay failure and actual GUI diagnostic](docs/phase-5-propagated-edits.md) and
-[verifier evidence](docs/phase-5-hierarchy-verifier.md).
+Limits are 64 members per family, four propagated items and 128 total members
+per batch. Overlapping renames, parameter edits on group members and class
+renames in the same batch reject. Bridge/covariant, missing/external, duplicate
+and other unproved families remain unsupported. Every edit stays in memory until
+explicit native save; saved groups survive matching-GUI Save As and restart.
+See [admission rules and persistence evidence](docs/phase-5-related-group-admission.md).
 
-### Historical safe replay feasibility (PR #17, superseded by PR #18)
+Fresh replacement publication retains explicit native/mapping/scoped intent and
+recomputes automatic aliases as derived state. No-op retains the engine and
+revisions and requires every group record already explicitly present. See
+[replacement publication](docs/phase-5-replacement-publication.md). Historical
+[candidate incompleteness](docs/phase-5-related-propagation.md),
+[in-place replay failure](docs/phase-5-propagated-edits.md), and
+[safe replay probes](docs/phase-5-safe-replay.md) remain executable evidence.
 
-Outcome B: production edits still use the existing in-place path. Four isolated
-strategies were tested. Fresh replacement fixes the hot CovariantLeaf bridge
-counterexample but violates an existing supported-edit invariant: renaming
-`ReturnClash.value()I` changes the untouched `value()String` automatic alias
-from `m0value` to `value`. Replay preserves that alias but differs from fresh
-loading. No strategy passes both requirements, so propagation remains disabled.
-See [strategy/oracle evidence](docs/phase-5-safe-replay.md) and
-[validation and next decision](docs/pr-17-review.md). No public schema or SDK
-changes, autosave, alias injection or replacement primitive are shipped.
-
-## PR #18 approved alias semantics and replacement publication
-
-This section supersedes PR #17's requirement to preserve every incidental alias.
-Automatic Jadx aliases are derived analysis state: collision aliases,
-deobfuscation aliases without explicit persistence, and other generated aliases
-may be recomputed when an edit changes analysis. A declaration with no explicit
-rename may therefore change its display alias without a separate user edit.
-Native declaration renames, mapping aliases/comments, supported scoped renames,
-retained VAR records and declaration comments remain authoritative. Original
-identities, settings, ordered input references and unknown native fields retain
-their existing preservation rules. Never add native records to freeze generated
-aliases.
-
-Effective native batches now privately stage complete code data, load one fresh
-production engine, commit native data once, then publish that engine under the
-existing exclusive lease. No-op retains the engine and revisions; candidate
-failure publishes nothing. See [replacement publication](docs/phase-5-replacement-publication.md) for ordering,
-failures, oracle, persistence and validation. Related propagation and local
-editing remain unsupported. PR #19 still requires same-lease COMPLETE verification,
-immutable group plans, all-owner collision admission, exact original native
-records and affectedRefs, and propagated HTTP/native/restart/actual-GUI gates.
+Run `propagatedEditGuiRoundTripTest` with `JADX_GUI` set to the matching Jadx
+1.5.6 GUI for the positive service-produced gate from all four Joined seeds.
+Final validation is recorded in [PR #19 review](docs/pr-19-review.md).

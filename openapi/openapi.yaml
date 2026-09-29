@@ -378,13 +378,27 @@ paths:
         no edits. Inputs and the attached mapping must match the accepted analysis
         baseline before and after replacement loading. An external change returns
         409 EXTERNAL_MODIFICATION_CONFLICT without changing the active engine,
-        edits or revisions; explicitly reload to accept changed bytes. A no-op
-        does not load or adopt external bytes. Related propagation and local editing are unsupported. Any propagateRelated field
-        (including false or a malformed value) returns 422 UNSUPPORTED_CAPABILITY
-        before batch staging; it is not part of an accepted request schema. Omit it
-        for legacy declaration behavior. Ordinary method RENAME retains pinned Jadx
-        implicit candidate alias propagation; it does not guarantee exhaustive
-        related membership and its affectedRefs is empty. Mapping import/export have separate routes.
+        edits or revisions; explicitly reload to accept changed bytes. A propagated request always checks accepted input/mapping baselines, including no-op.
+        Ordinary no-op does not load or adopt external bytes. Optional propagateRelated
+        defaults to false, equivalent to omission. True requires a METHOD original ref
+        and both revision preconditions. The current engine independently verifies a
+        COMPLETE closed-input family under the exclusive edit lease; missing/external,
+        duplicate, bridge/covariant and unsupported families fail closed. Limits are
+        four propagated items, 128 total family members and 800000 reserved verification
+        work per batch (64 members, 10000 nodes, 200000 work per verification).
+        Each owner is checked against all raw methods, including hidden synthetic/bridge
+        declarations, using name plus original arguments (excluding return type).
+        Overlapping renames, parameter edits in a group and class renames in a batch
+        containing a group are rejected. Collision-removing batches are conservatively
+        rejected to keep every possible committed prefix safe. One logical group stages
+        privately and atomically, writing standard explicit native records for every
+        member; native save remains explicit. APPLIED and verified NO_CHANGE return
+        exact sorted original family affectedRefs (max 64); failed/unexecuted groups
+        and ordinary edits return an empty list. No-op requires every member already
+        explicitly renamed to newName and retains engine/revisions. Ordinary method
+        RENAME retains pinned Jadx implicit candidate alias propagation; it does not
+        guarantee exhaustive membership and its affectedRefs is empty. Local editing
+        and parameter propagation remain unsupported. Mapping import/export have separate routes.
         Scoped parameter renames use original semantic parameter indexes and
         require current session/revision and source snapshot preconditions.
         Targets come from decompile.variables. Only verified plain concrete
@@ -401,6 +415,7 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/EditBatchRequest' }
             examples:
+              propagated: { externalValue: ./examples/edit-related-request.json }
               parameters: { externalValue: ./examples/edit-parameter-request.json }
               renameAndComment: { externalValue: ./examples/edit-batch-request.json }
       responses:
@@ -410,6 +425,8 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/EditBatchResult' }
               examples:
+                propagatedApplied: { externalValue: ./examples/edit-related-applied.json }
+                propagatedNoChange: { externalValue: ./examples/edit-related-no-change.json }
                 applied: { externalValue: ./examples/edit-batch-applied.json }
                 noChange: { externalValue: ./examples/edit-batch-no-change.json }
                 partial: { externalValue: ./examples/edit-batch-partial.json }
@@ -420,7 +437,7 @@ paths:
         '409': { $ref: '#/components/responses/ApiErrorResponse' }
         '415': { $ref: '#/components/responses/ApiErrorResponse' }
         '422':
-          description: Unsupported edit, including any propagateRelated field; no items staged.
+          description: Unsupported edit or incomplete related family; no items staged.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ErrorEnvelope' }
@@ -893,9 +910,13 @@ components:
           items:
             contains:
               type: object
-              required: [kind]
-              properties:
-                kind: { const: RENAME_PARAMETER }
+              anyOf:
+                - required: [kind]
+                  properties:
+                    kind: { const: RENAME_PARAMETER }
+                - required: [propagateRelated]
+                  properties:
+                    propagateRelated: { const: true }
       then:
         required: [expectedSessionId, expectedLogicalRevision]
       dependentRequired:
@@ -924,9 +945,17 @@ components:
       type: object
       additionalProperties: false
       required: [kind, target, newName]
+      if:
+        required: [propagateRelated]
+        properties:
+          propagateRelated: { const: true }
+      then:
+        properties:
+          target: { $ref: '#/components/schemas/MethodSymbolRef' }
       properties:
         kind: { const: RENAME }
         target: { $ref: '#/components/schemas/SymbolRef' }
+        propagateRelated: { type: boolean, default: false }
         newName: { type: string, minLength: 1, maxLength: 128 }
     SetCommentOperation:
       type: object
@@ -1005,6 +1034,7 @@ components:
         parameterIndex: { type: [integer, 'null'], minimum: 0, maximum: 254 }
         sourceSnapshotId: { type: [string, 'null'], pattern: '^sha256:[0-9a-f]{64}$' }
         affectedRefs:
+          description: Exact sorted independently verified method family for propagated APPLIED or verified NO_CHANGE; empty otherwise.
           type: array
           maxItems: 64
           items: { $ref: '#/components/schemas/SymbolRef' }

@@ -1,6 +1,6 @@
 # ADR 0001: Strict mapping export and import; defer local/propagated renames
 
-Status: export and bounded import safety decisions implemented; scoped parameter subset implemented; local/propagated follow-ups deferred after PR #17 safe-replay feasibility, 2026-09-29.
+Status: export and bounded import safety decisions implemented; scoped parameter subset implemented; verified related-method admission implemented; local-variable follow-up deferred, 2026-09-29.
 
 Phase 5.2 requires native mapping export, parameter/local renames and
 related-method propagation only where pinned Jadx and the matching GUI prove
@@ -155,7 +155,30 @@ Effective native batches now privately stage complete code data, load one fresh
 production engine, commit native data once, then publish that engine under the
 existing exclusive lease. No-op retains the engine and revisions; candidate
 failure publishes nothing. See [replacement publication](../phase-5-replacement-publication.md) for ordering,
-failures, oracle, persistence and validation. Related propagation and local
-editing remain unsupported. PR #19 still requires same-lease COMPLETE verification,
-immutable group plans, all-owner collision admission, exact original native
-records and affectedRefs, and propagated HTTP/native/restart/actual-GUI gates.
+failures, oracle, persistence and validation. PR #19's
+[verified group admission](../phase-5-related-group-admission.md) now supplies same-lease
+COMPLETE verification, immutable plans, all-owner raw collision checks and exact
+native records/affectedRefs. Local editing remains unsupported.
+
+## PR #19 — verified related-method rename group admission
+
+This section supersedes prior propagation deferrals. Explicit METHOD RENAME
+`propagateRelated: true` admits only independently COMPLETE closed-input families
+verified synchronously against the captured current engine under one exclusive
+edit lease. Immutable sorted original/native plans, raw all-owner collision
+inventory, full-batch overlap checks and group-private atomic staging precede
+PR #18 fresh replacement publication. Ordinary omitted/false retains one-record
+semantics and empty affectedRefs. Applied and verified no-op groups return exact
+original family refs; no-op requires every explicit member record already present.
+
+Limits: 64 per family; four propagated items, 128 total members and 800000 reserved
+verification work per batch. No class rename shares a group batch; parameter
+edits on members reject. Raw hidden bridge/synthetic methods block collisions,
+without becoming admitted members. Standard Jadx records persist only on explicit
+save. Restart/discard/reload, accepted input/mapping conflicts and actual matching
+GUI Save As retain their native-only behavior. Covariant/bridge, missing/external,
+duplicate, local and parameter propagation remain unsupported. Phase 5.2 and the
+Python release are not declared complete. No dependencies or locks change.
+
+See [admission, status mapping, ordering and persistence](../phase-5-related-group-admission.md)
+and [final-head validation](../pr-19-review.md).

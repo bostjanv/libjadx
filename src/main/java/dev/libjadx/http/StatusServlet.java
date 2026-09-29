@@ -130,7 +130,7 @@ public final class StatusServlet extends HttpServlet {
 					new Capability("edit.mapping_export", "PARTIAL", "TINY_V2_VERIFIED_DECLARATIONS_STRICT_COMPLETE", "NEW_OUTPUT_ONLY"),
 					new Capability("edit.parameter_rename", "SUPPORTED", "AUTO_RESTRUCTURE_PLAIN_SIGNATURE_SNAPSHOT_GUI_VERIFIED", "MEMORY_ONLY_UNTIL_EXPLICIT_NATIVE_SAVE"),
 					new Capability("edit.local_rename", "UNSUPPORTED", "MERGED_SSA_MODE_VARIATION_NO_SAFE_PERSISTED_SUBSET", "UNAVAILABLE"),
-					new Capability("edit.related_propagation", "UNSUPPORTED", "INCOMPLETE_PINNED_OVERRIDE_GROUP", "UNAVAILABLE"),
+					new Capability("edit.related_propagation", "PARTIAL", "INDEPENDENT_CLOSED_INPUT_FAMILY_GUI_VERIFIED", "MEMORY_ONLY_UNTIL_EXPLICIT_NATIVE_SAVE"),
 					new Capability("project.revisions", "PARTIAL", "CONTENT_HASH_AND_SESSION_TOKENS", "PROCESS_LOCAL_COUNTERS"),
 					new Capability("analysis.temporary_override", "PARTIAL", "ISOLATED_DECOMPILATION_MODE_WITH_UNSAVED_EDITS", "READ_ONLY"),
 					new Capability("analysis.cfg", "UNKNOWN", "NOT_PROBED", "UNAVAILABLE"),
@@ -506,20 +506,21 @@ public final class StatusServlet extends HttpServlet {
 									"Edit kind is not supported"))));
 					return;
 				}
-				if (item.has("propagateRelated")) {
-					writeError(response, 422, "UNSUPPORTED_CAPABILITY", "Pinned Jadx related-method membership is incomplete", false,
-							Map.of("itemErrors", List.of(new EditDtos.ItemError(items.size(), "UNSUPPORTED_CAPABILITY",
-									"Pinned Jadx related-method membership is incomplete"))));
-					return;
-				}
 				boolean scoped = kind.equals("RENAME_PARAMETER");
 				requireFields(item, scoped ? Set.of("kind", "method", "parameterIndex", "sourceSnapshotId", "newName")
-						: kind.equals("RENAME") ? Set.of("kind", "target", "newName")
+						: kind.equals("RENAME") ? Set.of("kind", "target", "newName", "propagateRelated")
 						: Set.of("kind", "target", "comment", "style"));
 				String targetField = scoped ? "method" : "target";
 				if (!item.has(targetField) || !item.get(targetField).isObject())
 					throw new IllegalArgumentException("Each item requires an original target object");
 				SymbolRef target = parseSymbolRef(item.get(targetField));
+				boolean propagateRelated = false;
+				if (item.has("propagateRelated")) {
+					if (!item.get("propagateRelated").isBoolean()) throw new IllegalArgumentException("propagateRelated must be boolean");
+					propagateRelated = item.get("propagateRelated").booleanValue();
+				}
+				if (propagateRelated && (target.kind() != SymbolRef.Kind.METHOD || session == null))
+					throw new IllegalArgumentException("Related propagation requires a method rename and revision preconditions");
 				Integer parameterIndex = null;
 				String sourceSnapshotId = null;
 				if (scoped) {
@@ -549,7 +550,7 @@ public final class StatusServlet extends HttpServlet {
 					comment = item.get("comment").asText();
 					style = item.get("style").asText();
 				}
-				items.add(new EditDtos.Operation(EditDtos.Kind.valueOf(kind), target, name, comment, style, parameterIndex, sourceSnapshotId));
+				items.add(new EditDtos.Operation(EditDtos.Kind.valueOf(kind), target, name, comment, style, parameterIndex, sourceSnapshotId, propagateRelated));
 			}
 			write(response, 200, editService.apply(new EditDtos.Request(session, revision, items)));
 		} catch (ProjectRuntime.NativeEditConflictException conflict) {
