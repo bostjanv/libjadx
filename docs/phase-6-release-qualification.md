@@ -62,7 +62,11 @@ JADX_GUI=/path/to/jadx-1.5.6/bin/jadx-gui \
 ```
 
 Stages `core`, `gui` and `result` allow separate invocations, in that order. `result` requires both
-stages to pass at the current Git head and source fingerprint. Core alone prints
+stages to pass with the exact source fingerprint and qualified source head.
+Only a descendant containing evidence files under docs/pr-22-* or changelog may
+reuse the result; its Git ancestry and unchanged full source digest are verified.
+This permits committing reports without claiming their self-referential commit
+hash was tested. Any source or artifact-input change fails the freshness gate. Core alone prints
 NOT QUALIFIED. A failed gate returns nonzero and retains its log and blocker.
 Evidence lives outside build/ so `clean` cannot erase it. Core clean check prepares all owned GUI inputs at the exact source revision.
 GUI requires that passing core evidence and runs all dedicated Exec/Test tasks
@@ -72,7 +76,9 @@ those fresh inputs. Stale Save As outputs are removed.
 Core runs clean Java check, distribution construction, four existing contract
 validators, OpenAPI and external examples validation, frozen generator drift,
 Ruff formatting/lint and mypy, artifact content/license audits, repeat builds,
-and installed-wheel unit/integration/release suites. Fresh 3.11 and 3.14 venvs
+and installed-wheel unit/integration/release suites. Archive metadata uses the
+outer filename format: a TAR containing JARs also passes ZIP signature detection.
+Owned archive/Git regressions check file counts and fail-closed freshness. Fresh 3.11 and 3.14 venvs
 launch the extracted ZIP outside the checkout. Extracted TAR runs representative
 raw and generated-async routes. Every mandatory installed test must run without
 skips. Wheel/sdist and Java ZIP/TAR must repeat byte for byte.

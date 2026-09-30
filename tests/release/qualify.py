@@ -59,6 +59,31 @@ def source_hash():
     return digest.hexdigest()
 
 
+def validate_evidence_identity(record):
+    """Accept current source or a descendant containing only committed evidence.
+
+    A report cannot embed its own Git commit hash. Its immutable qualification
+    head therefore remains the code head; any later evidence-only commit must
+    preserve the exact source fingerprint and ancestry. Source changes fail closed.
+    """
+    assert record["source_sha256"] == source_hash(), "Superseded-source evidence"
+    if record["head"] == head():
+        return
+    ancestor = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", record["head"], "HEAD"],
+        cwd=ROOT,
+        capture_output=True,
+    )
+    assert ancestor.returncode == 0, "Qualification head is not an ancestor"
+    changes = subprocess.check_output(
+        ["git", "diff", "--name-only", record["head"], "HEAD"], cwd=ROOT, text=True
+    ).splitlines()
+    assert all(
+        name.startswith("docs/pr-22-") or name == "docs/changelog.md"
+        for name in changes
+    ), "Only evidence commits may follow the qualification head"
+
+
 def xml_counts(directory):
     total = dict(tests=0, failures=0, errors=0, skipped=0)
     files = sorted(directory.glob("*.xml"))
@@ -99,7 +124,8 @@ def run(command, log, cwd=ROOT, env=None):
 
 
 def artifact(path):
-    if zipfile.is_zipfile(path):
+    # A TAR containing JARs can also pass is_zipfile(): choose the outer format.
+    if path.suffix in (".zip", ".whl"):
         with zipfile.ZipFile(path) as archive:
             files = [p for p in archive.namelist() if not p.endswith("/")]
     else:
@@ -213,6 +239,7 @@ def core(uv, output):
             cwd=ROOT / "python",
         )
         py = ROOT / "python/.venv/bin/python"
+        gate([py, ROOT / "tests/release/test_evidence.py"], "evidence-regressions")
         for name in (
             "edit-contract",
             "mapping-export-contract",
@@ -414,11 +441,8 @@ def core(uv, output):
 
 def gui(output):
     core_record = json.loads((output / "core.json").read_text())
-    assert (
-        core_record["core_status"] == "PASS"
-        and core_record["head"] == head()
-        and core_record["source_sha256"] == source_hash()
-    ), "Run core at this source revision before gui"
+    assert core_record["core_status"] == "PASS", "Run core before gui"
+    validate_evidence_identity(core_record)
     assert (ROOT / "build/release-fixtures/qualification.jar").is_file(), (
         "Fresh clean-check fixtures are missing"
     )
@@ -478,14 +502,14 @@ def result(output):
     records = [
         json.loads((output / name).read_text()) for name in ("core.json", "gui.json")
     ]
-    assert all(
-        r["head"] == head() and r["source_sha256"] == source_hash() for r in records
-    ), "Superseded-head evidence"
+    for record in records:
+        validate_evidence_identity(record)
     assert records[0]["core_status"] == records[1]["status"] == "PASS"
     data = {
         "head": head(),
         "source_sha256": source_hash(),
         "status": "QUALIFIED",
+        "qualification_heads": {"core": records[0]["head"], "gui": records[1]["head"]},
         "publication": "NOT PUBLISHED",
     }
     (output / "result.json").write_text(json.dumps(data, indent=2) + "\n")

@@ -494,6 +494,15 @@ def write_evidence():
     head = subprocess.check_output(
         ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True
     ).strip()
+    # Load stdlib-only qualification identity helper without adding SDK source to sys.path.
+    from importlib.util import module_from_spec, spec_from_file_location
+
+    module_spec = spec_from_file_location(
+        "release_qualification_identity", ROOT / "tests/release/qualify.py"
+    )
+    identity = module_from_spec(module_spec)
+    module_spec.loader.exec_module(identity)
+    fingerprint = identity.source_hash()
     for row in ERRORS.values():
         # Retain one full sample per surface, plus the independently observed status inventory.
         unique = {}
@@ -506,5 +515,10 @@ def write_evidence():
     )
     for name, data in (("routes", ROUTES), ("errors", ERRORS)):
         (output / f"{name}.json").write_text(
-            json.dumps({"head": head, "records": data}, indent=2, sort_keys=True) + "\n"
+            json.dumps(
+                {"head": head, "source_sha256": fingerprint, "records": data},
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n"
         )

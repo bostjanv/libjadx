@@ -1,11 +1,11 @@
 """Fail on stale, missing, or mock-only stable error-code evidence."""
 
 import json
-import subprocess
 import sys
 from pathlib import Path
 
 import yaml
+from release.qualify import validate_evidence_identity
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = yaml.safe_load((ROOT / "openapi/openapi.yaml").read_text())
@@ -15,12 +15,7 @@ data = json.loads(
         sys.argv[1] if len(sys.argv) > 1 else ROOT / "docs/pr-22-error-matrix.json"
     ).read_text()
 )
-assert (
-    data["head"]
-    == subprocess.check_output(
-        ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True
-    ).strip()
-), "Stale release evidence"
+validate_evidence_identity(data)
 assert set(data["records"]) == codes
 for code, row in data["records"].items():
     assert row["httpStatuses"] and row["scenarios"]
