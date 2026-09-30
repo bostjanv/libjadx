@@ -147,7 +147,7 @@ launches three fresh packaged headless JVMs, verifies saved parameters, loss of
 unsaved changes and rejection of both stale sessions and old source hashes.
 HTTP captures cover success/no-op, invalid name/preconditions, missing method,
 stale revision/snapshot, unsupported targets/locals, content type, budgets,
-lifecycle and injected replay failure, plus source/search invalidation.
+lifecycle and injected replacement-load failure preserving READY, plus source/search invalidation.
 
 The new nested-native-field regression failed before the codec fix:
 `scopedNativeEntryAndNestedUnknownFieldsSurviveExplicitSave` lost `futureRename`
@@ -181,3 +181,7 @@ identity are not claimed.
 Next milestone: separately probe Phase 5.2 related-method/override propagation
 for completeness and native GUI persistence. Local support remains an open
 capability gate.
+
+PR #18 parameter batches now use [fresh replacement publication](phase-5-replacement-publication.md),
+retaining the same source-snapshot and scoped-key restrictions. Complete native
+parameter and existing VAR state is copied; no local-variable admission is added.

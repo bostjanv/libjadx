@@ -169,7 +169,7 @@ class RebuildLifecycleTest {
 					() -> concurrentRead.get(10, TimeUnit.SECONDS));
 			assertTrue(readFailure.getCause() instanceof ServiceShuttingDownException);
 			assertTrue(runtime.awaitStopped(2, TimeUnit.SECONDS));
-			assertEquals(1, closes.get());
+			assertEquals(2, closes.get());
 			assertTrue(Files.readString(project.getProjectPath()).contains("SavedAfterShutdown"));
 		} finally {
 			release.countDown();
@@ -186,13 +186,13 @@ class RebuildLifecycleTest {
 		ProjectRuntime runtime = new ProjectRuntime(project.getProjectPath(), project.getInputFiles(), args ->
 				new ProjectRuntime.ProjectEngine() {
 					private final JadxDecompiler jadx = new JadxDecompiler(args);
-					@Override public void load() { jadx.load(); }
-					@Override public JadxDecompiler decompiler() { return jadx; }
-					@Override public void reloadCodeData(JadxCodeData codeData) {
-						entered.countDown();
-						awaitIgnoringInterrupt(release);
-						ProjectRuntime.ProjectEngine.super.reloadCodeData(codeData);
+					@Override public void load() {
+						if (!((JadxCodeData) args.getCodeData()).getRenames().equals(project.getCodeData().getRenames())) {
+							entered.countDown(); awaitIgnoringInterrupt(release);
+						}
+						jadx.load();
 					}
+					@Override public JadxDecompiler decompiler() { return jadx; }
 					@Override public void close() {
 						closes.incrementAndGet();
 						jadx.close();
@@ -209,9 +209,9 @@ class RebuildLifecycleTest {
 			assertEquals("SHUTTING_DOWN", runtime.status().state());
 			assertEquals(0, closes.get());
 			release.countDown();
-			edit.get(10, TimeUnit.SECONDS);
+			assertThrows(ExecutionException.class, () -> edit.get(10, TimeUnit.SECONDS));
 			assertTrue(runtime.awaitStopped(2, TimeUnit.SECONDS));
-			assertEquals(1, closes.get());
+			assertEquals(2, closes.get());
 			assertFalse(Files.readString(project.getProjectPath()).contains("DiscardOnClose"));
 		} finally {
 			release.countDown();
@@ -376,11 +376,12 @@ class RebuildLifecycleTest {
 		ProjectRuntime runtime = new ProjectRuntime(project.getProjectPath(), project.getInputFiles(), args ->
 				new ProjectRuntime.ProjectEngine() {
 					private final JadxDecompiler jadx = new JadxDecompiler(args);
-					@Override public void load() { jadx.load(); }
-					@Override public JadxDecompiler decompiler() { return jadx; }
-					@Override public void reloadCodeData(JadxCodeData data) {
-						throw new LinkageError("controlled fatal edit");
+					@Override public void load() {
+						if (!((JadxCodeData) args.getCodeData()).getRenames().equals(project.getCodeData().getRenames()))
+							throw new LinkageError("controlled fatal edit");
+						jadx.load();
 					}
+					@Override public JadxDecompiler decompiler() { return jadx; }
 					@Override public void close() { closes.incrementAndGet(); jadx.close(); }
 				});
 		CountDownLatch exitRequested = new CountDownLatch(1);
@@ -391,10 +392,12 @@ class RebuildLifecycleTest {
 		});
 		try {
 			runtime.initializeAsync(project).get(20, TimeUnit.SECONDS);
-			assertThrows(LinkageError.class, () -> runtime.replaceCodeData(project.getCodeData(), 0));
+			var edited = NativeProjectDocument.copyCodeData(project.getCodeData());
+			edited.setRenames(List.of(new JadxCodeRename(JadxNodeRef.forCls("probe.Sample"), "FatalAlias")));
+			assertThrows(LinkageError.class, () -> runtime.replaceCodeData(edited, 0));
 			assertTrue(exitRequested.await(10, TimeUnit.SECONDS));
 			assertEquals(1, exitCode.get());
-			assertEquals(1, closes.get());
+			assertEquals(2, closes.get());
 			assertEquals("STOPPED", runtime.status().state());
 		} finally {
 			supervisor.close();

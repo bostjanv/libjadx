@@ -210,6 +210,10 @@ paths:
         A post-replacement replay failure returns INTERNAL_ERROR and fails the runtime;
         rollback is not promised. Source identity/bytes and accepted native/mapping
         baselines are checked immediately before commit, without filesystem locking.
+        Effective imports also require every input and the attached mapping to match
+        the accepted analysis baseline before and after replacement loading. External
+        changes return EXTERNAL_MODIFICATION_CONFLICT without publishing any edits;
+        explicitly reload the project to accept changed bytes.
         External writers after the final check remain a residual race.
         Limits are 64 KiB HTTP body, 4096 path characters, 4 MiB source bytes,
         10000 parsed declaration/comment records, 16384 characters per parsed string,
@@ -366,8 +370,16 @@ paths:
         staging failure returns PARTIAL with itemized FAILED and SKIPPED results,
         committing a verified applied prefix when one exists. If no item was
         applied, logical/index revisions and dirty state remain unchanged.
-        Only LINE declaration comments are currently accepted. Explicit related-method
-        propagation and local editing are unsupported. Any propagateRelated field
+        Only LINE declaration comments are currently accepted.
+        Aliases without an explicit native, mapping or supported scoped rename are derived
+        Jadx analysis state and may be recomputed after an edit or rebuild. Automatic
+        recomputation creates no additional native edit record. Effective batches load
+        one private fresh replacement before committing; candidate failure publishes
+        no edits. Inputs and the attached mapping must match the accepted analysis
+        baseline before and after replacement loading. An external change returns
+        409 EXTERNAL_MODIFICATION_CONFLICT without changing the active engine,
+        edits or revisions; explicitly reload to accept changed bytes. A no-op
+        does not load or adopt external bytes. Related propagation and local editing are unsupported. Any propagateRelated field
         (including false or a malformed value) returns 422 UNSUPPORTED_CAPABILITY
         before batch staging; it is not part of an accepted request schema. Omit it
         for legacy declaration behavior. Ordinary method RENAME retains pinned Jadx

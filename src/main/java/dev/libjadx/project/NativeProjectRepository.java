@@ -27,6 +27,7 @@ public final class NativeProjectRepository {
 	private JadxCodeData rawCodeData = new JadxCodeData();
 	private FileFingerprint projectBaseline;
 	private FileFingerprint mappingBaseline;
+	private List<FileFingerprint> inputBaselines;
 	private FileFingerprint stagedMappingBaseline;
 	private Path baselineMappingsPath;
 	private Path savedMappingsPath;
@@ -57,6 +58,7 @@ public final class NativeProjectRepository {
 		this.baselineMappingsPath = document == null ? null : document.getMappingsPath();
 		this.savedMappingsPath = baselineMappingsPath;
 		this.savedCodeData = codeDataJson();
+		this.inputBaselines = fingerprintInputs();
 		refreshIdentity();
 	}
 
@@ -86,6 +88,49 @@ public final class NativeProjectRepository {
 
 	public synchronized Path mappingsPath() {
 		return document == null ? null : document.getMappingsPath();
+	}
+
+	/** Accepted analysis bytes, independent of the asynchronously refreshed persisted identity.
+	 * Ordinary edits and saves never accept new input bytes; only explicit reload does. */
+	public synchronized void checkAnalysisBaselines() throws IOException {
+		checkInputBaselines(inputBaselines);
+		checkAttachedMappingBaseline();
+	}
+
+	private void checkAttachedMappingBaseline() throws IOException {
+		Path mapping = mappingsPath();
+		if (mapping != null) checkedAnalysisReference(mapping);
+		FileFingerprint expected = stagedMappingBaseline == null ? mappingBaseline : stagedMappingBaseline;
+		if (!FileFingerprint.of(mapping).equals(expected)) {
+			throw new ExternalModificationException("Attached mappings changed since the accepted analysis; explicitly reload the project");
+		}
+	}
+
+	private Path checkedAnalysisReference(Path path) throws IOException {
+		try {
+			return checkedReference(path);
+		} catch (java.nio.file.NoSuchFileException missing) {
+			throw new ExternalModificationException("Analysis file removed since the accepted baseline; explicitly reload the project");
+		}
+	}
+
+	private List<FileFingerprint> fingerprintInputs() throws IOException {
+		List<FileFingerprint> fingerprints = new ArrayList<>(inputs.size());
+		for (Path input : inputs) {
+			if (!checkedAnalysisReference(input).equals(input)) {
+				throw new ExternalModificationException("Input reference changed since project startup");
+			}
+			FileFingerprint fingerprint = FileFingerprint.of(input);
+			if (!fingerprint.present()) throw new ExternalModificationException("Input removed since the accepted analysis; explicitly reload the project");
+			fingerprints.add(fingerprint);
+		}
+		return List.copyOf(fingerprints);
+	}
+
+	private void checkInputBaselines(List<FileFingerprint> expected) throws IOException {
+		if (!fingerprintInputs().equals(expected)) {
+			throw new ExternalModificationException("Inputs changed since the accepted analysis; explicitly reload the project");
+		}
 	}
 
 	/** Export capture is read-only and always compares the accepted native baselines. */
@@ -151,8 +196,10 @@ public final class NativeProjectRepository {
 	/** Validate a native mapping setting without changing the live project. */
 	public synchronized MappingCandidate stageMappingsPath(Path mappings, long expectedRevision) throws IOException {
 		checkRevision(expectedRevision);
+		checkInputBaselines(inputBaselines);
 		if (document == null) throw new IllegalArgumentException("Save the raw input as a native project before changing mappings");
 		Path checked = mappings == null ? null : checkedReference(mappings);
+		if (Objects.equals(checked, mappingsPath())) checkAttachedMappingBaseline();
 		NativeProjectDocument candidate = document.withMappingsPath(checked);
 		return new MappingCandidate(candidate, checked, FileFingerprint.of(checked), expectedRevision);
 	}
@@ -165,6 +212,7 @@ public final class NativeProjectRepository {
 
 	public synchronized ProjectSnapshot commitMappingsPath(MappingCandidate candidate) throws IOException {
 		checkRevision(candidate.expectedRevision());
+		checkInputBaselines(inputBaselines);
 		if (!FileFingerprint.of(candidate.path()).equals(candidate.baseline())) {
 			throw new ExternalModificationException("Mappings changed during rebuild; retry with a fresh revision");
 		}
@@ -177,29 +225,75 @@ public final class NativeProjectRepository {
 		return snapshot();
 	}
 
-	/** Internal edit seam for validated native edits; editing endpoints arrive in Phase 5. */
-	public synchronized void replaceCodeData(JadxCodeData edited, long expectedRevision) {
-		checkRevision(expectedRevision);
-		Objects.requireNonNull(edited, "edited");
-		if (document == null) {
-			String previous = codeDataJson();
-			rawCodeData = NativeProjectDocument.copyCodeData(edited);
-			if (!previous.equals(codeDataJson())) {
-				logicalRevision++;
-				indexRevision++;
-			}
-			return;
+	/** Repository-bound private candidate. Accessors never expose owned mutable data. */
+	public static final class CodeDataCandidate {
+		private final NativeProjectRepository owner;
+		private final long expectedRevision;
+		private final long expectedIdentityGeneration;
+		private final NativeProjectDocument document;
+		private final JadxCodeData codeData;
+		private final String baseline;
+		private final String next;
+		private boolean consumed;
+
+		private CodeDataCandidate(NativeProjectRepository owner, long expectedRevision,
+				NativeProjectDocument document, JadxCodeData codeData, String baseline, String next) {
+			this.owner = owner;
+			this.expectedRevision = expectedRevision;
+			this.expectedIdentityGeneration = owner.identityGeneration;
+			this.document = document;
+			this.codeData = codeData;
+			this.baseline = baseline;
+			this.next = next;
 		}
-		String previous = codeDataJson();
-		document.setCodeData(NativeProjectDocument.copyCodeData(edited));
-		if (!previous.equals(codeDataJson())) {
+		public JadxCodeData codeDataCopy() { return NativeProjectDocument.copyCodeData(codeData); }
+		public boolean effective() { return !baseline.equals(next); }
+	}
+
+	/** Stage all serialization/copy work before loading an engine or publishing repository state. */
+	public synchronized CodeDataCandidate stageCodeData(JadxCodeData edited, long expectedRevision) throws IOException {
+		checkRevision(expectedRevision);
+		JadxCodeData copy = NativeProjectDocument.copyCodeData(Objects.requireNonNull(edited, "edited"));
+		NativeProjectDocument candidate = document == null ? null : document.withCodeData(copy);
+		String baseline = codeDataJson();
+		String next = candidate == null ? new com.google.gson.Gson().toJsonTree(copy).toString()
+				: candidate.toJsonTree().get("codeData").toString();
+		if (!baseline.equals(next)) checkAnalysisBaselines();
+		return new CodeDataCandidate(this, expectedRevision, candidate, copy, baseline, next);
+	}
+
+	/** Publish once, in memory only. Load the matching engine before committing an effective candidate. */
+	public synchronized ProjectSnapshot commitCodeData(CodeDataCandidate candidate) throws IOException {
+		Objects.requireNonNull(candidate, "candidate");
+		if (candidate.owner != this || candidate.consumed) throw new IllegalStateException("Invalid or consumed code-data candidate");
+		checkRevision(candidate.expectedRevision);
+		if (candidate.expectedIdentityGeneration != identityGeneration) throw new IllegalStateException("Code-data candidate persistence baseline changed");
+		if (!candidate.baseline.equals(codeDataJson())) throw new IllegalStateException("Code-data candidate baseline changed");
+		boolean effective = candidate.effective();
+		if (effective) checkAnalysisBaselines();
+		// Allocate the receipt before the first authoritative assignment.
+		ProjectSnapshot result = new ProjectSnapshot(currentPath(), inputs,
+				!savedCodeData.equals(candidate.next) || !Objects.equals(savedMappingsPath, mappingsPath()),
+				new RevisionState(sessionId, logicalRevision + (effective ? 1 : 0),
+						indexRevision + (effective ? 1 : 0), persistedIdentity, persistedIdentityState));
+		candidate.consumed = true;
+		if (effective) {
+			if (document == null) rawCodeData = candidate.codeData;
+			else document = candidate.document;
 			logicalRevision++;
 			indexRevision++;
 		}
+		return result;
+	}
+
+	/** Repository-only convenience; runtime mutations use stage/load/commit/publication. */
+	public synchronized void replaceCodeData(JadxCodeData edited, long expectedRevision) throws IOException {
+		commitCodeData(stageCodeData(edited, expectedRevision));
 	}
 
 	public synchronized SaveResult save(Path requestedTarget, Long expectedRevision) throws IOException {
 		if (expectedRevision != null) checkRevision(expectedRevision);
+		checkInputBaselines(inputBaselines);
 		Path target = requestedTarget == null ? currentPath() : requestedTarget.toAbsolutePath().normalize();
 		if (target == null) throw new IllegalArgumentException("A .jadx target path is required for a raw input");
 		if (!target.getFileName().toString().endsWith(".jadx")) throw new IllegalArgumentException("Native project target must end in .jadx");
@@ -272,12 +366,13 @@ public final class NativeProjectRepository {
 		}
 		if (reopened.getMappingsPath() != null) checkedReference(reopened.getMappingsPath());
 		return new ReloadCandidate(reopened, afterOpen,
-				FileFingerprint.of(reopened.getMappingsPath()), expectedRevision);
+				FileFingerprint.of(reopened.getMappingsPath()), fingerprintInputs(), expectedRevision);
 	}
 
 	/** Publishes a staged native document after its matching Jadx engine has loaded. */
 	public synchronized ProjectSnapshot commitReload(ReloadCandidate candidate) throws IOException {
 		checkRevision(candidate.expectedRevision());
+		checkInputBaselines(candidate.inputFingerprints());
 		if (!FileFingerprint.of(candidate.document().getProjectPath()).equals(candidate.projectFingerprint())
 				|| !FileFingerprint.of(candidate.document().getMappingsPath()).equals(candidate.mappingFingerprint())) {
 			throw new ExternalModificationException("Native project or mappings changed during reload; retry with a fresh revision");
@@ -285,6 +380,7 @@ public final class NativeProjectRepository {
 		document = candidate.document();
 		projectBaseline = candidate.projectFingerprint();
 		mappingBaseline = candidate.mappingFingerprint();
+		inputBaselines = candidate.inputFingerprints();
 		baselineMappingsPath = candidate.document().getMappingsPath();
 		savedMappingsPath = baselineMappingsPath;
 		stagedMappingBaseline = null;
@@ -399,7 +495,9 @@ public final class NativeProjectRepository {
 
 	public record SaveResult(Path path, ProjectSnapshot project) { }
 	public record ReloadCandidate(NativeProjectDocument document, FileFingerprint projectFingerprint,
-			FileFingerprint mappingFingerprint, long expectedRevision) { }
+			FileFingerprint mappingFingerprint, List<FileFingerprint> inputFingerprints, long expectedRevision) {
+		public ReloadCandidate { inputFingerprints = List.copyOf(inputFingerprints); }
+	}
 	public record MappingCandidate(NativeProjectDocument document, Path path, FileFingerprint baseline,
 			long expectedRevision) { }
 	public static final class ExternalModificationException extends IOException {

@@ -181,6 +181,17 @@ public final class NativeProjectDocument {
 		return entry.has("style") && !entry.get("style").isJsonNull() ? entry.get("style").getAsString() : "LINE";
 	}
 
+	/** Private native candidate, preserving unknown JSON without touching this document. */
+	NativeProjectDocument withCodeData(JadxCodeData candidate) {
+		NativeProjectDocument copy = new NativeProjectDocument(projectPath, root.deepCopy());
+		copy.setCodeData(copyCodeData(candidate));
+		return copy;
+	}
+
+	public static boolean codeDataEquivalent(jadx.api.data.ICodeData left, jadx.api.data.ICodeData right) {
+		return CODE_DATA_GSON.toJsonTree(left).equals(CODE_DATA_GSON.toJsonTree(right));
+	}
+
 	public static JadxCodeData copyCodeData(JadxCodeData source) {
 		return CODE_DATA_GSON.fromJson(CODE_DATA_GSON.toJsonTree(source), JadxCodeData.class);
 	}
@@ -213,8 +224,7 @@ public final class NativeProjectDocument {
 	}
 
 	public JsonObject toJsonTree() {
-		setCodeData(codeData);
-		return root.deepCopy();
+		return withCodeData(codeData).root.deepCopy();
 	}
 
 	/** Writes using ordinary native JSON file semantics. This method is the only disk mutation. */

@@ -413,7 +413,7 @@ public final class StatusServlet extends HttpServlet {
 		} catch (ServiceShuttingDownException stopping) { writeError(response, 503, "SERVICE_SHUTTING_DOWN", stopping.getMessage());
 		} catch (ProjectBusyException busy) { writeError(response, 409, "PROJECT_BUSY", busy.getMessage());
 		} catch (NativeProjectRepository.StaleRevisionException stale) { writeError(response, 409, "STALE_REVISION", stale.getMessage());
-		} catch (NativeProjectRepository.ExternalModificationException conflict) { writeError(response, 409, "EXTERNAL_MODIFICATION_CONFLICT", conflict.getMessage());
+		} catch (NativeProjectRepository.ExternalModificationException | ProjectRuntime.NativeEditConflictException conflict) { writeError(response, 409, "EXTERNAL_MODIFICATION_CONFLICT", conflict.getMessage());
 		} catch (java.nio.file.NoSuchFileException missing) { writeError(response, 404, "NOT_FOUND", "Mapping source file does not exist");
 		} catch (SecurityException denied) { writeError(response, 403, "INPUT_SECURITY_REJECTION", denied.getMessage());
 		} catch (IllegalArgumentException invalid) {
@@ -552,6 +552,8 @@ public final class StatusServlet extends HttpServlet {
 				items.add(new EditDtos.Operation(EditDtos.Kind.valueOf(kind), target, name, comment, style, parameterIndex, sourceSnapshotId));
 			}
 			write(response, 200, editService.apply(new EditDtos.Request(session, revision, items)));
+		} catch (ProjectRuntime.NativeEditConflictException conflict) {
+			writeError(response, 409, "EXTERNAL_MODIFICATION_CONFLICT", conflict.getMessage());
 		} catch (EditBatchService.Rejected rejected) {
 			writeError(response, rejected.status(), rejected.code(), rejected.getMessage(), false,
 					rejected.itemErrors().isEmpty() ? null : Map.of("itemErrors", rejected.itemErrors()));

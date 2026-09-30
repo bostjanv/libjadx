@@ -1,6 +1,6 @@
 # Compatibility and pinned dependencies
 
-Status: Phase 5.2 safe replay / replacement-engine feasibility, outcome B, updated 2026-09-29.
+Status: Phase 5.2 fresh-equivalent replacement-engine edit publication, updated 2026-09-29.
 
 ## Jadx pin
 
@@ -85,7 +85,7 @@ commit). Bounded Tiny v2 import uses the same strict parser and pinned declarati
 see [import evidence](phase-5-mapping-import.md). No dependencies or locks changed. See [export evidence](phase-5-mapping-export.md)
 and [ADR 0001](adr/0001-defer-advanced-native-edits.md).
 
-Code-data replay unloads owners before notifying listeners. Pinned
+The historical code-data replay negative control unloads owners before notifying listeners. Pinned
 `ClassNode.deepUnload` clears `CODE_COMMENTS`; the old order erased attached
 mapping comments reapplied by `ApplyMappingsPass`. The export regression
 compares exact Java before export and after fresh-engine mapping loading.
@@ -118,7 +118,7 @@ The import replay regression additionally inspects pinned `JavaClass.unload`,
 unloading their declaration attributes; the adapter now clears CODE_COMMENTS
 before mapping/native replay on all visible declaration nodes, avoiding repeated
 attached comments across edits. This does not generate source. The import
-retains explicit native save and the existing post-replacement FAILED lifecycle.
+retains explicit native save. PR #18 candidate failures now preserve READY before any native commit.
 The independent validator environment is Python 3.14.4, PyYAML 6.0.3,
 jsonschema 4.26.0 and openapi-spec-validator 0.9.0 (same environment as PR #11).
 Exact direct validation packages are pinned in `tests/requirements-contract.txt`.
@@ -165,7 +165,7 @@ and actual GUI diagnostics](phase-5-related-propagation.md) and
 ## PR #16 complete-family replay evidence
 
 The same Jadx 1.5.6 artifacts/source, JDK 21 and dependency locks remain pinned.
-The production replay path unloads owners before notifying the global native
+The historical PR #16 replay path unloads owners before notifying the global native
 rename listeners. With previously generated owned hierarchy source, explicit
 records for all independently verified family members also change unrelated
 CovariantLeaf Object/String declaration aliases to `m0value`. Fresh native
@@ -176,7 +176,7 @@ See [source reasoning and replay matrix](phase-5-propagated-edits.md) and
 [PR #16 validation](pr-16-review.md). Actual GUI Save As is a diagnostic of
 the saved records, not permission to admit unsafe propagation.
 
-## PR #17 safe replay feasibility
+## Historical PR #17 safe replay feasibility (superseded below)
 
 Outcome B; production replay and every accepted edit contract remain unchanged.
 Fresh replacement reconstructs complete native/mapping/scoped state and fixes
@@ -194,3 +194,25 @@ from the failed adoption gate. No engine swap, alias patch, native extra record,
 autosave, API/SDK or dependency change is shipped. The next decision concerns
 automatic nonmember alias recomputation; group admission remains dependent on
 safe publication and its separate service/native/GUI gates.
+
+## PR #18 approved alias semantics and replacement publication
+
+This section supersedes PR #17's requirement to preserve every incidental alias.
+Automatic Jadx aliases are derived analysis state: collision aliases,
+deobfuscation aliases without explicit persistence, and other generated aliases
+may be recomputed when an edit changes analysis. A declaration with no explicit
+rename may therefore change its display alias without a separate user edit.
+Native declaration renames, mapping aliases/comments, supported scoped renames,
+retained VAR records and declaration comments remain authoritative. Original
+identities, settings, ordered input references and unknown native fields retain
+their existing preservation rules. Never add native records to freeze generated
+aliases.
+
+Effective native batches now privately stage complete code data, load one fresh
+production engine, commit native data once, then publish that engine under the
+existing exclusive lease. No-op retains the engine and revisions; candidate
+failure publishes nothing. See [replacement publication](phase-5-replacement-publication.md) for ordering,
+failures, oracle, persistence and validation. Related propagation and local
+editing remain unsupported. PR #19 still requires same-lease COMPLETE verification,
+immutable group plans, all-owner collision admission, exact original native
+records and affectedRefs, and propagated HTTP/native/restart/actual-GUI gates.

@@ -143,12 +143,8 @@ class EditBatchServiceTest {
 		AtomicInteger reloads = new AtomicInteger();
 		ProjectRuntime runtime = new ProjectRuntime(null, List.of(jar), args -> new ProjectRuntime.ProjectEngine() {
 			private final JadxDecompiler jadx = new JadxDecompiler(args);
-			@Override public void load() { jadx.load(); }
+			@Override public void load() { reloads.incrementAndGet(); jadx.load(); }
 			@Override public JadxDecompiler decompiler() { return jadx; }
-			@Override public void reloadCodeData(JadxCodeData codeData) {
-				reloads.incrementAndGet();
-				ProjectRuntime.ProjectEngine.super.reloadCodeData(codeData);
-			}
 			@Override public void close() { jadx.close(); }
 		});
 		try {
@@ -293,7 +289,21 @@ class EditBatchServiceTest {
 					.filter(target -> target.nativeRef().getShortId() != null
 							&& target.nativeRef().getShortId().equals("value()Ljava/lang/String;"))
 					.findFirst().orElseThrow().displayName();
-			assertEquals(untouchedBefore, untouchedAfter);
+			assertEquals("m0value", untouchedBefore);
+			assertEquals("value", untouchedAfter);
+			var pending = runtime.pendingEdits().getAsJsonObject("codeData");
+			assertEquals(1, pending.getAsJsonArray("renames").size());
+			var code = runtime.withExclusiveEdit(context -> context.codeDataCopy());
+			var actual = SafeReplayStrategyTest.semantic(runtime.decompiler());
+			try (var fresh = SafeReplayStrategyTest.open(List.of(jar), null, code)) {
+				assertEquals(SafeReplayStrategyTest.semantic(fresh), actual);
+			}
+			Path savedPath = dir.resolve("clash.jadx");
+			runtime.saveProject(savedPath, null);
+			var saved = dev.libjadx.project.NativeProjectDocument.open(savedPath);
+			try (var fresh = SafeReplayStrategyTest.open(saved.getInputFiles(), saved.getMappingsPath(), saved.getCodeData())) {
+				assertEquals(actual, SafeReplayStrategyTest.semantic(fresh));
+			}
 		} finally { runtime.close(); }
 	}
 
@@ -342,13 +352,15 @@ class EditBatchServiceTest {
 	}
 
 	@Test
-	void reloadFailureAfterNativeReplacementFailsRuntimeWithoutSuccessResult() throws Exception {
+	void candidateLoadFailurePreservesRuntimeWithoutSuccessResult() throws Exception {
 		Path jar = SymbolFixtureSupport.compileFixture(dir);
 		ProjectRuntime runtime = new ProjectRuntime(null, List.of(jar), args -> new ProjectRuntime.ProjectEngine() {
 			private final JadxDecompiler jadx = new JadxDecompiler(args);
-			@Override public void load() { jadx.load(); }
+			@Override public void load() {
+				if (!((JadxCodeData) args.getCodeData()).getRenames().isEmpty()) throw new IllegalStateException("injected candidate failure");
+				jadx.load();
+			}
 			@Override public JadxDecompiler decompiler() { return jadx; }
-			@Override public void reloadCodeData(JadxCodeData codeData) { throw new IllegalStateException("injected reload failure"); }
 			@Override public void close() { jadx.close(); }
 		});
 		try {
@@ -356,8 +368,9 @@ class EditBatchServiceTest {
 			assertThrows(IllegalStateException.class, () -> new EditBatchService(runtime).apply(new EditDtos.Request(null, null,
 					List.of(new EditDtos.Operation(EditDtos.Kind.RENAME, SymbolRef.classRef("Lprobe/SymbolFixture;"),
 							"PendingAfterFailure", null, null)))));
-			assertEquals("FAILED", runtime.status().state());
-			assertThrows(ProjectRuntime.ProjectNotReadyException.class, runtime::projectSnapshot);
+			assertEquals("READY", runtime.status().state());
+			assertEquals(0, runtime.projectSnapshot().revisions().logicalRevision());
+			assertFalse(runtime.projectSnapshot().dirty());
 		} finally { runtime.close(); }
 	}
 }

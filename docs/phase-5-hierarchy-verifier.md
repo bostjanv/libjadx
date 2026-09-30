@@ -227,8 +227,9 @@ admitted file budget; there is no invisible background index job or autosave.
 `ProjectRuntime.withHierarchyVerifier` uses QUERY_READ admission. Concurrent
 reads of the same immutable state are allowed; exclusive native edits, save,
 reload and requested shutdown conflict while a read lease is active. Rebuilds
-construct a new census even if only mappings changed. Native declaration edits
-and explicit save preserve the current capture; aliases/comments/mappings and
+construct a new census even if only mappings changed. PR #18 native declaration edits
+construct a fresh replacement and census/verifier binding; explicit save
+preserves the current capture; aliases/comments/mappings and
 decompilation modes never become raw identity. Process restart constructs fresh
 state under a new session. Census interruption is cooperative at input/entry/
 class/method boundaries; construction is not a separately cancellable job and
@@ -253,7 +254,7 @@ are recorded separately in [PR #15 review](pr-15-review.md).
 Regression tests also cover escaped/cross-thread handles, unchanged-input reload
 and callback-failure expiration/admission release.
 
-## Next boundary
+## Historical PR #16 boundary (superseded by PR #18 publication)
 
 PR #16 investigated this boundary and delivered required outcome B: explicit
 per-member records correctly persist the independent families but hot native
@@ -271,7 +272,11 @@ It must also prove all-owner alias collisions, group-private native records,
 exact affectedRefs,
 group-size admission, no-op/prefix/partial failure semantics, explicit-save,
 headless restart/discard and actual matching-GUI propagated service transactions.
-The existing native hot/fresh discrepancy also needs a reliable replay strategy.
+PR #18 now resolves the native hot/fresh discrepancy through fresh replacement publication; group admission remains separate.
 Only those gates can justify an accepted propagateRelated field or capability
 change. Local edits and parameter propagation remain separate unsupported work.
 No architectural change or human decision is needed for this prerequisite.
+
+PR #18 publication and fresh hierarchy binding are documented in
+[replacement publication](phase-5-replacement-publication.md). PR #19 must still
+verify and stage groups within the same current exclusive lease.

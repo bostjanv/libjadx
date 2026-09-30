@@ -1,5 +1,11 @@
 # PR #16: verified family replay safety gate
 
+The counterexample below records the historical PR #16 implementation. PR #18
+moves `PropagatedNativeReplayTest` to positive production replacement gates;
+`SafeReplayStrategyTest` retains the exact old in-place implementation and its
+hot/fresh nonmember failure as an executable negative control. See
+[replacement publication](phase-5-replacement-publication.md).
+
 **Outcome B: explicit propagation remains UNSUPPORTED.** PR #15 proves original
 family completeness, but PR #16 finds a separate nonmember hot/fresh replay
 failure in the pinned engine. No accepted `propagateRelated` field, group plan,
@@ -156,7 +162,7 @@ safety gate, as instructed. Local-variable editing and permission to proceed to
 Phase 6 remain separate human decisions. Exact final commands/counts are in
 [PR #16 review](pr-16-review.md).
 
-## PR #17 safe replay feasibility
+## Historical PR #17 safe replay feasibility (superseded below)
 
 Outcome B; production replay and every accepted edit contract remain unchanged.
 Fresh replacement reconstructs complete native/mapping/scoped state and fixes
@@ -174,3 +180,25 @@ from the failed adoption gate. No engine swap, alias patch, native extra record,
 autosave, API/SDK or dependency change is shipped. The next decision concerns
 automatic nonmember alias recomputation; group admission remains dependent on
 safe publication and its separate service/native/GUI gates.
+
+## PR #18 approved alias semantics and replacement publication
+
+This section supersedes PR #17's requirement to preserve every incidental alias.
+Automatic Jadx aliases are derived analysis state: collision aliases,
+deobfuscation aliases without explicit persistence, and other generated aliases
+may be recomputed when an edit changes analysis. A declaration with no explicit
+rename may therefore change its display alias without a separate user edit.
+Native declaration renames, mapping aliases/comments, supported scoped renames,
+retained VAR records and declaration comments remain authoritative. Original
+identities, settings, ordered input references and unknown native fields retain
+their existing preservation rules. Never add native records to freeze generated
+aliases.
+
+Effective native batches now privately stage complete code data, load one fresh
+production engine, commit native data once, then publish that engine under the
+existing exclusive lease. No-op retains the engine and revisions; candidate
+failure publishes nothing. See [replacement publication](phase-5-replacement-publication.md) for ordering,
+failures, oracle, persistence and validation. Related propagation and local
+editing remain unsupported. PR #19 still requires same-lease COMPLETE verification,
+immutable group plans, all-owner collision admission, exact original native
+records and affectedRefs, and propagated HTTP/native/restart/actual-GUI gates.

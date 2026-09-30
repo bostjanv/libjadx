@@ -34,13 +34,13 @@ Evidence is tied to Jadx `1.5.6` source commit `28ff15e4ae69950aebea110a13e5ab89
 | Complete-index job and cancellation | SUPPORTED for Jadx-visible eligible owners; partial failures explicit | `SearchBuildJobTest` verifies class-boundary cancellation, engine lease release and a verified empty synthetic skip. `StandaloneDistributionTest` runs the installed headless job and strict source search. JVM-level interruption during Jadx work remains unproved. |
 | Native class/method/field declaration rename | SUPPORTED for owned Java fixture; GUI save/reopen verified | `EditBatchEndpointsTest` stages all three aliases and explicitly saves native data; `nativeEditGuiRoundTripTest` has the matching GUI resave and headless emitted Java check. `EditBatchServiceTest` proves return-type-only overloads have distinct native IDs. Synthetic/bridge/special methods and exact input origin remain unsupported. |
 | Native class/method/field LINE declaration comments | SUPPORTED for owned Java fixture; GUI save/reopen verified | The same GUI task retains three comments after resave. `EditBatchEndpointsTest` updates one LINE comment without erasing a BLOCK comment on the same node or its unknown fields. Multiline/control input and other styles are intentionally rejected. |
-| Batch prevalidation and partial execution | SUPPORTED for validated declaration edits | `EditBatchEndpointsTest` proves invalid later item yields no native change, unchanged revision and usable class cursor; `EditBatchServiceTest` injects a staging failure after one staged item and observes only the real committed prefix. Normal batches commit once. Reload failure after replacement remains a hard runtime failure gate. |
+| Batch prevalidation and partial execution | SUPPORTED for validated declaration edits | `EditBatchEndpointsTest` proves invalid later item yields no native change, unchanged revision and usable class cursor; `EditBatchServiceTest` injects a staging failure after one staged item and observes only the real committed prefix. Normal batches commit once. Candidate load failure publishes no prefix and leaves READY. |
 | Safe native Tiny v2 export | PARTIAL, strict verified declarations | `JadxMappingExportProbeTest`, `MappingExportServiceTest`, `MappingExportEndpointsTest` and the matching `mappingExportGuiRoundTripTest` verify attached aliases plus unsaved class/method/field aliases and LINE comments. Unknown/duplicate records, unverified code refs/styles, namespaces/options and unresolved keys fail closed. No-clobber, faults, external changes and retained revisions have regression tests. See `phase-5-mapping-export.md` for actual gate outcomes and residual filesystem limits. |
 | Native mapping import/merge | PARTIAL, strict Tiny v2 declaration subset | `JadxMappingImportProbeTest`, `MappingImportServiceTest`, `MappingImportEndpointsTest` and matching `mappingImportGuiRoundTripTest` prove conservative original-key merge, additive LINE suffixes, one native commit, no-op/cache identity, source races and explicit save/reopen. Inner renames, arbitrary composites and conflicting existing aliases fail closed. See `phase-5-mapping-import.md`. |
 | Parameter rename | SUPPORTED for verified plain AUTO/RESTRUCTURE concrete signatures | `JadxVariableProbeTest`, `ScopedParameterServiceTest`, `ScopedParameterEndpointsTest`, packaged process restart and `scopedEditGuiRoundTripTest` cover original positional indexes, wide arguments, source binding, prevalidation and explicit persistence. Unsupported forms fail closed. See `phase-5-scoped-editing.md`. |
 | Local rename | UNSUPPORTED | Owned merged/loop/branch/register-reuse fixture proves changed emitted SSA identity under SIMPLE and missing declarations in FALLBACK. A persisted key is not a settings-independent local identity. No safe general persistence subset is exposed. |
-| Generic fresh-equivalent native edit replay | UNPROVED; Outcome B | `SafeReplayStrategyTest` rejects current/listener-first/owner-only replay and generic replacement. Replacement fixes Joined bridges but changes an untouched automatic alias when an ordinary return-only method rename removes a collision. See [PR #17](phase-5-safe-replay.md). |
-| Related override propagation | UNSUPPORTED | PR #15 independently proves closed-input families, including all four Joined declarations. PR #16 explicit complete-family service replay still changes unrelated CovariantLeaf aliases in hot owners; fresh native reopen disagrees. Retain all presence-based 422 rejections. Actual GUI resave diagnostics do not establish safe propagated transactions. See [replay evidence](phase-5-propagated-edits.md) and [candidate evidence](phase-5-related-propagation.md). |
+| Generic fresh-equivalent native edit publication | SUPPORTED for the owned complete-state matrix | `ReplacementPublicationTest` and `ReplacementStateTest` prove staged load-before-commit publication, faults/leases, explicit intent and fresh-derived aliases. `SafeReplayStrategyTest` retains old replay negative controls. See [PR #18](phase-5-replacement-publication.md). |
+| Related override propagation | UNSUPPORTED | PR #15 independently proves closed-input families, including all four Joined declarations. Historical PR #16 in-place replay changes unrelated CovariantLeaf aliases; PR #18 replacement fixes that diagnostic but group admission is still absent. Retain all presence-based 422 rejections. Actual GUI resave diagnostics do not establish safe propagated transactions. See [replay evidence](phase-5-propagated-edits.md) and [candidate evidence](phase-5-related-propagation.md). |
 | Original-input declaration census | SUPPORTED for bounded class/JAR/DEX subset, internal only | `RawInputCensusProbeTest` and `InputCensusTest` retain duplicates and divergent methods/access/supertypes before RootNode selection, with exact configured origins, hard-limit boundaries and strict parse/checksum failures. No source bodies or mutable Jadx nodes are retained. |
 | Independent override-family completeness | SUPPORTED for conservative closed-input exact-return subset, internal only | `IndependentHierarchyVerifierTest` verifies chains/defaults/diamonds/independent branches, visibility, inherited interface implementations, two inputs and DEX. Every complete family is seed independent. Bridge/covariant/synthetic, missing/external/duplicate and resource-limited results expose no partial family. `HierarchyVerifierLifecycleTest` checks lifecycle and input invalidation. See [rules](phase-5-hierarchy-verifier.md). |
 
@@ -67,7 +67,7 @@ on an owned JAR. Graphs exist before owner decompilation, but may be pruned by
 later processing. Recursive self edges can be absent. READ/WRITE, exhaustive
 coverage and original offsets remain unavailable. See [reference evidence](phase-4-references.md).
 
-## PR #17 safe replay feasibility
+## Historical PR #17 safe replay feasibility (superseded below)
 
 Outcome B; production replay and every accepted edit contract remain unchanged.
 Fresh replacement reconstructs complete native/mapping/scoped state and fixes
@@ -85,3 +85,25 @@ from the failed adoption gate. No engine swap, alias patch, native extra record,
 autosave, API/SDK or dependency change is shipped. The next decision concerns
 automatic nonmember alias recomputation; group admission remains dependent on
 safe publication and its separate service/native/GUI gates.
+
+## PR #18 approved alias semantics and replacement publication
+
+This section supersedes PR #17's requirement to preserve every incidental alias.
+Automatic Jadx aliases are derived analysis state: collision aliases,
+deobfuscation aliases without explicit persistence, and other generated aliases
+may be recomputed when an edit changes analysis. A declaration with no explicit
+rename may therefore change its display alias without a separate user edit.
+Native declaration renames, mapping aliases/comments, supported scoped renames,
+retained VAR records and declaration comments remain authoritative. Original
+identities, settings, ordered input references and unknown native fields retain
+their existing preservation rules. Never add native records to freeze generated
+aliases.
+
+Effective native batches now privately stage complete code data, load one fresh
+production engine, commit native data once, then publish that engine under the
+existing exclusive lease. No-op retains the engine and revisions; candidate
+failure publishes nothing. See [replacement publication](phase-5-replacement-publication.md) for ordering,
+failures, oracle, persistence and validation. Related propagation and local
+editing remain unsupported. PR #19 still requires same-lease COMPLETE verification,
+immutable group plans, all-owner collision admission, exact original native
+records and affectedRefs, and propagated HTTP/native/restart/actual-GUI gates.
