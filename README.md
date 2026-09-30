@@ -42,7 +42,7 @@ Native declaration edits and a matching-GUI save/reopen round trip are exercised
 
 Unknown paths return `NOT_FOUND`. The API contract is in [`openapi/openapi.yaml`](openapi/openapi.yaml).
 
-## Python SDK foundation (PR #21)
+## Experimental candidate and Python SDK
 
 The experimental `libjadx` 0.1.0a1 SDK provides generated typed transport,
 handwritten synchronous/asynchronous APIs, explicit revisions and save,
@@ -59,7 +59,10 @@ python -m pip install dist/libjadx-0.1.0a1-py3-none-any.whl
 
 See [SDK usage, conflicts and limitations](python/README.md) and
 [Phase 6 architecture](docs/phase-6-python-sdk.md). Phase 6.2 cross-language
-release qualification remains pending; this milestone is not a release candidate.
+release qualification is tracked in [the PR #22 report](docs/pr-22-review.md).
+The local candidate uses Java `0.1.0-alpha.1`, Python `0.1.0a1` and API
+`0.1.0-experimental`. Qualification is separate from publication; no tag or
+external artifact publication is performed by the release harness.
 
 ## Requirements
 
@@ -300,3 +303,22 @@ revisions and requires every group record already explicitly present. See
 Run `propagatedEditGuiRoundTripTest` with `JADX_GUI` set to the matching Jadx
 1.5.6 GUI for the positive service-produced gate from all four Joined seeds.
 Final validation is recorded in [PR #19 review](docs/pr-19-review.md).
+
+## Local release qualification
+
+Build candidate archives with `./gradlew distZip distTar` and `cd python && uv build`.
+Extract `build/distributions/libjadx-0.1.0-alpha.1.zip` (or `.tar`) into an owned
+local directory, then launch its `bin/libjadx` with `--input`/`--project` and
+`--allowed-root`. Install the locally built wheel into a separate Python environment.
+JDK 21 is required; a JDK is not bundled.
+
+The complete offline gate (after populating the frozen dependency/tool caches) is:
+
+```bash
+JADX_GUI=/path/to/jadx-1.5.6/bin/jadx-gui \
+  tests/release/validate-release-candidate.sh all --output /tmp/libjadx-release-evidence
+```
+
+The matching GUI is test infrastructure only. Runtime archives contain headless
+Jadx plugins. See [the repeatable release gate](docs/phase-6-release-qualification.md)
+for required interpreters, tooling, evidence and support boundaries.

@@ -48,6 +48,7 @@ final class JobEventsHandler {
 				}
 				write(output, "id: " + event.sequence() + "\nevent: " + event.type()
 						+ "\ndata: " + event.dataJson() + "\n\n");
+				dev.libjadx.testing.ReleaseTestHooks.gate("sse-delivery");
 				if (event.terminal()) break;
 			}
 		} catch (IOException disconnected) {

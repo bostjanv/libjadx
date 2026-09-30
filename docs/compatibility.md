@@ -288,3 +288,18 @@ or external publication are claimed. [SDK architecture](phase-6-python-sdk.md)
 records generator limitations; [review](pr-21-review.md) records actual commands,
 counts and artifact fingerprints. PyPI name check returned 404 on 2026-09-30;
 no package was published or reserved.
+
+## PR #22 cross-language candidate gate
+
+Java `0.1.0-alpha.1` and Python `0.1.0a1` identify the same experimental candidate;
+OpenAPI remains `0.1.0-experimental`. CLI and capabilities use one deterministic
+Gradle-generated Java version resource. Jadx, JDK, Gradle, Python tooling and
+all dependency locks retain their PR #21 pins. Linux x86_64 is the qualification
+platform; Windows/macOS execution is unqualified (the batch launcher is audited).
+
+The executable [release gate](phase-6-release-qualification.md) exercises all 22
+operations on raw/generated/handwritten sync/async surfaces, all 19 stable errors,
+real class/JAR/DEX/native input, explicit native persistence and process restarts.
+[Current evidence](pr-22-review.md) determines qualification; historical PR results
+are not substituted for this run. No runtime GUI, project store, authentication,
+remote listening, extra transport or package publication is introduced.

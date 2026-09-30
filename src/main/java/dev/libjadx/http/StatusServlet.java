@@ -98,7 +98,7 @@ public final class StatusServlet extends HttpServlet {
 			return;
 		}
 		if ("/api/v1/capabilities".equals(path)) {
-			write(response, HttpServletResponse.SC_OK, new CapabilitiesResponse("0.1.0-SNAPSHOT", "1.5.6", List.of(
+			write(response, HttpServletResponse.SC_OK, new CapabilitiesResponse(dev.libjadx.app.BuildInfo.VERSION, "1.5.6", List.of(
 					new Capability("class.list", "PARTIAL", "JADX_VISIBLE_INCLUDING_INNERS_AND_NO_CODE", "READ_ONLY"),
 					new Capability("symbol.resolve", "PARTIAL", "PINNED_RAW_CLASS_METHOD_FIELD_METADATA", "READ_ONLY"),
 					new Capability("symbol.input_provenance", "UNKNOWN", "TWO_JAR_DUPLICATE_COLLAPSED_ORIGIN_UNVERIFIED", "UNAVAILABLE"),
@@ -294,7 +294,12 @@ public final class StatusServlet extends HttpServlet {
 					return;
 				}
 				String raw = path.substring("/api/v1/jobs/".length(), path.length() - "/cancel".length());
-				write(response, 200, JobHttpResponses.map(runtime.jobRegistry().cancel(jobId(raw)), json));
+				var snapshot = runtime.jobRegistry().cancel(jobId(raw));
+				if (snapshot.state() == dev.libjadx.scheduler.JobSnapshot.State.CANCELLING
+						&& dev.libjadx.testing.ReleaseTestHooks.enabled("cancel-pending.fail")) {
+					writeError(response, 409, "CANCELLATION_PENDING", "Owned release-test cancellation is pending", true,
+							Map.of("jobId", snapshot.jobId().toString(), "state", snapshot.state().name()));
+				} else write(response, 200, JobHttpResponses.map(snapshot, json));
 			} catch (NoSuchElementException missing) {
 				writeError(response, 404, "NOT_FOUND", "Job not found or expired");
 			} catch (IllegalArgumentException invalid) {
@@ -1012,6 +1017,13 @@ public final class StatusServlet extends HttpServlet {
 	protected void service(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		response.setHeader("X-Request-Id", UUID.randomUUID().toString());
 		response.setHeader("Cache-Control", "no-store");
+		if ("/api/v1/project".equals(request.getRequestURI())) {
+			dev.libjadx.testing.ReleaseTestHooks.gate("http-project");
+			if (dev.libjadx.testing.ReleaseTestHooks.enabled("http-project.fail")) {
+				writeError(response, 500, "INTERNAL_ERROR", "Owned release-test request failure");
+				return;
+			}
+		}
 		Set<String> allowedMethods = allowedMethods(request.getRequestURI());
 		if (allowedMethods.isEmpty()) {
 			writeError(response, HttpServletResponse.SC_NOT_FOUND, "NOT_FOUND", "No endpoint is defined for this path");

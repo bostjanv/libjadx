@@ -33,7 +33,7 @@ public record ServiceConfig(String bindAddress, int port, Path projectPath, List
 					return null;
 				}
 				case "--version" -> {
-					System.out.println("LibJadx 0.1.0-SNAPSHOT");
+					System.out.println("LibJadx " + BuildInfo.VERSION);
 					return null;
 				}
 				case "--project" -> cliProject = Path.of(value(args, ++i, "--project"));
