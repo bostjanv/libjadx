@@ -1,0 +1,234 @@
+{
+  "head": "f9803ca9c7608aa8909a5ab451580a9b439e133e",
+  "fixture": "qualification.jar",
+  "test_hooks": false,
+  "response": {
+    "serverVersion": "0.1.0-alpha.1",
+    "jadxVersion": "1.5.6",
+    "capabilities": [
+      {
+        "name": "class.list",
+        "status": "PARTIAL",
+        "evidence": "JADX_VISIBLE_INCLUDING_INNERS_AND_NO_CODE",
+        "persistence": "READ_ONLY"
+      },
+      {
+        "name": "symbol.resolve",
+        "status": "PARTIAL",
+        "evidence": "PINNED_RAW_CLASS_METHOD_FIELD_METADATA",
+        "persistence": "READ_ONLY"
+      },
+      {
+        "name": "symbol.input_provenance",
+        "status": "UNKNOWN",
+        "evidence": "TWO_JAR_DUPLICATE_COLLAPSED_ORIGIN_UNVERIFIED",
+        "persistence": "UNAVAILABLE"
+      },
+      {
+        "name": "code.java",
+        "status": "SUPPORTED",
+        "evidence": "SMALL_JAR_PROBED",
+        "persistence": "READ_ONLY"
+      },
+      {
+        "name": "code.java_source_endpoint",
+        "status": "PARTIAL",
+        "evidence": "CLASS_JAVA_AND_VERIFIED_TOKEN_METADATA",
+        "persistence": "READ_ONLY"
+      },
+      {
+        "name": "code.method_excerpt",
+        "status": "PARTIAL",
+        "evidence": "DECLARATION_LEXER_AND_END_MARKER_VERIFIED",
+        "persistence": "READ_ONLY"
+      },
+      {
+        "name": "code.original_debug_lines",
+        "status": "UNKNOWN",
+        "evidence": "ORIGIN_NOT_VERIFIED",
+        "persistence": "UNAVAILABLE"
+      },
+      {
+        "name": "code.original_bytecode_offsets",
+        "status": "UNKNOWN",
+        "evidence": "ORIGIN_NOT_VERIFIED",
+        "persistence": "UNAVAILABLE"
+      },
+      {
+        "name": "code.smali",
+        "status": "SUPPORTED",
+        "evidence": "SMALL_JAR_PROBED",
+        "persistence": "READ_ONLY"
+      },
+      {
+        "name": "references.method_uses",
+        "status": "PARTIAL",
+        "evidence": "METHOD_FIELD_CLASS_AND_UNRESOLVED_JAR_PROBED",
+        "persistence": "READ_ONLY"
+      },
+      {
+        "name": "search.class_names",
+        "status": "SUPPORTED",
+        "evidence": "JADX_VISIBLE_CATALOG",
+        "persistence": "MEMORY_ONLY"
+      },
+      {
+        "name": "search.member_names",
+        "status": "PARTIAL",
+        "evidence": "PINNED_ORIGINAL_MEMBER_SIGNATURES",
+        "persistence": "MEMORY_ONLY"
+      },
+      {
+        "name": "search.source_text",
+        "status": "PARTIAL",
+        "evidence": "EXACT_EMITTED_OWNER_JAVA",
+        "persistence": "MEMORY_ONLY"
+      },
+      {
+        "name": "search.string_literals",
+        "status": "UNKNOWN",
+        "evidence": "LEXICAL_OWNERSHIP_NOT_PROBED",
+        "persistence": "UNAVAILABLE"
+      },
+      {
+        "name": "search.regex_safe",
+        "status": "SUPPORTED",
+        "evidence": "RE2J_1_8_SOURCE_ONLY",
+        "persistence": "MEMORY_ONLY"
+      },
+      {
+        "name": "search.complete_index_job",
+        "status": "PARTIAL",
+        "evidence": "JADX_VISIBLE_OWNER_SCAN",
+        "persistence": "MEMORY_ONLY"
+      },
+      {
+        "name": "search.original_input_coverage",
+        "status": "UNKNOWN",
+        "evidence": "JADX_VISIBLE_IS_NOT_INPUT_CENSUS",
+        "persistence": "UNAVAILABLE"
+      },
+      {
+        "name": "project.native_load",
+        "status": "SUPPORTED",
+        "evidence": "JADX_1_5_6_FIXTURE",
+        "persistence": "READ_ONLY"
+      },
+      {
+        "name": "project.native_save",
+        "status": "PARTIAL",
+        "evidence": "CLASS_RENAME_COMMENT_MAPPING_AND_GUI_ROUND_TRIP",
+        "persistence": "EXPLICIT_SAVE_ONLY"
+      },
+      {
+        "name": "edit.class_rename",
+        "status": "SUPPORTED",
+        "evidence": "JADX_1_5_6_GUI_RESAVE_VERIFIED",
+        "persistence": "MEMORY_ONLY_UNTIL_EXPLICIT_NATIVE_SAVE"
+      },
+      {
+        "name": "edit.method_rename",
+        "status": "SUPPORTED",
+        "evidence": "JADX_1_5_6_GUI_RESAVE_VERIFIED",
+        "persistence": "MEMORY_ONLY_UNTIL_EXPLICIT_NATIVE_SAVE"
+      },
+      {
+        "name": "edit.field_rename",
+        "status": "SUPPORTED",
+        "evidence": "JADX_1_5_6_GUI_RESAVE_VERIFIED",
+        "persistence": "MEMORY_ONLY_UNTIL_EXPLICIT_NATIVE_SAVE"
+      },
+      {
+        "name": "edit.class_comment",
+        "status": "SUPPORTED",
+        "evidence": "LINE_GUI_RESAVE_VERIFIED",
+        "persistence": "MEMORY_ONLY_UNTIL_EXPLICIT_NATIVE_SAVE"
+      },
+      {
+        "name": "edit.method_comment",
+        "status": "SUPPORTED",
+        "evidence": "LINE_GUI_RESAVE_VERIFIED",
+        "persistence": "MEMORY_ONLY_UNTIL_EXPLICIT_NATIVE_SAVE"
+      },
+      {
+        "name": "edit.field_comment",
+        "status": "SUPPORTED",
+        "evidence": "LINE_GUI_RESAVE_VERIFIED",
+        "persistence": "MEMORY_ONLY_UNTIL_EXPLICIT_NATIVE_SAVE"
+      },
+      {
+        "name": "edit.batch_prevalidation",
+        "status": "SUPPORTED",
+        "evidence": "ONE_PROJECT_EXCLUSIVE_ADMISSION",
+        "persistence": "MEMORY_ONLY"
+      },
+      {
+        "name": "edit.mapping_attach",
+        "status": "SUPPORTED",
+        "evidence": "EXISTING_SETTINGS_PATH",
+        "persistence": "EXPLICIT_SAVE_ONLY"
+      },
+      {
+        "name": "edit.mapping_import",
+        "status": "PARTIAL",
+        "evidence": "TINY_V2_DECLARATIONS_CONFLICT_SAFE_MERGE",
+        "persistence": "MEMORY_ONLY_UNTIL_EXPLICIT_NATIVE_SAVE"
+      },
+      {
+        "name": "edit.mapping_export",
+        "status": "PARTIAL",
+        "evidence": "TINY_V2_VERIFIED_DECLARATIONS_STRICT_COMPLETE",
+        "persistence": "NEW_OUTPUT_ONLY"
+      },
+      {
+        "name": "edit.parameter_rename",
+        "status": "SUPPORTED",
+        "evidence": "AUTO_RESTRUCTURE_PLAIN_SIGNATURE_SNAPSHOT_GUI_VERIFIED",
+        "persistence": "MEMORY_ONLY_UNTIL_EXPLICIT_NATIVE_SAVE"
+      },
+      {
+        "name": "edit.local_rename",
+        "status": "UNSUPPORTED",
+        "evidence": "NATIVE_VAR_RETARGETS_WITH_UNBOUND_GUI_SETTINGS",
+        "persistence": "UNAVAILABLE"
+      },
+      {
+        "name": "edit.related_propagation",
+        "status": "PARTIAL",
+        "evidence": "INDEPENDENT_CLOSED_INPUT_FAMILY_GUI_VERIFIED",
+        "persistence": "MEMORY_ONLY_UNTIL_EXPLICIT_NATIVE_SAVE"
+      },
+      {
+        "name": "project.revisions",
+        "status": "PARTIAL",
+        "evidence": "CONTENT_HASH_AND_SESSION_TOKENS",
+        "persistence": "PROCESS_LOCAL_COUNTERS"
+      },
+      {
+        "name": "analysis.temporary_override",
+        "status": "PARTIAL",
+        "evidence": "ISOLATED_DECOMPILATION_MODE_WITH_UNSAVED_EDITS",
+        "persistence": "READ_ONLY"
+      },
+      {
+        "name": "analysis.cfg",
+        "status": "UNKNOWN",
+        "evidence": "NOT_PROBED",
+        "persistence": "UNAVAILABLE"
+      },
+      {
+        "name": "analysis.concurrent_reads",
+        "status": "UNKNOWN",
+        "evidence": "NOT_PROBED",
+        "persistence": "UNAVAILABLE"
+      },
+      {
+        "name": "analysis.cancellation",
+        "status": "UNKNOWN",
+        "evidence": "NOT_PROBED",
+        "persistence": "UNAVAILABLE"
+      }
+    ]
+  },
+  "source_sha256": "d00927f8cdfdf646dbfb86af3eaf23b1be6b301d75f552f8bcdbc4a155ff72c3"
+}
