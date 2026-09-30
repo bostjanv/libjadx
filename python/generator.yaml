@@ -1,0 +1,5 @@
+project_name_override: libjadx
+package_name_override: _generated
+post_hooks:
+  - ruff check . --isolated --select F,I,UP --target-version py311 --fix
+  - ruff format . --isolated --target-version py311

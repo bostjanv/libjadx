@@ -3,3 +3,10 @@ build/
 out/
 .idea/
 .DS_Store
+python/.venv/
+python/dist/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
