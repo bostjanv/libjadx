@@ -1,0 +1,118 @@
+{
+  "commit": "28ff15e4ae69950aebea110a13e5ab895d234dfc",
+  "archiveSha256": "d856c3bfaa2d3739a853bc488bcf0d9fec5c1254dda60cc22f60138bfdd67f64",
+  "files": [
+    {
+      "path": "jadx-core/src/main/java/jadx/api/data/impl/JadxCodeRef.java",
+      "sha256": "88c1e9b3eee3c5a24447f1268a9499efe5c5e8ae35d7ee518282381f694fb7ea"
+    },
+    {
+      "path": "jadx-core/src/main/java/jadx/api/data/impl/JadxCodeRename.java",
+      "sha256": "a96a86c51d02519c0f4e5ce024bc224242af1452d4e462f1c87b59e168524b81"
+    },
+    {
+      "path": "jadx-core/src/main/java/jadx/api/JavaVariable.java",
+      "sha256": "c320e0d855ec040c99c1a7bceba1dbd7e911084ee672926bd2e481ef3be32531"
+    },
+    {
+      "path": "jadx-core/src/main/java/jadx/api/metadata/annotations/VarNode.java",
+      "sha256": "f5100158d817a10f23ba771ee7013e82020b95788ca12b216023c0c3dd928282"
+    },
+    {
+      "path": "jadx-core/src/main/java/jadx/core/dex/instructions/args/SSAVar.java",
+      "sha256": "a5779b74c52f9dc0e6f376ec49c1e70701595d99c7ee3942b222a7aa14401077"
+    },
+    {
+      "path": "jadx-core/src/main/java/jadx/core/dex/instructions/args/CodeVar.java",
+      "sha256": "f03cf37d6b73c6fc51330dae53850078b6f50aaf3080a38d83aec55b49ddfefc"
+    },
+    {
+      "path": "jadx-core/src/main/java/jadx/core/dex/visitors/InitCodeVariables.java",
+      "sha256": "97cbe40981ef70ac4ca0f8fb65c828ed4d4cde38bffc164caa42de93c060c2e3"
+    },
+    {
+      "path": "jadx-core/src/main/java/jadx/core/dex/visitors/ssa/SSATransform.java",
+      "sha256": "9f3d5486e53c7206fc81fb356cb2c57d22e015041724007ea28826511e35587a"
+    },
+    {
+      "path": "jadx-core/src/main/java/jadx/core/dex/visitors/MoveInlineVisitor.java",
+      "sha256": "1d3d0824ed71607dd37ec6ad64163cb1756c456d4fa7f10d3934f8267634d60f"
+    },
+    {
+      "path": "jadx-core/src/main/java/jadx/core/dex/visitors/shrink/CodeShrinkVisitor.java",
+      "sha256": "9dc19d4a8990d1fec90ea7a43b5cc1043a00faf2063f2aea9b35c9eb168192ce"
+    },
+    {
+      "path": "jadx-core/src/main/java/jadx/core/dex/visitors/regions/variables/ProcessVariables.java",
+      "sha256": "929d20895a6a4130b4a718a8b29fe0011c3a72d0d8f34951387a3e18e497ed8a"
+    },
+    {
+      "path": "jadx-core/src/main/java/jadx/core/dex/visitors/rename/CodeRenameVisitor.java",
+      "sha256": "6b2c0cc898b6de6d997b05f952bcd82f56833c43f9694fe576b908f84f3d0ef5"
+    },
+    {
+      "path": "jadx-core/src/main/java/jadx/core/dex/nodes/MethodNode.java",
+      "sha256": "63ac54bbf1033156721223f6259039914f2afa119521270f668dc631e81ab3ab"
+    },
+    {
+      "path": "jadx-core/src/main/java/jadx/core/dex/nodes/ClassNode.java",
+      "sha256": "cda8efc4aaef2296da9da8d1eb4618d6319b5de0cdcf44580c37ff943e54ae1f"
+    },
+    {
+      "path": "jadx-core/src/main/java/jadx/core/dex/nodes/RootNode.java",
+      "sha256": "ddd36c22c8dad45e624119ef93fedc3811d3a00bda3afa705088e98d0d93bce7"
+    },
+    {
+      "path": "jadx-core/src/main/java/jadx/core/ProcessClass.java",
+      "sha256": "82c5eadff1dd7cd97f95c84224f04c9f2a58c47972ebbc930fa6f011ffc0fadf"
+    },
+    {
+      "path": "jadx-core/src/main/java/jadx/core/Jadx.java",
+      "sha256": "7a81a346ebe3e74131bd4bc91c1227a4cadacb8f1b58cd9c6977ee6bbe98da29"
+    },
+    {
+      "path": "jadx-core/src/main/java/jadx/core/codegen/MethodGen.java",
+      "sha256": "9bc3301f77ed1b6cd363e93ed5a46512230b830e3b7292f9df53e01cea939522"
+    },
+    {
+      "path": "jadx-core/src/main/java/jadx/core/codegen/InsnGen.java",
+      "sha256": "c6308a71dd870d7f13bb8ac7efdb58191966cd6a5254aa11e443c95af6bafed6"
+    },
+    {
+      "path": "jadx-core/src/main/java/jadx/core/codegen/RegionGen.java",
+      "sha256": "8b80ef618487e38cb09a2bbd81b70de0dd096996a321a0c9dcf55e1dc011d4ee"
+    },
+    {
+      "path": "jadx-gui/src/main/java/jadx/gui/treemodel/JVariable.java",
+      "sha256": "e48cd3d287d739e77a868969c3d1bb21dc55f86caf4e40195f5e1637e9bc800a"
+    },
+    {
+      "path": "jadx-gui/src/main/java/jadx/gui/settings/data/ProjectData.java",
+      "sha256": "65f53e0b3c6a4746bceef21f9bbdb6ec7718e19ffdd9ae03ace5eed90d732a3f"
+    },
+    {
+      "path": "jadx-gui/src/main/java/jadx/gui/settings/JadxProject.java",
+      "sha256": "eab85b6e2142197733e8985abc4dc97d5bb4a90489c3b781d973a61b0f42c718"
+    },
+    {
+      "path": "jadx-gui/src/main/java/jadx/gui/settings/JadxSettings.java",
+      "sha256": "fc2fd8c8f5676acd6cad02d67542e613fd024812ba8545d12f1f9b526a9d43e4"
+    },
+    {
+      "path": "jadx-gui/src/main/java/jadx/gui/settings/JadxSettingsData.java",
+      "sha256": "acad6d35a4fc31c0ee4ef7754223c08e433efc8b3fabb36352aec67b7b53e03c"
+    },
+    {
+      "path": "jadx-gui/src/main/java/jadx/gui/JadxWrapper.java",
+      "sha256": "b2f9af41eb4d2da438e4ee2e2c48811c841106d96141ddcdd57eb721e5face88"
+    },
+    {
+      "path": "jadx-cli/src/main/java/jadx/cli/config/JadxConfigAdapter.java",
+      "sha256": "60392b4f7268ae3f8caeb15bebda9bdabfedff178e76fe312384986113fa8532"
+    },
+    {
+      "path": "jadx-cli/src/main/java/jadx/cli/JadxCLIArgs.java",
+      "sha256": "d5c53496bc9f534660417c60fb642e7440f0511189d655c1dbad76e0819cf562"
+    }
+  ]
+}

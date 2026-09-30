@@ -173,7 +173,13 @@ Before contributing, read [`AGENTS.md`](AGENTS.md), [`DESIGN.md`](DESIGN.md), an
 
 The intended architecture separates application lifecycle and HTTP transport from native project persistence, Jadx-version-sensitive integration, analysis, in-memory search, and operation scheduling. The current Gradle application is the initial implementation slice; the full logical architecture is documented in [`DESIGN.md`](DESIGN.md).
 
-Completed slices cover native save/reload and external-change detection, revisions, coordinated operations, process-local jobs, shutdown, original symbol lookup, Java source, basic references, incremental search, native declaration editing and strict Tiny v2 export/import. Snapshot-bound parameter renames are available for the proved AUTO/RESTRUCTURE signature subset. Local editing remains outstanding; verified related-method group renames are available; the Python SDK follows in Phase 6. Smali, CFG and resource capabilities depend on further tests against the pinned Jadx release.
+Phase 5.2 is complete for the proved native edit capabilities: declaration edits,
+strict Tiny v2 export/import, snapshot-bound AUTO/RESTRUCTURE parameter renames,
+and verified related-method group renames. Local editing remains deliberately
+unsupported: normal GUI input settings can make a persisted VAR key rename a
+different computation. See [local feasibility evidence](docs/phase-5-local-rename-feasibility.md).
+The Python SDK follows in Phase 6. Smali, CFG and resource capabilities depend on
+further tests against the pinned Jadx release.
 
 The long-term design retains **one project per process**, native Jadx persistence, explicit saves, and no HTTP file uploads. Planned endpoints and behavior must not be mistaken for features already delivered.
 
@@ -190,8 +196,9 @@ For implementation sequencing and known technical limits, see [`IMPLEMENTATION.m
 - [`docs/feasibility-matrix.md`](docs/feasibility-matrix.md) — tested Jadx behavior, limitations, and follow-up probes.
 - [`docs/phase-4-symbol-identity.md`](docs/phase-4-symbol-identity.md) — original identity, paging, provenance, and pinned-source evidence.
 - [`docs/phase-5-search.md`](docs/phase-5-search.md) — incremental search, coverage, jobs, cursors and pinned-source evidence.
-- [`docs/phase-5-editing.md`](docs/phase-5-editing.md) — native declaration editing, batch semantics, GUI evidence and remaining gates.
+- [`docs/phase-5-editing.md`](docs/phase-5-editing.md) — native declaration editing, batch semantics, GUI evidence and exclusions.
 - [`docs/phase-5-scoped-editing.md`](docs/phase-5-scoped-editing.md) — snapshot-bound parameter targets, native persistence and unsupported local forms.
+- [`docs/phase-5-local-rename-feasibility.md`](docs/phase-5-local-rename-feasibility.md) — native VAR retargeting, controlled matching-GUI diagnostics and the final unsupported-local decision.
 - [`docs/phase-5-hierarchy-verifier.md`](docs/phase-5-hierarchy-verifier.md) — raw declaration census, independent completeness rules, budgets and propagation prerequisites.
 
 ## License and attribution

@@ -1,5 +1,9 @@
 # PR #16: verified family replay safety gate
 
+**Current PR #20 status:** Phase 5.2 closes with local rename deliberately
+unsupported; [native retargeting feasibility](phase-5-local-rename-feasibility.md)
+supersedes the open local decision in the historical account below.
+
 **Current PR #19 boundary:** [verified related-method group admission](phase-5-related-group-admission.md)
 now admits the independently COMPLETE conservative subset under the same exclusive
 edit lease, with raw all-owner collisions, exact native records and affectedRefs.

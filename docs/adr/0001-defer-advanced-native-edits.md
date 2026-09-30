@@ -1,6 +1,6 @@
 # ADR 0001: Strict mapping export and import; defer local/propagated renames
 
-Status: export and bounded import safety decisions implemented; scoped parameter subset implemented; verified related-method admission implemented; local-variable follow-up deferred, 2026-09-29.
+Status: export and bounded import safety decisions implemented; scoped parameter subset implemented; verified related-method admission implemented; local rename deliberately unsupported after PR #20; Phase 5.2 complete, 2026-09-30.
 
 Phase 5.2 requires native mapping export, parameter/local renames and
 related-method propagation only where pinned Jadx and the matching GUI prove
@@ -178,8 +178,32 @@ may coexist. Raw hidden bridge/synthetic methods block collisions,
 without becoming admitted members. Standard Jadx records persist only on explicit
 save. Restart/discard/reload, accepted input/mapping conflicts and actual matching
 GUI Save As retain their native-only behavior. Covariant/bridge, missing/external,
-duplicate, local and parameter propagation remain unsupported. Phase 5.2 and the
-Python release are not declared complete. No dependencies or locks change.
+duplicate, local and parameter propagation remain unsupported. PR #20 subsequently closes Phase 5.2 with local rename
+deliberately unsupported; the Python release remains open. No dependencies or locks change.
 
 See [admission, status mapping, ordering and persistence](../phase-5-related-group-admission.md)
 and [final-head validation](../pr-19-review.md).
+
+## PR #20 — final unsupported-local decision
+
+This supersedes the open local-variable follow-up without changing architecture.
+Pinned native VAR records bind an original method to packed register/SSA, not to
+settings or an original local. The smallest owned straight-line JVM method has
+one exact emitted local, one SSA definition, no phi and no register reuse in the
+final tree. Its `(0,2)` rename selects an absolute-value computation by default
+but the square of that value with matching GUI Use dx/d8. Actual editor capture
+and GUI Save As preserve the same native records. ProjectData does not bind the
+global GUI mode or loader configuration, and a request's source snapshot cannot
+control their meaning after reopen.
+
+Keep `edit.local_rename=UNSUPPORTED` with evidence
+`NATIVE_VAR_RETARGETS_WITH_UNBOUND_GUI_SETTINGS`. Same-mode replay, replacement,
+save/reopen and some mode-stable candidates are positive evidence, but do not
+prove a deterministic native-safe product predicate. This does not prove every
+conceivable DEX-only subset impossible. No local operation or production verifier
+is added. Custom local IDs, project fields, sidecars and mapping extensions
+remain prohibited. Phase 5.2 closes with local editing deliberately excluded;
+Phase 6 Python SDK work proceeds under the existing architecture.
+
+See [fixture, source and GUI evidence](../phase-5-local-rename-feasibility.md) and
+[final validation](../pr-20-review.md).

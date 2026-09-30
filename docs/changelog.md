@@ -1,5 +1,20 @@
 # Experimental API changelog
 
+## 2026-09-30 — PR #20 native local-variable rename retargeting feasibility
+
+- Outcome B: local rename remains UNSUPPORTED with evidence
+  `NATIVE_VAR_RETARGETS_WITH_UNBOUND_GUI_SETTINGS`. No public local operation,
+  identity, persistence layer, production verifier, SDK or dependency change.
+- Expanded owned JVM/direct-DEX fixtures, native-consumer diagnostics, four-mode
+  and GUI-input-setting matrix, same-mode replay/replacement/save/reopen probes,
+  malformed/duplicate and GUI parameter VAR boundary tests. Original merged-SSA
+  and unannotated-catch negatives remain unchanged.
+- Matching 1.5.6 GUI editor capture and Save As in five controlled configurations
+  confirm unchanged VAR records can target different computations under Use dx/d8.
+- Phase 5.2 is complete with local editing deliberately excluded; Phase 6 Python
+  SDK work is next. [Feasibility](phase-5-local-rename-feasibility.md) and
+  [review](pr-20-review.md) record evidence and limitations.
+
 ## PR #19 — verified related-method rename group admission
 
 - METHOD RENAME accepts boolean `propagateRelated` (default false). True requires

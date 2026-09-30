@@ -129,7 +129,7 @@ public final class StatusServlet extends HttpServlet {
 					new Capability("edit.mapping_import", "PARTIAL", "TINY_V2_DECLARATIONS_CONFLICT_SAFE_MERGE", "MEMORY_ONLY_UNTIL_EXPLICIT_NATIVE_SAVE"),
 					new Capability("edit.mapping_export", "PARTIAL", "TINY_V2_VERIFIED_DECLARATIONS_STRICT_COMPLETE", "NEW_OUTPUT_ONLY"),
 					new Capability("edit.parameter_rename", "SUPPORTED", "AUTO_RESTRUCTURE_PLAIN_SIGNATURE_SNAPSHOT_GUI_VERIFIED", "MEMORY_ONLY_UNTIL_EXPLICIT_NATIVE_SAVE"),
-					new Capability("edit.local_rename", "UNSUPPORTED", "MERGED_SSA_MODE_VARIATION_NO_SAFE_PERSISTED_SUBSET", "UNAVAILABLE"),
+					new Capability("edit.local_rename", "UNSUPPORTED", "NATIVE_VAR_RETARGETS_WITH_UNBOUND_GUI_SETTINGS", "UNAVAILABLE"),
 					new Capability("edit.related_propagation", "PARTIAL", "INDEPENDENT_CLOSED_INPUT_FAMILY_GUI_VERIFIED", "MEMORY_ONLY_UNTIL_EXPLICIT_NATIVE_SAVE"),
 					new Capability("project.revisions", "PARTIAL", "CONTENT_HASH_AND_SESSION_TOKENS", "PROCESS_LOCAL_COUNTERS"),
 					new Capability("analysis.temporary_override", "PARTIAL", "ISOLATED_DECOMPILATION_MODE_WITH_UNSAVED_EDITS", "READ_ONLY"),
