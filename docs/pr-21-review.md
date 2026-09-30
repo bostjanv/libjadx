@@ -4,6 +4,8 @@ Outcome A: Phase 6.1 foundation implemented for pull-request review.
 Phase 6.2 exhaustive cross-language release qualification remains pending.
 No package publication, tag, release candidate, remote CI result or independent
 review is claimed.
+The original validation below predates the SSE review fix; the follow-up section
+records the updated code, artifacts and checks separately.
 
 ## Validated identity and tooling
 
@@ -30,14 +32,17 @@ review is claimed.
   pytest **8.4.2**, pytest-asyncio **1.2.0**.
 - Runtime: httpx **0.28.1**, attrs **26.1.0**, typing-extensions **4.16.0**;
   all runtime/dev transitives and platform markers in `python/uv.lock`.
-- License: `LicenseRef-Proprietary` / all rights reserved, explicitly selected
-  by the human for now. The upstream generator's MIT notice is included.
+- License: `LicenseRef-Proprietary` / all rights reserved reflects the base
+  repository's current lack of a root license grant, without attributing a
+  licensing decision to the human. The upstream generator's MIT notice is included.
 - Name availability check: PyPI `/pypi/libjadx/json` returned 404; nothing published.
 
-## Reproducibility and artifacts
+## Initial reproducibility and artifacts (before SSE review fix)
 
 [Machine-readable artifact manifest](pr-21-artifacts.json) includes complete
-wheel/sdist file lists, runtime dependency metadata and hashing algorithm.
+wheel/sdist file lists, runtime dependency metadata and hashing algorithm for
+the latest SSE follow-up build. The table here preserves the original build's
+hashes; updated artifact hashes are recorded in the follow-up section.
 
 | Input/artifact | SHA-256 |
 |---|---|
@@ -134,6 +139,80 @@ abandoned iteration/no prefetch, early SSE close, heartbeat/chunk boundaries,
 malformed/wrong-job/type/sequence/oversized frames, preserved opaque JSON,
 PARTIAL source provenance and bounded representations. See the
 [public parity matrix](phase-6-python-sdk.md#high-level-parity-and-validation).
+
+## SSE review follow-up — review 5380276687
+
+`Job.events()` and `AsyncJob.events()` now pass a stream-specific HTTPX timeout
+that disables only read inactivity. Connect/write/pool values come from the
+active pool, including injected clients; the pool and ordinary request timeout
+are unchanged. The shared private helper lives in handwritten `jobs.py`;
+generated transport, OpenAPI, Java, dependency locks and native persistence are
+unchanged. SDK docs describe indefinite silent-stream waiting and explicit
+iterator close/aclose or async task cancellation. License documentation now
+describes the base repository's no-license/default-rights state without claiming
+human approval.
+
+Evidence: existing `src/main/java/dev/libjadx/scheduler/JobLimits.java` specifies
+the 15-second server heartbeat; HTTPX 0.28.1's local `_config.py` provides separate
+connect/read/write/pool settings. See the upstream
+[read timeout documentation](https://www.python-httpx.org/advanced/timeouts/).
+The real-Jadx fixture remains `tests/fixtures/native-project/sample.jar` with
+pinned Jadx 1.5.6 / `28ff15e4ae69950aebea110a13e5ab895d234dfc`.
+
+New sync/async socket regressions use an owned loopback streaming mock that emits
+RUNNING, pauses **10.2 seconds**, then sends a valid heartbeat and terminal event.
+They use default SDK clients without transport injection, so real HTTPX read
+timeouts apply. Both failed before the fix with `RequestTimeoutError` caused by
+`httpx.ReadTimeout` (`2 failed in 21.41s`). Four additional injected-pool cases
+check default/custom connect/write/pool settings and ordinary job requests before
+and after SSE; all four failed on the original code's finite SSE read timeout.
+This quiet gap is a mock-server regression; no deliberately slowed Jadx job is
+claimed. Existing installed-wheel integration tests exercise actual Java SSE.
+
+| Command | Follow-up outcome |
+|---|---|
+| `python/.venv/bin/python -m pytest -q python/tests/unit` | PASS, 168 tests, 22.75s |
+| `cd python && .venv/bin/ruff format --check . && .venv/bin/ruff check . && .venv/bin/mypy src/libjadx` | PASS, 23 formatted files, no lint errors, 12 handwritten source modules |
+| `cd python && /tmp/libjadx-pr21-tools/bin/uv run --frozen --offline python scripts/check_generated.py` | PASS, all 162 generated files match |
+| `cd python && /tmp/libjadx-pr21-tools/bin/uv build --offline` | PASS, wheel built from sdist |
+| `cd python && .venv/bin/python scripts/artifact_manifest.py > ../docs/pr-21-artifacts.json` | PASS, updated artifact manifest; input/generated hashes unchanged |
+| Installed-wheel full Python suite, CPython 3.11.13 | PASS, 178 tests = 168 unit + 10 real-service integration, zero skips/failures, 119.02s |
+| Installed-wheel full Python suite, CPython 3.14.4 | PASS, 178 tests = 168 unit + 10 real-service integration, zero skips/failures, 119.51s |
+| `git diff --check` | PASS |
+
+Both existing isolated interpreter environments received the rebuilt wheel;
+the installed-package guard confirmed imports from `site-packages`. Exact
+installation/test commands (from `/tmp`, executed separately for each suffix):
+
+```bash
+for suffix in 311 314; do
+  /tmp/libjadx-pr21-tools/bin/uv pip install --offline \
+    --python /tmp/libjadx-pr21-py${suffix}/bin/python \
+    --reinstall-package libjadx --no-deps \
+    /home/alice/projects/libjadx/python/dist/libjadx-0.1.0a1-py3-none-any.whl
+  LIBJADX_EXPECT_INSTALLED=1 /tmp/libjadx-pr21-py${suffix}/bin/python -m pytest -q \
+    /home/alice/projects/libjadx/python/tests \
+    --junitxml=/tmp/libjadx-pr21-sse-py${suffix}-results.xml
+done
+```
+
+Live explicit-save/restart, discard/reload, stale-client conflicts and external
+modification checks passed on the existing installed Java distribution. Java
+and GUI suites were not rerun for this Python-only fix; prior native/GUI evidence
+remains unchanged. Phase 6.2 release qualification is still the next milestone,
+with no design decision required for this fix.
+
+An initial generator check launched directly via `.venv/bin/python` failed
+because `ruff` was absent from PATH for the generator's post-hooks. The locked
+`uv run` invocation above supplies the correct PATH and passed without changing
+the generated tree.
+
+Updated wheel SHA-256:
+`fd4ac089b39956eb26b85179de63df1e42010166c2acb55dc5b7ffd7a6e4acb5`
+(181 files). Updated sdist SHA-256:
+`981ffd6973ee66b03ee6082148e0485baaff346aa798f4a2a46211c25833de53`
+(194 files, including the new socket regression module). Original build hashes
+and test results above are historical, not claims about the follow-up artifacts.
 
 ## Persistence, exclusions and handoff
 

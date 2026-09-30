@@ -27,7 +27,9 @@ Constructors and imports perform no network I/O. Each client owns one HTTPX
 connection pool; context exit closes it without saving, shutting down the service,
 or cancelling jobs. Closing is idempotent. Injected `http_client` resources also
 transfer ownership to the SDK and must have the normalized API base URL; their
-headers, timeout and proxy settings take precedence over constructor settings.
+headers, ordinary request timeout and proxy settings take precedence over
+constructor settings. Job-event streams retain the pool's connect/write/pool
+timeouts and disable only the read timeout.
 `trust_env=False` prevents system proxies receiving local requests by default.
 
 ```python
@@ -163,6 +165,11 @@ for snapshot in job.poll_updates(timeout=30.0):
 
 `job.events(last_event_id="0")` streams typed JobEvent objects with numeric,
 monotonic IDs. Streams stop at terminal events; heartbeat comments are ignored.
+SSE requests disable the read timeout so quiet jobs can wait for the server's
+15-second heartbeat beyond the ordinary 10-second request timeout. Connect,
+write and pool timeouts still use the configured HTTPX pool values; ordinary
+request timeouts are unchanged. A silent stream can wait indefinitely; close
+the iterator or cancel the consuming async task to stop local waiting.
 UTF-8 lines and frames are capped at 1 MiB, incoming chunks processed in 16 KiB
 pieces. Schema errors raise UnexpectedResponseError; interrupted transport raises
 TransportError. Reconnect explicitly with the last observed sequence, or use

@@ -6,7 +6,7 @@
   "generated_tree_algorithm": "SHA256 sorted POSIX relative *.py path + NUL + bytes + NUL",
   "wheel": {
     "filename": "libjadx-0.1.0a1-py3-none-any.whl",
-    "sha256": "dd1b807fcfc6385672ea8498bd381469bcf6f38b333751a9bcafec1ef16c8913",
+    "sha256": "fd4ac089b39956eb26b85179de63df1e42010166c2acb55dc5b7ffd7a6e4acb5",
     "files": [
       "libjadx-0.1.0a1.dist-info/METADATA",
       "libjadx-0.1.0a1.dist-info/RECORD",
@@ -198,7 +198,7 @@
   },
   "sdist": {
     "filename": "libjadx-0.1.0a1.tar.gz",
-    "sha256": "96b93261573091dc914187c6a2fa63d443c257e54f8be22bd4fc3b68fb410155",
+    "sha256": "981ffd6973ee66b03ee6082148e0485baaff346aa798f4a2a46211c25833de53",
     "files": [
       "libjadx-0.1.0a1/.gitignore",
       "libjadx-0.1.0a1/LICENSE",
@@ -392,6 +392,7 @@
       "libjadx-0.1.0a1/tests/integration/test_live.py",
       "libjadx-0.1.0a1/tests/unit/test_api.py",
       "libjadx-0.1.0a1/tests/unit/test_generator.py",
+      "libjadx-0.1.0a1/tests/unit/test_sse_timeouts.py",
       "libjadx-0.1.0a1/uv.lock"
     ]
   }

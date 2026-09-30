@@ -409,6 +409,40 @@ async def test_sse_replay_bounds_and_semantic_errors(sdk, example):
 
 
 @pytest.mark.parametrize(
+    "timeout",
+    [httpx.Timeout(10.0), httpx.Timeout(3.0, connect=1.0, write=2.0, pool=4.0)],
+)
+async def test_sse_preserves_pool_timeouts_except_stream_read(sdk, example, timeout):
+    doc = example("job-queued.json")
+    seen = []
+
+    def handler(req):
+        seen.append(req)
+        if req.url.path.endswith("events"):
+            return httpx.Response(
+                200,
+                content=frames(example),
+                headers={"content-type": "text/event-stream"},
+            )
+        return httpx.Response(200, json=doc)
+
+    client = sdk(handler)
+    pool = (
+        client.lowlevel.get_async_httpx_client()
+        if isinstance(client, AsyncClient)
+        else client.lowlevel.get_httpx_client()
+    )
+    pool.timeout = timeout
+    job = await call(client.job(doc["jobId"]))
+    assert [event.sequence for event in await collect(job.events())] == [1, 2]
+    await call(job.refresh())
+    assert seen[0].extensions["timeout"] == timeout.as_dict()
+    assert seen[1].extensions["timeout"] == {**timeout.as_dict(), "read": None}
+    assert seen[2].extensions["timeout"] == timeout.as_dict()
+    assert pool.timeout == timeout
+
+
+@pytest.mark.parametrize(
     "kind",
     ["oversized", "bad_json", "duplicate", "wrong_job", "wrong_event", "bad_utf8"],
 )

@@ -7,8 +7,9 @@ OpenAPI schema changes in PR #21. The existing SSE example lacked its required
 JobEvent.progress and the final empty-line delimiter; all three frames now
 parse, with a parser regression. This corrects an example against the unchanged reviewed schema. A file-specific
 Git whitespace attribute permits SSE's required final empty-line delimiter. Phase 6.2 is still required before release
-qualification/publication. All rights reserved for LibJadx's own code; the
-human selected this interim policy. Upstream notices remain separate.
+qualification/publication. The base repository has no root license grant;
+SDK metadata reflects the current default reserved-rights state. This does not
+record a human-approved licensing decision. Upstream notices remain separate.
 
 ## Generator compatibility and boundary
 
@@ -102,7 +103,15 @@ CANCELLING remains nonterminal. A client deadline never cancels server work;
 async task cancellation stops only the local coroutine/request. cancel() returns
 the real server snapshot (including success if work already finished).
 
-SSE uses the same configured HTTPX pool. A job-specific bounded parser accepts
+SSE uses the same configured HTTPX pool with a per-stream timeout override:
+only the read timeout is disabled. Connect/write/pool timeouts are copied from
+the active pool, including injected client settings, without mutating its
+ordinary request timeouts. A quiet job therefore survives the server's default
+15-second heartbeat interval despite the ordinary 10-second request timeout.
+Silent streams can wait indefinitely; iterator close/aclose or async task
+cancellation stops local waiting. This follows HTTPX's
+[read inactivity timeout semantics](https://www.python-httpx.org/advanced/timeouts/).
+A job-specific bounded parser accepts
 LF/CRLF UTF-8, comments, numeric increasing IDs, matching event type and job ID,
 and typed JobEvent data. Lines/frames cap at 1 MiB; network chunks are processed
 in 16 KiB pieces without HTTPX's minimum-chunk buffering, so progress arrives
@@ -117,7 +126,8 @@ readiness/job-wait deadline (an in-flight request can consume its HTTP timeout).
 Default trust_env=False keeps loopback traffic out of environment proxies;
 advanced callers can override or inject a preconfigured client whose normalized
 API base URL must match. Injection transfers ownership and preserves its own
-headers/timeout/proxy config. Close is idempotent and never changes server state.
+headers/ordinary request timeout/proxy config. SSE overrides only the read timeout
+as described above. Close is idempotent and never changes server state.
 No arbitrary wrapper thread-safety guarantee; concurrent reads use HTTPX async
 transport, while concurrent writes remain server-authoritative.
 

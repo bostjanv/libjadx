@@ -95,6 +95,14 @@ def stream_status(response: httpx.Response) -> None:
         raise UnexpectedResponseError("Expected text/event-stream")
 
 
+def _event_timeout(timeout: httpx.Timeout) -> httpx.Timeout:
+    # Quiet jobs can outlast ordinary read timeouts between server heartbeats.
+    # Copy the active pool settings so injected clients retain their other limits.
+    return httpx.Timeout(
+        connect=timeout.connect, read=None, write=timeout.write, pool=timeout.pool
+    )
+
+
 class Job(_Job):
     def __init__(self, client: Client, raw: WireJob) -> None:
         super().__init__(raw)
@@ -149,8 +157,12 @@ class Job(_Job):
         headers = {} if last_event_id is None else {"Last-Event-ID": last_event_id}
         # The server is authoritative for malformed/future IDs.
         try:
-            with self._client.lowlevel.get_httpx_client().stream(
-                "GET", f"/jobs/{self.id}/events", headers=headers
+            pool = self._client.lowlevel.get_httpx_client()
+            with pool.stream(
+                "GET",
+                f"/jobs/{self.id}/events",
+                headers=headers,
+                timeout=_event_timeout(pool.timeout),
             ) as response:
                 if response.status_code != 200:
                     response.read()
@@ -228,8 +240,12 @@ class AsyncJob(_Job):
         headers = {} if last_event_id is None else {"Last-Event-ID": last_event_id}
         # The server is authoritative for malformed/future IDs.
         try:
-            async with self._client.lowlevel.get_async_httpx_client().stream(
-                "GET", f"/jobs/{self.id}/events", headers=headers
+            pool = self._client.lowlevel.get_async_httpx_client()
+            async with pool.stream(
+                "GET",
+                f"/jobs/{self.id}/events",
+                headers=headers,
+                timeout=_event_timeout(pool.timeout),
             ) as response:
                 if response.status_code != 200:
                     await response.aread()

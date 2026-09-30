@@ -16,6 +16,10 @@
   startup/download, uploads, project switching or local-variable mutation.
   Corrected missing required progress in the existing SSE example.
   Phase 6.2 exhaustive cross-language release qualification remains pending.
+- Fixed sync/async job-event streams to disable only their read timeout while
+  preserving configured connect/write/pool and ordinary request timeouts.
+  Quiet-stream regressions wait beyond the default 10-second request timeout
+  before receiving a heartbeat and terminal event over real HTTPX sockets.
 
 ## 2026-09-30 — PR #20 native local-variable rename retargeting feasibility
 
