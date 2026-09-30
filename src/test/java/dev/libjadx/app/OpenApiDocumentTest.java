@@ -153,7 +153,12 @@ class OpenApiDocumentTest {
 		OpenApiExampleValidator.assertValid(yaml, "ErrorEnvelope", json.readTree(Path.of("openapi/examples/mapping-import-conflict.json").toFile()));
 		OpenApiExampleValidator.assertValid(yaml, "ErrorEnvelope", json.readTree(Path.of("openapi/examples/edit-related-unsupported.json").toFile()));
 		assertTrue(yaml.path("paths").path("/edits/batch").path("post").path("description").asText().contains("implicit candidate alias propagation"));
-		assertTrue(!yaml.path("components").path("schemas").path("RenameOperation").path("properties").has("propagateRelated"));
+		for (String file : List.of("edit-related-request.json", "edit-related-applied.json", "edit-related-no-change.json",
+				"edit-related-collision.json", "edit-related-resource-limit.json")) {
+			String schema = file.contains("request") ? "EditBatchRequest" : file.contains("collision") || file.contains("resource") ? "ErrorEnvelope" : "EditBatchResult";
+			OpenApiExampleValidator.assertValid(yaml, schema, json.readTree(Path.of("openapi/examples", file).toFile()));
+		}
+		assertEquals("boolean", yaml.path("components").path("schemas").path("RenameOperation").path("properties").path("propagateRelated").path("type").asText());
 
 	}
 }

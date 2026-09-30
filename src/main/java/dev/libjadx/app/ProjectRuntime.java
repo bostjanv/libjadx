@@ -252,7 +252,8 @@ public final class ProjectRuntime implements AutoCloseable {
 		try (var lease = admit(OperationRequest.projectExclusive("native-edit-batch"))) {
 			NativeProjectRepository current = repository;
 			ProjectEngine engine = activeEngine;
-			return operation.apply(new EditContext(current, engine, current.snapshot()));
+			var context = new EditContext(current, engine, current.snapshot());
+			try { return operation.apply(context); } finally { context.expire(); }
 		}
 	}
 
@@ -284,7 +285,8 @@ public final class ProjectRuntime implements AutoCloseable {
 					|| before.revisions().logicalRevision() != request.expectedLogicalRevision()) {
 				throw new NativeProjectRepository.StaleRevisionException("Expected project revision is stale");
 			}
-			return operation.apply(new EditContext(repository, activeEngine, before));
+			var context = new EditContext(repository, activeEngine, before);
+			try { return operation.apply(context); } finally { context.expire(); }
 		}
 	}
 	@FunctionalInterface interface MappingImportOperation<T> { T apply(EditContext context) throws Exception; }
@@ -294,6 +296,27 @@ public final class ProjectRuntime implements AutoCloseable {
 		private final ProjectEngine engine;
 		private final ProjectSnapshot before;
 		private boolean committed;
+		private final Thread owner = Thread.currentThread();
+		private boolean active = true;
+		private void expire() { active = false; }
+		private void requireActive() {
+			if (!active || committed || Thread.currentThread() != owner)
+				throw new IllegalStateException("Edit context requires its active admitting callback");
+		}
+
+		dev.libjadx.core.hierarchy.RelatedHierarchyVerifier.Verification verifyRelated(
+				dev.libjadx.core.symbols.SymbolRef seed,
+				dev.libjadx.core.hierarchy.RelatedHierarchyVerifier.VerificationBudget budget) {
+			requireActive();
+			return engine.hierarchyVerifier().verify(seed, budget);
+		}
+
+		void checkAnalysisBaselines() {
+			requireActive();
+			try { current.checkAnalysisBaselines(); }
+			catch (NativeProjectRepository.ExternalModificationException conflict) { throw new NativeEditConflictException(conflict); }
+			catch (IOException failure) { throw new IllegalStateException("Analysis baseline validation failed", failure); }
+		}
 
 		private EditContext(NativeProjectRepository current, ProjectEngine engine, ProjectSnapshot before) {
 			this.current = current;
@@ -301,17 +324,17 @@ public final class ProjectRuntime implements AutoCloseable {
 			this.before = before;
 		}
 
-		ProjectSnapshot before() { return before; }
-		long publicationEpoch() { return publicationEpoch; }
-		EffectiveAnalysisConfig settings() { return effectiveConfig; }
-		JadxDecompiler decompiler() { return engine.decompiler(); }
-		JadxCodeData codeDataCopy() { return current.codeDataCopy(); }
-		NativeProjectRepository.MappingExportSource mappingSource() throws IOException { return current.mappingExportSource(); }
-		void checkMappingBaselines() throws IOException { current.checkExportBaselines(); }
+		ProjectSnapshot before() { requireActive(); return before; }
+		long publicationEpoch() { requireActive(); return publicationEpoch; }
+		EffectiveAnalysisConfig settings() { requireActive(); return effectiveConfig; }
+		JadxDecompiler decompiler() { requireActive(); return engine.decompiler(); }
+		JadxCodeData codeDataCopy() { requireActive(); return current.codeDataCopy(); }
+		NativeProjectRepository.MappingExportSource mappingSource() throws IOException { requireActive(); return current.mappingExportSource(); }
+		void checkMappingBaselines() throws IOException { requireActive(); current.checkExportBaselines(); }
 
 		/** Load a private fresh engine before the single authoritative native commit. */
 		ProjectSnapshot commit(JadxCodeData edited) {
-			if (committed) throw new IllegalStateException("Edit context already committed");
+			requireActive();
 			committed = true;
 			try {
 				var candidate = current.stageCodeData(edited, before.revisions().logicalRevision());

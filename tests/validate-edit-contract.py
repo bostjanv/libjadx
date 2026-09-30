@@ -26,6 +26,11 @@ examples = {
     "edit-batch-partial-no-applied.json": "EditBatchResult",
     "edit-batch-rejected.json": "ErrorEnvelope",
     "edit-related-unsupported.json": "ErrorEnvelope",
+    "edit-related-collision.json": "ErrorEnvelope",
+    "edit-related-resource-limit.json": "ErrorEnvelope",
+    "edit-related-request.json": "EditBatchRequest",
+    "edit-related-applied.json": "EditBatchResult",
+    "edit-related-no-change.json": "EditBatchResult",
 }
 for name, schema in examples.items():
     document = {"$ref": f"#/components/schemas/{schema}", "components": spec["components"]}
@@ -80,20 +85,48 @@ missing.pop("expectedSessionId"); missing.pop("expectedLogicalRevision")
 assert not Draft202012Validator(request_schema).is_valid(missing)
 print(f"{len(scoped)} scoped live HTTP responses valid; statuses={sorted(scoped_statuses)}")
 
-# Evidence-only PR #14/#16: deliberately rejected requests, never a supported flag.
-related_request = json.loads((root / "openapi/examples/edit-related-rejected-request.json").read_text())
+# PR #19: explicit boolean admission with revision preconditions and real HTTP evidence.
+related_request = json.loads((root / "openapi/examples/edit-related-request.json").read_text())
 validator = Draft202012Validator(request_schema)
-for flag in (True, False, None, "yes", 7, [], {}):
+validator.validate(related_request)
+for flag in (None, "yes", 7, [], {}):
     related_request["items"][0]["propagateRelated"] = flag
     assert not validator.is_valid(related_request)
+related_request["items"][0]["propagateRelated"] = False
+related_request.pop("expectedSessionId"); related_request.pop("expectedLogicalRevision")
+validator.validate(related_request)
 related_request["items"][0].pop("propagateRelated")
-validator.validate(related_request)  # Legacy declaration request remains accepted.
+validator.validate(related_request)
+related_request["items"][0]["propagateRelated"] = True
+assert not validator.is_valid(related_request)
+related_request = json.loads((root / "openapi/examples/edit-related-request.json").read_text())
+related_request["items"][0]["target"] = {"kind": "CLASS", "originalClassDescriptor": "Lrelated/Hierarchy;"}
+assert not validator.is_valid(related_request)
+related_request["items"][0]["propagateRelated"] = False
+validator.validate(related_request)
 related = sorted((root / "build/related-contract-responses").glob("*.json"))
-assert len(related) == 14, "Run RelatedPropagationEndpointsTest for clean/dirty presence-rejection captures"
+assert len(related) == 36, "Run RelatedPropagationEndpointsTest for all final-head HTTP captures"
+statuses = set()
 for path in related:
     record = json.loads(path.read_text())
-    assert record["status"] == 422
-    Draft202012Validator({"$ref": "#/components/schemas/ErrorEnvelope", "components": spec["components"]}).validate(record["body"])
-    assert record["body"]["error"]["code"] == "UNSUPPORTED_CAPABILITY"
-    assert record["body"]["error"]["details"]["itemErrors"][0]["index"] == 1
-print(f"{len(related)} related-propagation rejection responses valid; propagation remains unsupported")
+    statuses.add(record["status"])
+    Draft202012Validator({"$ref": f'#/components/schemas/{record["schema"]}', "components": spec["components"]}).validate(record["body"])
+    if record["status"] == 200:
+        validator.validate(record["request"])
+    if record["status"] == 422:
+        assert record["body"]["error"]["code"] == "UNSUPPORTED_CAPABILITY"
+        assert record["body"]["error"]["details"]["itemErrors"][0]["index"] == 0
+assert {200, 400, 404, 409, 422, 429} <= statuses
+family = json.loads((root / "openapi/examples/edit-related-applied.json").read_text())["items"][0]["affectedRefs"]
+for name in ("applied", "no-change"):
+    result = json.loads((root / f"build/related-contract-responses/{name}.json").read_text())["body"]
+    assert result["items"][0]["affectedRefs"] == family
+    assert result["outcome"] == ("APPLIED" if name == "applied" else "NO_CHANGE")
+assert json.loads((root / "build/related-contract-responses/false.json").read_text())["body"]["items"][0]["affectedRefs"] == []
+for order in ("group-first", "ordinary-first"):
+    for flag in ("false", "omitted"):
+        record = json.loads((root / f"build/related-contract-responses/mixed-{order}-{flag}.json").read_text())
+        assert record["status"] == 400
+        assert record["body"]["error"]["code"] == "INVALID_REQUEST"
+        assert record["body"]["error"]["details"]["itemErrors"][0]["index"] == (1 if order == "group-first" else 0)
+print(f"{len(related)} related-propagation live HTTP responses valid; exact propagated family and no-op receipts verified")

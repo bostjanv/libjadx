@@ -237,7 +237,7 @@ Offer decoded manifest and Android metadata, declared permissions/components, de
 
 Initial indexes cover names, original descriptors, annotations, strings and available resource metadata without forcing all source decompilation. Build source-text and reference indexes lazily per class, then allow a complete-index async job. In-memory state stores which eligible classes were indexed under which settings and logical revision; present actual coverage and per-class failures. Never confuse '100% processed' with '100% successfully decompiled'.
 
-Validated editing operations use supported native Jadx renames/comments/mappings. Prefer Jadx-native related-declaration propagation. Validate entity identities, naming rules, revision preconditions, and whether each operation is persistable. A batch that fails prevalidation applies nothing; unexpected mid-execution failure returns the exact per-item applied/failed set. Invalidate affected source, reference and search caches immediately. Index refresh is lazy or an optional background job; a `require_complete`/`require_current` query waits via the job mechanism if needed.
+Validated editing operations use supported native Jadx renames/comments/mappings. Explicit related-method propagation uses the independent COMPLETE verifier and standard per-member native records under the PR #19 admission rules below. Validate entity identities, naming rules, revision preconditions, and whether each operation is persistable. A batch that fails prevalidation applies nothing; unexpected mid-execution failure returns the exact per-item applied/failed set. Invalidate affected source, reference and search caches immediately. Index refresh is lazy or an optional background job; a `require_complete`/`require_current` query waits via the job mechanism if needed.
 
 An unsupported persistable operation must fail with `UNSUPPORTED_CAPABILITY`, not silently become an unsaved-only feature. Reports of code-analysis completeness and persistence status are separate.
 
@@ -325,7 +325,31 @@ Effective native batches now privately stage complete code data, load one fresh
 production engine, commit native data once, then publish that engine under the
 existing exclusive lease. No-op retains the engine and revisions; candidate
 failure publishes nothing. See [replacement publication](docs/phase-5-replacement-publication.md) for ordering,
-failures, oracle, persistence and validation. Related propagation and local
-editing remain unsupported. PR #19 still requires same-lease COMPLETE verification,
-immutable group plans, all-owner collision admission, exact original native
-records and affectedRefs, and propagated HTTP/native/restart/actual-GUI gates.
+failures, oracle, persistence and validation. PR #19's
+[verified group admission](docs/phase-5-related-group-admission.md) now supplies same-lease
+COMPLETE verification, immutable plans, all-owner raw collision checks and exact
+native records/affectedRefs. Local editing remains unsupported.
+
+## PR #19 — verified related-method rename group admission
+
+This section supersedes prior propagation deferrals. Explicit METHOD RENAME
+`propagateRelated: true` admits only independently COMPLETE closed-input families
+verified synchronously against the captured current engine under one exclusive
+edit lease. Immutable sorted original/native plans, raw all-owner collision
+inventory, full-batch overlap checks and group-private atomic staging precede
+PR #18 fresh replacement publication. Ordinary omitted/false retains one-record
+semantics and empty affectedRefs. Applied and verified no-op groups return exact
+original family refs; no-op requires every explicit member record already present.
+
+Limits: 64 per family; four propagated items, 128 total members and 800000 reserved
+verification work per batch. No class or ordinary method rename shares a group
+batch; parameter edits on members reject. Field renames and declaration comments
+may coexist. Raw hidden bridge/synthetic methods block collisions,
+without becoming admitted members. Standard Jadx records persist only on explicit
+save. Restart/discard/reload, accepted input/mapping conflicts and actual matching
+GUI Save As retain their native-only behavior. Covariant/bridge, missing/external,
+duplicate, local and parameter propagation remain unsupported. Phase 5.2 and the
+Python release are not declared complete. No dependencies or locks change.
+
+See [admission, status mapping, ordering and persistence](docs/phase-5-related-group-admission.md)
+and [final-head validation](docs/pr-19-review.md).

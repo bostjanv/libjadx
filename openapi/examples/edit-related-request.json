@@ -6,8 +6,8 @@
       "kind": "RENAME",
       "target": {
         "kind": "METHOD",
-        "originalClassDescriptor": "Lrelated/Hierarchy$MissingParent;",
-        "originalName": "lost",
+        "originalClassDescriptor": "Lrelated/Hierarchy$Joined;",
+        "originalName": "joined",
         "originalDescriptor": "(I)I"
       },
       "newName": "renamedJoined",

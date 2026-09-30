@@ -40,7 +40,7 @@ Evidence is tied to Jadx `1.5.6` source commit `28ff15e4ae69950aebea110a13e5ab89
 | Parameter rename | SUPPORTED for verified plain AUTO/RESTRUCTURE concrete signatures | `JadxVariableProbeTest`, `ScopedParameterServiceTest`, `ScopedParameterEndpointsTest`, packaged process restart and `scopedEditGuiRoundTripTest` cover original positional indexes, wide arguments, source binding, prevalidation and explicit persistence. Unsupported forms fail closed. See `phase-5-scoped-editing.md`. |
 | Local rename | UNSUPPORTED | Owned merged/loop/branch/register-reuse fixture proves changed emitted SSA identity under SIMPLE and missing declarations in FALLBACK. A persisted key is not a settings-independent local identity. No safe general persistence subset is exposed. |
 | Generic fresh-equivalent native edit publication | SUPPORTED for the owned complete-state matrix | `ReplacementPublicationTest` and `ReplacementStateTest` prove staged load-before-commit publication, faults/leases, explicit intent and fresh-derived aliases. `SafeReplayStrategyTest` retains old replay negative controls. See [PR #18](phase-5-replacement-publication.md). |
-| Related override propagation | UNSUPPORTED | PR #15 independently proves closed-input families, including all four Joined declarations. Historical PR #16 in-place replay changes unrelated CovariantLeaf aliases; PR #18 replacement fixes that diagnostic but group admission is still absent. Retain all presence-based 422 rejections. Actual GUI resave diagnostics do not establish safe propagated transactions. See [replay evidence](phase-5-propagated-edits.md) and [candidate evidence](phase-5-related-propagation.md). |
+| Verified related-method group rename | PARTIAL — conservative independently COMPLETE closed-input subset | PR #19 same-exclusive-lease verification, raw all-owner collision blockers, immutable group staging and exact affectedRefs; PR #18 fresh replacement. Ordinary native records, explicit save/restart and matching-GUI Save As. See [admission](phase-5-related-group-admission.md) and [final evidence](pr-19-review.md). |
 | Original-input declaration census | SUPPORTED for bounded class/JAR/DEX subset, internal only | `RawInputCensusProbeTest` and `InputCensusTest` retain duplicates and divergent methods/access/supertypes before RootNode selection, with exact configured origins, hard-limit boundaries and strict parse/checksum failures. No source bodies or mutable Jadx nodes are retained. |
 | Independent override-family completeness | SUPPORTED for conservative closed-input exact-return subset, internal only | `IndependentHierarchyVerifierTest` verifies chains/defaults/diamonds/independent branches, visibility, inherited interface implementations, two inputs and DEX. Every complete family is seed independent. Bridge/covariant/synthetic, missing/external/duplicate and resource-limited results expose no partial family. `HierarchyVerifierLifecycleTest` checks lifecycle and input invalidation. See [rules](phase-5-hierarchy-verifier.md). |
 
@@ -103,7 +103,31 @@ Effective native batches now privately stage complete code data, load one fresh
 production engine, commit native data once, then publish that engine under the
 existing exclusive lease. No-op retains the engine and revisions; candidate
 failure publishes nothing. See [replacement publication](phase-5-replacement-publication.md) for ordering,
-failures, oracle, persistence and validation. Related propagation and local
-editing remain unsupported. PR #19 still requires same-lease COMPLETE verification,
-immutable group plans, all-owner collision admission, exact original native
-records and affectedRefs, and propagated HTTP/native/restart/actual-GUI gates.
+failures, oracle, persistence and validation. PR #19's
+[verified group admission](phase-5-related-group-admission.md) now supplies same-lease
+COMPLETE verification, immutable plans, all-owner raw collision checks and exact
+native records/affectedRefs. Local editing remains unsupported.
+
+## PR #19 — verified related-method rename group admission
+
+This section supersedes prior propagation deferrals. Explicit METHOD RENAME
+`propagateRelated: true` admits only independently COMPLETE closed-input families
+verified synchronously against the captured current engine under one exclusive
+edit lease. Immutable sorted original/native plans, raw all-owner collision
+inventory, full-batch overlap checks and group-private atomic staging precede
+PR #18 fresh replacement publication. Ordinary omitted/false retains one-record
+semantics and empty affectedRefs. Applied and verified no-op groups return exact
+original family refs; no-op requires every explicit member record already present.
+
+Limits: 64 per family; four propagated items, 128 total members and 800000 reserved
+verification work per batch. No class or ordinary method rename shares a group
+batch; parameter edits on members reject. Field renames and declaration comments
+may coexist. Raw hidden bridge/synthetic methods block collisions,
+without becoming admitted members. Standard Jadx records persist only on explicit
+save. Restart/discard/reload, accepted input/mapping conflicts and actual matching
+GUI Save As retain their native-only behavior. Covariant/bridge, missing/external,
+duplicate, local and parameter propagation remain unsupported. Phase 5.2 and the
+Python release are not declared complete. No dependencies or locks change.
+
+See [admission, status mapping, ordering and persistence](phase-5-related-group-admission.md)
+and [final-head validation](pr-19-review.md).

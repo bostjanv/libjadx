@@ -1,5 +1,13 @@
 # Phase 5.2 native declaration editing slice
 
+**Current PR #19 boundary:** [verified related-method group admission](phase-5-related-group-admission.md)
+now admits the independently COMPLETE conservative subset under the same exclusive
+edit lease, with raw all-owner collisions, exact native records and affectedRefs.
+Earlier unsupported-contract statements below describe historical milestones;
+candidate/replay counterexamples remain valid. Local and parameter propagation
+remain unsupported. Final validation is in [PR #19 review](pr-19-review.md).
+
+
 The service accepts `POST /api/v1/edits/batch` for exact original class,
 method and field declarations. `RENAME` changes a display alias and
 `SET_COMMENT` upserts one native `LINE` declaration comment. Edits remain in
@@ -310,7 +318,7 @@ Effective native batches now privately stage complete code data, load one fresh
 production engine, commit native data once, then publish that engine under the
 existing exclusive lease. No-op retains the engine and revisions; candidate
 failure publishes nothing. See [replacement publication](phase-5-replacement-publication.md) for ordering,
-failures, oracle, persistence and validation. Related propagation and local
-editing remain unsupported. PR #19 still requires same-lease COMPLETE verification,
-immutable group plans, all-owner collision admission, exact original native
-records and affectedRefs, and propagated HTTP/native/restart/actual-GUI gates.
+failures, oracle, persistence and validation. PR #19's
+[verified group admission](phase-5-related-group-admission.md) now supplies same-lease
+COMPLETE verification, immutable plans, all-owner raw collision checks and exact
+native records/affectedRefs. Local editing remains unsupported.

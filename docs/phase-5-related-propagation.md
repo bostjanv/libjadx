@@ -1,5 +1,13 @@
 # PR #14: related-method propagation feasibility
 
+**Current PR #19 boundary:** [verified related-method group admission](phase-5-related-group-admission.md)
+now admits the independently COMPLETE conservative subset under the same exclusive
+edit lease, with raw all-owner collisions, exact native records and affectedRefs.
+Earlier unsupported-contract statements below describe historical milestones;
+candidate/replay counterexamples remain valid. Local and parameter propagation
+remain unsupported. Final validation is in [PR #19 review](pr-19-review.md).
+
+
 Outcome: **B, evidence-only; explicit propagation remains UNSUPPORTED**.
 Jadx 1.5.6, source commit `28ff15e4ae69950aebea110a13e5ab895d234dfc`,
 cannot establish the required completeness through its related-method attributes.

@@ -9,9 +9,13 @@ public final class EditDtos {
 	private EditDtos() { }
 	public enum Kind { RENAME, SET_COMMENT, RENAME_PARAMETER }
 	public record Operation(Kind kind, SymbolRef target, String newName, String comment, String style,
-			Integer parameterIndex, String sourceSnapshotId) {
+			Integer parameterIndex, String sourceSnapshotId, boolean propagateRelated) {
 		public Operation(Kind kind, SymbolRef target, String newName, String comment, String style) {
-			this(kind, target, newName, comment, style, null, null);
+			this(kind, target, newName, comment, style, null, null, false);
+		}
+		public Operation(Kind kind, SymbolRef target, String newName, String comment, String style,
+				Integer parameterIndex, String sourceSnapshotId) {
+			this(kind, target, newName, comment, style, parameterIndex, sourceSnapshotId, false);
 		}
 	}
 	public record Request(String expectedSessionId, Long expectedLogicalRevision, List<Operation> items) {

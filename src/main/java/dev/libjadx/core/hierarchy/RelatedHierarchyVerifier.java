@@ -18,11 +18,14 @@ public interface RelatedHierarchyVerifier {
 		public static VerificationBudget defaults() { return new VerificationBudget(64, 10_000, 200_000); }
 	}
 	record Diagnostic(Status status, String descriptor, String reason) { }
-	record Verification(Status status, SymbolRef seed, List<SymbolRef> members, List<Diagnostic> diagnostics) {
+	record Verification(Status status, SymbolRef seed, List<SymbolRef> members, List<Diagnostic> diagnostics, long work) {
+		public Verification(Status status, SymbolRef seed, List<SymbolRef> members, List<Diagnostic> diagnostics) {
+			this(status, seed, members, diagnostics, 0);
+		}
 		public Verification {
 			members = List.copyOf(members);
 			diagnostics = List.copyOf(diagnostics);
-			if (members.size() > 64 || diagnostics.size() > 16 || (status != Status.COMPLETE && !members.isEmpty()))
+			if (work < 0 || members.size() > 64 || diagnostics.size() > 16 || (status != Status.COMPLETE && !members.isEmpty()))
 				throw new IllegalArgumentException("Incomplete results cannot expose a truncated family");
 		}
 		public static Verification incomplete(Status status, SymbolRef seed, String descriptor, String reason) {
