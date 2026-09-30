@@ -1,5 +1,13 @@
 # Experimental API changelog
 
+## 2026-09-29 — PR #17 safe replay / replacement-engine feasibility
+
+- Outcome B: no production replay/publication, OpenAPI, DTO, SDK or dependency change.
+- Added executable comparisons for current replay, listener-first replay, exact-owner invalidation and fresh replacement, with raw bridge aliases, Java, source metadata, member-search data and reference dependencies.
+- Retained the hot Joined negative control and added the minimal return-only overload counterexample: replacement recomputes an untouched automatic alias when the requested rename removes a collision.
+- Added complete native/mapping/scoped-state reconstruction probes, owned-size load/census/heap measurements and an actual matching-GUI alias-recomputation diagnostic.
+- Propagation and local editing stay unsupported. A decision about automatic nonmember alias recomputation is required before adopting generic replacement.
+
 ## 2026-09-29 — PR #16 complete-family replay negative evidence
 
 - Retained `422 UNSUPPORTED_CAPABILITY` for every `propagateRelated` presence
