@@ -44,6 +44,15 @@ Evidence is tied to Jadx `1.5.6` source commit `28ff15e4ae69950aebea110a13e5ab89
 | Original-input declaration census | SUPPORTED for bounded class/JAR/DEX subset, internal only | `RawInputCensusProbeTest` and `InputCensusTest` retain duplicates and divergent methods/access/supertypes before RootNode selection, with exact configured origins, hard-limit boundaries and strict parse/checksum failures. No source bodies or mutable Jadx nodes are retained. |
 | Independent override-family completeness | SUPPORTED for conservative closed-input exact-return subset, internal only | `IndependentHierarchyVerifierTest` verifies chains/defaults/diamonds/independent branches, visibility, inherited interface implementations, two inputs and DEX. Every complete family is seed independent. Bridge/covariant/synthetic, missing/external/duplicate and resource-limited results expose no partial family. `HierarchyVerifierLifecycleTest` checks lifecycle and input invalidation. See [rules](phase-5-hierarchy-verifier.md). |
 
+## PR #21 Python SDK foundation
+
+Generated OpenAPI 3.1 transport, sync/async wrappers and local packaging are
+SUPPORTED for the representative owned-server workflows on CPython 3.11.13 and
+3.14.4 (Linux). All 22 operation IDs have generated functions; live exhaustive
+route/error parity and larger cancellation/lifecycle workflows remain Phase 6.2.
+Native/GUI behavior and all Jadx capability limitations above are unchanged.
+See [SDK architecture](phase-6-python-sdk.md) and [validation](pr-21-review.md).
+
 ## Phase 2 exercised behavior
 
 `ProjectEndpointsTest` uses the pinned Jadx engine and native fixture to check

@@ -1,5 +1,26 @@
 # Experimental API changelog
 
+## 2026-09-30 — PR #21 Python SDK foundation
+
+- Added one experimental `libjadx` 0.1.0a1 distribution: patched pinned
+  openapi-python-client 0.29.1 transport for all 22 operations, generated models
+  and handwritten synchronous/asynchronous Client/Project/Symbol/Search/Job APIs.
+- Preserved exact original refs, partial/source provenance, full typed errors,
+  monotonic revision knowledge, explicit save and no hidden conflict retries.
+  Added lazy cursor guards and bounded typed SSE with explicit polling fallback.
+- Locked tooling, deterministic regeneration, wheel/sdist artifacts, py.typed
+  and reserved-rights metadata with upstream generator notice. Linux clean-wheel
+  Python 3.11/3.14 generated/sync/async representative server workflows; see
+  [exact evidence and limitations](pr-21-review.md).
+- No Java/native behavior or OpenAPI schema changes, no PyPI publication, service
+  startup/download, uploads, project switching or local-variable mutation.
+  Corrected missing required progress in the existing SSE example.
+  Phase 6.2 exhaustive cross-language release qualification remains pending.
+- Fixed sync/async job-event streams to disable only their read timeout while
+  preserving configured connect/write/pool and ordinary request timeouts.
+  Quiet-stream regressions wait beyond the default 10-second request timeout
+  before receiving a heartbeat and terminal event over real HTTPX sockets.
+
 ## 2026-09-30 — PR #20 native local-variable rename retargeting feasibility
 
 - Outcome B: local rename remains UNSUPPORTED with evidence

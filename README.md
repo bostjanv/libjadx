@@ -1,6 +1,6 @@
 # LibJadx
 
-**LibJadx is an experimental, standalone, headless Java service for accessing [Jadx](https://github.com/skylot/jadx) from local HTTP clients.** It is intended to make reverse-engineering workflows scriptable through a versioned REST/JSON API and, in a later milestone, a Python SDK.
+**LibJadx is an experimental, standalone, headless Java service for accessing [Jadx](https://github.com/skylot/jadx) from local HTTP clients.** It is intended to make reverse-engineering workflows scriptable through a versioned REST/JSON API and an experimental Python SDK.
 
 > **Project status — early development.** Startup, native project lifecycle, jobs, explicit shutdown, original symbol lookup, Java decompilation, incremental search and native declaration editing are implemented. Advanced editing remains gated by Jadx and GUI probes. See [Current functionality](#current-functionality) before integrating it.
 
@@ -41,6 +41,25 @@ Native declaration edits and a matching-GUI save/reopen round trip are exercised
 | Other planned analysis routes | Structured `PROJECT_NOT_READY` while loading, a non-retryable load failure after failed initialization, or `OPERATION_NOT_IMPLEMENTED` after readiness. |
 
 Unknown paths return `NOT_FOUND`. The API contract is in [`openapi/openapi.yaml`](openapi/openapi.yaml).
+
+## Python SDK foundation (PR #21)
+
+The experimental `libjadx` 0.1.0a1 SDK provides generated typed transport,
+handwritten synchronous/asynchronous APIs, explicit revisions and save,
+pagination and job polling/SSE. It connects to an already running service.
+Python 3.11 is the minimum; Linux wheel validation covers 3.11 and 3.14.
+Build/install locally (no PyPI publication):
+
+```bash
+cd python
+uv sync --frozen --all-groups
+uv build
+python -m pip install dist/libjadx-0.1.0a1-py3-none-any.whl
+```
+
+See [SDK usage, conflicts and limitations](python/README.md) and
+[Phase 6 architecture](docs/phase-6-python-sdk.md). Phase 6.2 cross-language
+release qualification remains pending; this milestone is not a release candidate.
 
 ## Requirements
 

@@ -260,6 +260,14 @@ Generate the low-level synchronous and asynchronous clients and typed models fro
 
 Use Python typing and a supported minimum interpreter version chosen at implementation start; record it in the compatibility matrix. Avoid hidden project opens, hidden autosaves, silently discarded partial results and stale-revision retries that mutate unexpected entities. Provide examples for basic analysis, batch rename + explicit save, async complete search and cancellation.
 
+PR #21 implements P6.1 with patched pinned OpenAPI generation, handwritten
+sync/async APIs, lazy cursors, explicit revision/save/conflict behavior, bounded
+SSE and local wheel/sdist artifacts. Linux clean-wheel representative generated,
+sync and async server tests cover Python 3.11/3.14. See
+[SDK architecture](docs/phase-6-python-sdk.md) and
+[exact validation/limitations](docs/pr-21-review.md). This is SDK foundation;
+P6.2 release qualification and any external publication remain pending.
+
 ### P6.2 Cross-language and release tests
 
 Run a real service in subprocess integration tests. Exercise every first-release route from raw HTTP, generated low-level Python, handwritten sync Python and async Python. Verify identical typed error codes, provenance fields, source snapshots, strict/partial behavior and SSE/polling outcomes. Generate the Python package and Java standalone distribution reproducibly.

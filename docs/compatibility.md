@@ -1,6 +1,7 @@
 # Compatibility and pinned dependencies
 
-Status: Phase 5.2 complete with local rename deliberately unsupported, updated 2026-09-30.
+Status: Phase 5.2 complete with local rename deliberately unsupported; Phase 6.1
+SDK foundation implemented, Phase 6.2 qualification pending. Updated 2026-09-30.
 
 ## Jadx pin
 
@@ -256,3 +257,34 @@ evidence `NATIVE_VAR_RETARGETS_WITH_UNBOUND_GUI_SETTINGS`, persistence UNAVAILAB
 Phase 5.2 closes with local editing excluded; Phase 6 is next. No dependency,
 lock, runtime GUI, schema or mapping-format change. See
 [feasibility](phase-5-local-rename-feasibility.md) and [validation](pr-20-review.md).
+
+## PR #21 Python SDK baseline
+
+Distribution/import: `libjadx` **0.1.0a1**, HTTP-only, all rights reserved for now
+(`LicenseRef-Proprietary`, human-selected interim policy). Jadx pin/source, Java
+runtime and OpenAPI 0.1.0-experimental remain unchanged. This is Phase 6.1 SDK
+foundation; Phase 6.2 release qualification/publication remains pending.
+
+| Component | Exact tested pin | Scope |
+|---|---|---|
+| Minimum Python | 3.11 | Package requires >=3.11; no 3.15 prerelease claim |
+| Python interpreters | CPython 3.11.13 and 3.14.4 | Clean wheel environments on Linux x86_64 |
+| Generator | openapi-python-client 0.29.1 | Patched security release; sole input openapi/openapi.yaml; stock templates |
+| Environment/lock/build frontend | uv 0.8.22, uv.lock | Frozen universal dependency resolution, wheel/sdist |
+| Build backend | hatchling 1.27.0 | Pinned isolated build backend |
+| Runtime HTTP client | httpx 0.28.1 | Same connection pool for generated/high-level and SSE |
+| Generated model runtime | attrs 26.1.0, typing-extensions 4.16.0 | Typed attrs models; no additional handwritten validation framework |
+| Runtime transitives | anyio 4.15.1, certifi 2026.7.22, h11 0.16.0, httpcore 1.0.9, idna 3.20 | Locked wheel test environments |
+| Type checker | mypy 1.19.1 | Strict handwritten modules; generated imports followed silently |
+| Linter/formatter | ruff 0.16.9 | Isolated generator hooks; handwritten explicit config |
+| Tests | pytest 8.4.2, pytest-asyncio 1.2.0 | Generated/model, sync/async mock and real subprocess tests |
+| Independent contract validators | PyYAML 6.0.3, jsonschema 4.26.0, openapi-spec-validator 0.9.0 | Existing Java captures rerun unchanged |
+
+All transitive build/test/generator versions and distribution hashes are locked
+in `python/uv.lock`. Runtime dependency ranges are intentionally narrow; validation
+uses the exact locked versions above. Network is required to bootstrap an empty
+cache; frozen offline sync works after populating it. No Windows/macOS results
+or external publication are claimed. [SDK architecture](phase-6-python-sdk.md)
+records generator limitations; [review](pr-21-review.md) records actual commands,
+counts and artifact fingerprints. PyPI name check returned 404 on 2026-09-30;
+no package was published or reserved.

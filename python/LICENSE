@@ -1,0 +1,5 @@
+LibJadx has not yet selected a license for its own source code.
+All rights reserved by the respective contributors.
+Local build artifacts are for evaluation; this metadata grants no additional rights.
+The generated transport uses openapi-python-client's MIT-licensed templates;
+see THIRD_PARTY.md. Jadx is distributed separately and is not bundled here.
