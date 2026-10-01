@@ -33,6 +33,7 @@ class Service:
     ):
         self.started = time.monotonic()
         self.root = root
+        self.test_hooks_enabled = hooks
         self.hooks = root / "hooks"
         self.hooks.mkdir(exist_ok=True)
         for point in holds:

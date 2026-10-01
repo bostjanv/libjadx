@@ -1,6 +1,11 @@
 # PR #22 review — cross-language release qualification
 
-Milestone: Phase 6.2, first experimental release qualification. **Outcome A: qualified locally.**
+Current status: **NOT QUALIFIED pending review-fix requalification**. The capability
+snapshot correction supersedes the source fingerprint and results below. The full
+candidate aggregate, including dedicated matching-GUI gates, must run again before
+these evidence files are replaced and qualification is claimed.
+
+Historical milestone: Phase 6.2, first experimental release qualification. **Outcome A at the earlier source below.**
 Java candidate `0.1.0-alpha.1` / Python `0.1.0a1` is qualified at source commit
 `f9803ca9c7608aa8909a5ab451580a9b439e133e`. API remains `0.1.0-experimental`.
 Publication status: **NOT PUBLISHED**. No tag, GitHub release, artifact upload,

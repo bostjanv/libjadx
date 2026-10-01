@@ -25,6 +25,12 @@ The implementation currently includes:
 
 Native declaration edits and a matching-GUI save/reopen round trip are exercised by real Jadx tests. The capability endpoint identifies narrower support and remaining unverified edit forms.
 
+Public capabilities describe service behavior: Smali representation and parallel
+primary Jadx reads are `UNSUPPORTED`; conflicting primary reads fail fast with
+`PROJECT_BUSY`. Job cancellation is `PARTIAL`: it is cooperative, and CANCELLING
+lasts until work stops. Multiple HTTP clients are supported; deadlines and stream
+closure do not request cancellation or guarantee hard Jadx interruption.
+
 | HTTP endpoint | Current behavior |
 | --- | --- |
 | `GET /api/v1/health/live` | Process liveness (`ALIVE`); does **not** imply the project is ready. |

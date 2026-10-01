@@ -1,6 +1,13 @@
 """Final process-wide release coverage gate: new/stale/missing rows fail closed."""
 
-from release_support import ERRORS, OPERATIONS, ROUTES, SURFACES
+from release_support import (
+    CAPABILITIES,
+    ERRORS,
+    OPERATIONS,
+    ROUTES,
+    SURFACES,
+    assert_release_capabilities,
+)
 
 from libjadx.lowlevel import models
 
@@ -26,3 +33,10 @@ def test_every_operation_has_all_live_surfaces_and_negative_evidence():
         )
         assert row["positive_case"] and row["negative_case"] and row["error_checked"]
         assert row["provenance_checked"]
+
+
+def test_complete_capability_snapshot_has_ordinary_process_evidence():
+    assert set(CAPABILITIES) == set(SURFACES)
+    for record in CAPABILITIES.values():
+        assert record["test_hooks_enabled"] is False
+        assert_release_capabilities(record["response"])

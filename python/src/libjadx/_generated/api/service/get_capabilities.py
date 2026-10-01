@@ -49,6 +49,14 @@ def sync_detailed(
 ) -> Response[Capabilities | ErrorEnvelope]:
     """Read server and pinned-Jadx capability evidence
 
+     Status describes the public service behavior, not an internal Jadx probe. code.smali is UNSUPPORTED
+    because no public Smali representation exists. analysis.concurrent_reads describes parallel primary
+    Jadx reads: it is UNSUPPORTED because those reads are serialized and conflicting admission fails
+    fast with PROJECT_BUSY. Multiple HTTP clients remain supported. analysis.cancellation is PARTIAL:
+    queued/running jobs support cooperative cancellation, but CANCELLING persists until work stops and
+    hard interruption of arbitrary Jadx work is not guaranteed. Client deadlines, task cancellation and
+    SSE disconnect do not request server cancellation.
+
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
@@ -72,6 +80,14 @@ def sync(
 ) -> Capabilities | ErrorEnvelope | None:
     """Read server and pinned-Jadx capability evidence
 
+     Status describes the public service behavior, not an internal Jadx probe. code.smali is UNSUPPORTED
+    because no public Smali representation exists. analysis.concurrent_reads describes parallel primary
+    Jadx reads: it is UNSUPPORTED because those reads are serialized and conflicting admission fails
+    fast with PROJECT_BUSY. Multiple HTTP clients remain supported. analysis.cancellation is PARTIAL:
+    queued/running jobs support cooperative cancellation, but CANCELLING persists until work stops and
+    hard interruption of arbitrary Jadx work is not guaranteed. Client deadlines, task cancellation and
+    SSE disconnect do not request server cancellation.
+
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
@@ -90,6 +106,14 @@ async def asyncio_detailed(
     client: AuthenticatedClient | Client,
 ) -> Response[Capabilities | ErrorEnvelope]:
     """Read server and pinned-Jadx capability evidence
+
+     Status describes the public service behavior, not an internal Jadx probe. code.smali is UNSUPPORTED
+    because no public Smali representation exists. analysis.concurrent_reads describes parallel primary
+    Jadx reads: it is UNSUPPORTED because those reads are serialized and conflicting admission fails
+    fast with PROJECT_BUSY. Multiple HTTP clients remain supported. analysis.cancellation is PARTIAL:
+    queued/running jobs support cooperative cancellation, but CANCELLING persists until work stops and
+    hard interruption of arbitrary Jadx work is not guaranteed. Client deadlines, task cancellation and
+    SSE disconnect do not request server cancellation.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -111,6 +135,14 @@ async def asyncio(
     client: AuthenticatedClient | Client,
 ) -> Capabilities | ErrorEnvelope | None:
     """Read server and pinned-Jadx capability evidence
+
+     Status describes the public service behavior, not an internal Jadx probe. code.smali is UNSUPPORTED
+    because no public Smali representation exists. analysis.concurrent_reads describes parallel primary
+    Jadx reads: it is UNSUPPORTED because those reads are serialized and conflicting admission fails
+    fast with PROJECT_BUSY. Multiple HTTP clients remain supported. analysis.cancellation is PARTIAL:
+    queued/running jobs support cooperative cancellation, but CANCELLING persists until work stops and
+    hard interruption of arbitrary Jadx work is not guaranteed. Client deadlines, task cancellation and
+    SSE disconnect do not request server cancellation.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

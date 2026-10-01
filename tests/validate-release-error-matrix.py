@@ -1,6 +1,7 @@
 """Fail on stale, missing, or mock-only stable error-code evidence."""
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -32,6 +33,25 @@ for code, row in data["records"].items():
             s["wire"]["error"]["code"] == code and s["wire"]["error"]["requestId"]
             for s in scenarios
         )
+        for scenario in scenarios:
+            actual = next(
+                (
+                    operation["operationId"]
+                    for path, methods in spec["paths"].items()
+                    for method, operation in methods.items()
+                    if method.upper() == scenario["wire_method"]
+                    and isinstance(operation, dict)
+                    and "operationId" in operation
+                    and re.fullmatch(
+                        re.sub(r"\{[^}]+\}", "[^/]+", path), scenario["wire_path"]
+                    )
+                ),
+                None,
+            )
+            assert scenario["wire_operation"] == actual, (code, surface)
+            assert scenario["decoder_operation"] == (
+                None if surface == "raw_http" else scenario["operation"]
+            )
         if surface.startswith("high"):
             assert all(s["exception"] for s in scenarios)
 print(f"{len(codes)}/{len(codes)} stable error codes qualified on all five surfaces")

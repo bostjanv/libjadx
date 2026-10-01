@@ -34,6 +34,7 @@ OPERATIONS = {
 }
 ROUTES = {}
 ERRORS = {}
+CAPABILITIES = {}
 PROCESS_OBSERVATIONS = []
 
 
@@ -84,6 +85,34 @@ def assert_fidelity(wire, parsed):
     # The wire body for THIS invocation is the oracle, including its own request ID.
     # Different invocations have legitimately different server-generated correlation IDs.
     assert semantic(wire) == semantic(parsed)
+
+
+def assert_release_capabilities(value):
+    """Compare the full live snapshot with the reviewed public contract example."""
+    example = OPERATIONS["getCapabilities"][2]["responses"]["200"]["content"][
+        "application/json"
+    ]["examples"]["releaseCandidate"]["externalValue"]
+    expected = json.loads((ROOT / "openapi" / example).read_text())
+    assert set(value) == set(expected)
+    assert value["serverVersion"] == expected["serverVersion"]
+    assert value["jadxVersion"] == expected["jadxVersion"]
+    actual_entries = {entry["name"]: entry for entry in value["capabilities"]}
+    assert len(actual_entries) == len(value["capabilities"]), "Duplicate capability"
+    assert actual_entries == {
+        entry["name"]: entry for entry in expected["capabilities"]
+    }, "Public capability snapshot disagrees with the reviewed release contract"
+
+
+def wire_operation(method, path):
+    return next(
+        (
+            name
+            for name, (verb, template, _) in OPERATIONS.items()
+            if verb == method
+            and re.fullmatch(re.sub(r"\{[^}]+\}", "[^/]+", template), path)
+        ),
+        None,
+    )
 
 
 def portable(value, root=None):
@@ -275,6 +304,14 @@ class Surface:
             value = response.json()
             validate(response_schema(operation, status), value)
             assert_fidelity(value, parsed)
+            if operation == "getCapabilities" and status == 200:
+                assert_release_capabilities(value)
+                # Prefer the actual ordinary-process observation over a hooked run.
+                if self.name not in CAPABILITIES or not self.service.test_hooks_enabled:
+                    CAPABILITIES[self.name] = {
+                        "response": value,
+                        "test_hooks_enabled": self.service.test_hooks_enabled,
+                    }
             if status >= 400:
                 error = value["error"]
                 assert error["requestId"] == response.headers["x-request-id"]
@@ -298,11 +335,18 @@ class Surface:
                 row["scenarios"].append(
                     {
                         "operation": operation,
+                        "decoder_operation": operation
+                        if self.name != "raw_http"
+                        else None,
+                        "wire_operation": wire_operation(
+                            response.request.method,
+                            response.request.url.path.removeprefix("/api/v1"),
+                        ),
                         "surface": self.name,
                         "wire": portable(value, self.service.root),
                         "exception": type(caught).__name__ if caught else None,
-                        "wire_path": path,
-                        "wire_method": method,
+                        "wire_path": response.request.url.path.removeprefix("/api/v1"),
+                        "wire_method": response.request.method,
                         "java_test_faults": [
                             p.stem for p in sorted(self.service.hooks.glob("*.fail"))
                         ],
@@ -513,7 +557,11 @@ def write_evidence():
     (output / "observations.json").write_text(
         json.dumps({"head": head, "records": PROCESS_OBSERVATIONS}, indent=2) + "\n"
     )
-    for name, data in (("routes", ROUTES), ("errors", ERRORS)):
+    for name, data in (
+        ("routes", ROUTES),
+        ("errors", ERRORS),
+        ("capabilities", CAPABILITIES),
+    ):
         (output / f"{name}.json").write_text(
             json.dumps(
                 {"head": head, "source_sha256": fingerprint, "records": data},

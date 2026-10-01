@@ -34,6 +34,18 @@ Client HTTP/wait deadlines, task cancellation and SSE disconnect never request
 server cancellation. SSE read inactivity remains disabled while other timeouts
 retain their configured values.
 
+Public capabilities describe the service contract rather than an internal Jadx
+feasibility probe. `code.smali=UNSUPPORTED` means no public Smali representation;
+`analysis.concurrent_reads=UNSUPPORTED` means parallel primary Jadx reads are
+disabled, with serialized/fail-fast PROJECT_BUSY admission (multiple HTTP clients
+are supported). `analysis.cancellation=PARTIAL` describes cooperative queued/running
+job cancellation and truthful CANCELLING until work stops; it does not guarantee
+hard interruption of arbitrary Jadx work. The reviewed OpenAPI capability example
+defines the complete candidate snapshot, including status, evidence and persistence.
+Every live capabilities response on all five surfaces is checked against it.
+Both interpreter runs must capture the same full snapshot from an ordinary process
+with test hooks disabled; the aggregate validates those machine records separately.
+
 Headless native saving retains unknown fields where promised; matching Jadx GUI
 serialization may drop fields it does not recognize. Native write interruption
 is not transactional. GUI qualification runs all twelve existing top-level gates
@@ -98,6 +110,9 @@ operations and any stable code without real Java or explicit Java fault evidence
 METHOD_NOT_ALLOWED, planned OPERATION_NOT_IMPLEMENTED and test-only
 CANCELLATION_PENDING use an owned HTTPX request hook with an existing generated
 default-error decoder; their actual method/path and fault flags are recorded.
+Error samples distinguish `decoder_operation` from `wire_operation`, resolved
+from the actual HTTP request. A planned wire route has a null wire operation and
+retains its real method/path rather than being mislabeled as the decoder's route.
 They do not add planned routes to the first-release OpenAPI contract.
 
 JSON evidence preserves request IDs and normalizes owned filesystem prefixes to

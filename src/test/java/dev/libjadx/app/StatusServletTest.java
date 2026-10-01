@@ -42,7 +42,7 @@ class StatusServletTest {
 
 			HttpResponse<String> capabilities = request(server, "GET", "/api/v1/capabilities");
 			assertEquals("1.5.6", body(capabilities).path("jadxVersion").asText());
-			assertTrue(body(capabilities).path("capabilities").size() > 0);
+			assertEquals(JSON.readTree(Path.of("openapi/examples/capabilities.json").toFile()), body(capabilities));
 
 			assertError(request(server, "POST", "/api/v1/decompile"), 503, "PROJECT_NOT_READY", true, true);
 			assertError(request(server, "POST", "/api/v1/references/query"), 503, "PROJECT_NOT_READY", true, true);

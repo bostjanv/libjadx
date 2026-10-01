@@ -107,7 +107,7 @@ public final class StatusServlet extends HttpServlet {
 					new Capability("code.method_excerpt", "PARTIAL", "DECLARATION_LEXER_AND_END_MARKER_VERIFIED", "READ_ONLY"),
 					new Capability("code.original_debug_lines", "UNKNOWN", "ORIGIN_NOT_VERIFIED", "UNAVAILABLE"),
 					new Capability("code.original_bytecode_offsets", "UNKNOWN", "ORIGIN_NOT_VERIFIED", "UNAVAILABLE"),
-					new Capability("code.smali", "SUPPORTED", "SMALL_JAR_PROBED", "READ_ONLY"),
+					new Capability("code.smali", "UNSUPPORTED", "NO_PUBLIC_SMALI_REPRESENTATION", "UNAVAILABLE"),
 					new Capability("references.method_uses", "PARTIAL", "METHOD_FIELD_CLASS_AND_UNRESOLVED_JAR_PROBED", "READ_ONLY"),
 					new Capability("search.class_names", "SUPPORTED", "JADX_VISIBLE_CATALOG", "MEMORY_ONLY"),
 					new Capability("search.member_names", "PARTIAL", "PINNED_ORIGINAL_MEMBER_SIGNATURES", "MEMORY_ONLY"),
@@ -134,8 +134,8 @@ public final class StatusServlet extends HttpServlet {
 					new Capability("project.revisions", "PARTIAL", "CONTENT_HASH_AND_SESSION_TOKENS", "PROCESS_LOCAL_COUNTERS"),
 					new Capability("analysis.temporary_override", "PARTIAL", "ISOLATED_DECOMPILATION_MODE_WITH_UNSAVED_EDITS", "READ_ONLY"),
 					new Capability("analysis.cfg", "UNKNOWN", "NOT_PROBED", "UNAVAILABLE"),
-					new Capability("analysis.concurrent_reads", "UNKNOWN", "NOT_PROBED", "UNAVAILABLE"),
-					new Capability("analysis.cancellation", "UNKNOWN", "NOT_PROBED", "UNAVAILABLE"))));
+					new Capability("analysis.concurrent_reads", "UNSUPPORTED", "SERIALIZED_PRIMARY_READS_FAIL_FAST_PROJECT_BUSY", "UNAVAILABLE"),
+					new Capability("analysis.cancellation", "PARTIAL", "COOPERATIVE_JOBS_CANCELLING_UNTIL_WORK_STOPS_NO_HARD_JADX_INTERRUPTION", "MEMORY_ONLY"))));
 			return;
 		}
 		if ("/api/v1/project".equals(path)) {

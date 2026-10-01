@@ -392,14 +392,21 @@ def core(uv, output):
                 evidence["python_" + version]["max_ready_seconds"] = max(
                     row["ready_seconds"] or 0 for row in observations
                 )
-                for family in ("route", "error"):
+                for family, filename in (
+                    ("route", "routes.json"),
+                    ("error", "errors.json"),
+                    ("capabilities", "capabilities.json"),
+                ):
+                    validator = (
+                        "validate-release-capabilities.py"
+                        if family == "capabilities"
+                        else f"validate-release-{family}-matrix.py"
+                    )
                     gate(
                         [
                             py,
-                            ROOT / f"tests/validate-release-{family}-matrix.py",
-                            output
-                            / ("matrix-" + version)
-                            / ("routes.json" if family == "route" else "errors.json"),
+                            ROOT / "tests" / validator,
+                            output / ("matrix-" + version) / filename,
                         ],
                         family + "-" + version,
                     )

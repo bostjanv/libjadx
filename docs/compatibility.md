@@ -303,3 +303,10 @@ real class/JAR/DEX/native input, explicit native persistence and process restart
 [Current evidence](pr-22-review.md) determines qualification; historical PR results
 are not substituted for this run. No runtime GUI, project store, authentication,
 remote listening, extra transport or package publication is introduced.
+
+Public release capabilities are reconciled with the service contract, not the
+internal Phase-0 probes: `code.smali=UNSUPPORTED` (no public representation),
+`analysis.concurrent_reads=UNSUPPORTED` (serialized/fail-fast primary reads), and
+`analysis.cancellation=PARTIAL` (cooperative jobs, no hard arbitrary-Jadx interruption
+guarantee). The full reviewed snapshot in `openapi/examples/capabilities.json` is
+verified on every client surface and in ordinary processes with hooks disabled.

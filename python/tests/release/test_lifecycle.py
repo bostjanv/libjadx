@@ -57,6 +57,11 @@ async def test_loading_failed_and_disabled_hooks(factory, surface):
             await api.close()
     with factory(faults=("startup",), hooks=False) as service:
         assert service.http.get("/api/v1/status").json()["state"] == "READY"
+        api = Surface(service, surface)
+        try:
+            await api.call("getCapabilities", expected=200)
+        finally:
+            await api.close()
 
 
 @pytest.mark.parametrize("surface", SURFACES)
