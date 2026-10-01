@@ -182,7 +182,11 @@ All routes have prefix `/api/v1`. There are **no HTTP upload routes** and **no d
 
 A class identity is `(input_identity, original_descriptor)` **where provenance is preserved by Jadx**. Member identity adds the original member name and JVM/DEX descriptor/signature. Original descriptors are the canonical query key; current aliases and deobfuscated display names are separate attributes. For duplicate definitions that Jadx merged/dropped, return provenance `AMBIGUOUS` or `UNAVAILABLE`; do not fabricate independent members.
 
-Original method parameters favor parameter index, with register/debug identity where available. Local variables use snapshot-scoped identifiers derived from Jadx code metadata and available register/SSA information. Reject variable edits when their source snapshot or logical revision is stale.
+Original method parameters favor parameter index, with register/debug identity where available.
+Local declaration metadata is source-snapshot-scoped and read-only in pinned
+1.5.6. PR #20 proves native VAR retargeting under unbound GUI input settings;
+no persistent local edit identity or local operation is exposed. Any future
+supported variable edit must reject stale source snapshots and logical revisions.
 
 Represent locations as distinct coordinate systems: `(source_snapshot_id, source range)` for decompiled code and `(input identity, method descriptor, bytecode offset/range)` for original code; retain original debug source-line info only if available. Define line and column numbering unambiguously in OpenAPI (proposed: 1-based lines and 0-based Unicode-code-point columns), and expose Java/Jadx native UTF-16 offsets or converted UTF-8 byte offsets **with explicit units**. Record precision as `EXACT`, `APPROXIMATE`, `UNKNOWN` or `UNAVAILABLE`; avoid false exactness after inlining or restructuring.
 
@@ -348,8 +352,22 @@ may coexist. Raw hidden bridge/synthetic methods block collisions,
 without becoming admitted members. Standard Jadx records persist only on explicit
 save. Restart/discard/reload, accepted input/mapping conflicts and actual matching
 GUI Save As retain their native-only behavior. Covariant/bridge, missing/external,
-duplicate, local and parameter propagation remain unsupported. Phase 5.2 and the
-Python release are not declared complete. No dependencies or locks change.
+duplicate, local and parameter propagation remain unsupported. PR #20 closes
+Phase 5.2 with the local exclusion below; the Python release remains pending.
+No dependencies or locks change.
 
 See [admission, status mapping, ordering and persistence](docs/phase-5-related-group-admission.md)
 and [final-head validation](docs/pr-19-review.md).
+
+## PR #20 — native local identity boundary
+
+Outcome B: local-variable mutation remains unsupported. Native VAR records bind
+only an original method and packed register/SSA; a current source snapshot
+cannot bind their future meaning to GUI-wide mode and input-loader settings.
+An owned one-local straight-line method retargets an exact nonmerged VAR key
+from an absolute value to its square under normal Use dx/d8 configuration.
+Same-mode replay, save/reopen and record preservation are insufficient.
+No custom identity or persistence layer is permitted by this architecture.
+Phase 5.2 is complete for safely proved native edit forms; Phase 6 is next.
+See [feasibility and exclusions](docs/phase-5-local-rename-feasibility.md) and
+[validation](docs/pr-20-review.md).

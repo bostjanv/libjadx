@@ -398,3 +398,36 @@ tasks.register<Test>("propagatedEditGuiRoundTripTest") {
     filter { includeTestsMatching("dev.libjadx.app.RelatedGroupGuiTest.actualMatchingGuiSaveAsPreservesEveryServiceProducedFamily") }
     environment("LIBJADX_PROPAGATED_EDIT_GUI_ROOT", propagatedEditGuiRoot.get().asFile.absolutePath)
 }
+
+// PR #20 negative local identity diagnostic: explicit global GUI configuration,
+// actual editor clipboard capture, Save As and fresh reverse analysis.
+val localRenameGuiRoot = layout.buildDirectory.dir("local-rename-gui-diagnostic")
+var previousLocalRenameGuiTask: String? = null
+val localRenameGuiTasks = listOf("AUTO", "RESTRUCTURE", "SIMPLE", "FALLBACK", "AUTO_DX").map { scenario ->
+    val taskName = "saveLocalRename${scenario}DiagnosticWithMatchingGui"
+    val previousTask = previousLocalRenameGuiTask
+    tasks.register<Exec>(taskName) {
+        dependsOn(tasks.test)
+        if (previousTask != null) mustRunAfter(previousTask)
+        val guiPath = providers.environmentVariable("JADX_GUI")
+        doFirst {
+            if (!guiPath.isPresent) throw GradleException("Set JADX_GUI to the matching jadx-gui executable")
+        }
+        commandLine(
+            "bash", "tests/local-rename-gui-diagnostic.sh", guiPath.orNull ?: "",
+            localRenameGuiRoot.get().file("$scenario/diagnostic.jadx").asFile.absolutePath,
+            localRenameGuiRoot.get().file("$scenario/gui-resaved.jadx").asFile.absolutePath,
+            localRenameGuiRoot.get().file("$scenario/gui-config.json").asFile.absolutePath,
+        )
+    }
+    previousLocalRenameGuiTask = taskName
+    taskName
+}
+tasks.register<Test>("localRenameGuiDiagnosticTest") {
+    dependsOn(localRenameGuiTasks)
+    useJUnitPlatform()
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    filter { includeTestsMatching("dev.libjadx.app.LocalRenameGuiDiagnosticTest.matchingGuiEditorAndSaveAsPreserveRecordsButDoNotBindTheirMeaning") }
+    environment("LIBJADX_LOCAL_GUI_ROOT", localRenameGuiRoot.get().asFile.absolutePath)
+}

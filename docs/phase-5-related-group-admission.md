@@ -4,7 +4,9 @@ Pinned Jadx **1.5.6**, source **28ff15e4ae69950aebea110a13e5ab895d234dfc**.
 PR #19 consumes PR #15's independent closed-input verifier and PR #18's fresh
 replacement publication. Historical candidate incompleteness and in-place replay
 counterexamples remain unchanged. This is a conservative verified subset;
-Phase 5.2 local-variable editing and the Phase 6 Python release remain open.
+PR #20 closes Phase 5.2 with local-variable editing deliberately unsupported;
+the Phase 6 Python release remains open. See
+[local feasibility](phase-5-local-rename-feasibility.md).
 
 ## Admission and identity
 

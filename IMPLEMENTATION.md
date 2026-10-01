@@ -212,16 +212,16 @@ Use offset paging only on stable snapshot-bound enumerations; use opaque, in-mem
 
 ### P5.2 Editing and native propagation
 
-Implemented sub-slices: validated declaration edits and strict safe Tiny v2
-mapping export and bounded conflict-safe import. Export's probes and independent
-GUI/HTTP gates are recorded in
-`docs/phase-5-mapping-export.md`; import gates are recorded in
-`docs/phase-5-mapping-import.md`. Snapshot-bound parameter editing for verified AUTO/RESTRUCTURE plain signatures is
-recorded in `docs/phase-5-scoped-editing.md`. PR #14 completed the propagation
-feasibility gate with an executable completeness failure; explicit propagation
-remains unsupported. See `docs/phase-5-related-propagation.md`. Local editing and
-safe propagated replay remain outstanding; PR #15 proved independent verification,
-while PR #16 found a separate hot/fresh nonmember replay failure. P5.2 is incomplete.
+Phase 5.2 is complete for the safely persisted pinned-Jadx edit forms:
+validated declaration edits, strict Tiny v2 export/import, snapshot-bound
+parameter editing, PR #18 fresh replacement publication and PR #19 verified
+related-method group admission. PR #20 closes local-variable feasibility with
+local rename deliberately unsupported. See
+[local feasibility](docs/phase-5-local-rename-feasibility.md) and
+[final validation](docs/pr-20-review.md). The same native VAR key can target a
+different computation under ordinary GUI input settings; no safe product
+admission predicate was proved. No custom local persistence is permitted.
+Phase 6 Python SDK work is next; the Python release is not yet complete.
 
 Build validated native-saveable editing operations in this order: class rename, method/field rename, comments, native mapping import/export; then supported parameter/local rename and related-method propagation. Verify each type through Phase 0 and actual GUI round-trip before advertising persistence. Use original entity references plus snapshot-scoped local variable references. Report propagated affected entities when known.
 
@@ -242,8 +242,9 @@ original aliases. See [negative replay evidence](docs/phase-5-propagated-edits.m
 The public presence-based 422 rejection and UNSUPPORTED capability remain.
 Safe replay must be proved before group admission, collision preflight, atomic
 item staging, exact affectedRefs and propagated service/GUI guarantees can ship.
-Bridge/covariant and external/duplicate families remain excluded. The separate
-local-variable editing decision remains open; Phase 5.2 is incomplete.
+Bridge/covariant and external/duplicate families remain excluded. PR #20
+supersedes the open local-variable decision below: Phase 5.2 closes with local
+editing deliberately unsupported.
 
 ## 7. Phase 6 — Python SDK and end-to-end experimental release
 
@@ -420,8 +421,26 @@ may coexist. Raw hidden bridge/synthetic methods block collisions,
 without becoming admitted members. Standard Jadx records persist only on explicit
 save. Restart/discard/reload, accepted input/mapping conflicts and actual matching
 GUI Save As retain their native-only behavior. Covariant/bridge, missing/external,
-duplicate, local and parameter propagation remain unsupported. Phase 5.2 and the
-Python release are not declared complete. No dependencies or locks change.
+duplicate, local and parameter propagation remain unsupported. PR #20 subsequently closes Phase 5.2 with local rename
+deliberately unsupported; the Python release remains open. No dependencies or locks change.
 
 See [admission, status mapping, ordering and persistence](docs/phase-5-related-group-admission.md)
 and [final-head validation](docs/pr-19-review.md).
+
+## PR #20 — native local-variable rename retargeting feasibility
+
+Outcome B. Same-mode native replay/save/reopen and full-state replacement remain
+positive evidence, but the smallest owned one-local JVM method has exact,
+unique, one-definition, no-phi metadata and still retargets `(0,2)` from an
+absolute value to its square when matching GUI Use dx/d8 is enabled. The global
+GUI setting is not bound into the native project or VAR record. Actual GUI
+editor capture and Save As in AUTO/RESTRUCTURE/SIMPLE/FALLBACK and AUTO+dx/d8
+preserve the record while confirming that its meaning can change.
+
+No public operation, local identity, verifier, persistence layer or SDK is added.
+`edit.local_rename` remains UNSUPPORTED with evidence
+`NATIVE_VAR_RETARGETS_WITH_UNBOUND_GUI_SETTINGS`. Read-only local metadata remains
+snapshot-scoped. Existing parameter and related-method restrictions are retained.
+Phase 5.2 is complete with this deliberate exclusion; proceed to Phase 6.
+See [feasibility](docs/phase-5-local-rename-feasibility.md) and
+[commands and review checklist](docs/pr-20-review.md).

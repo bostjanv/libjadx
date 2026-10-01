@@ -1,10 +1,15 @@
 # PR #13: snapshot-bound native parameter renames
 
+**Current status:** PR #20 closes [local feasibility](phase-5-local-rename-feasibility.md)
+with local rename deliberately unsupported and Phase 5.2 complete. PR #19 admits
+its verified related-method subset. The original PR #13 counterexample and
+historical scope below are preserved.
+
 Base: merged PR #12, `10d10048eb8254b77201a0ced9db845646eeebe9`.
 Jadx stays at 1.5.6, source commit
 `28ff15e4ae69950aebea110a13e5ab895d234dfc`; JDK 21 and all dependency locks
 are unchanged. This slice implements parameters only. Local renames and related
-method/override propagation remain unsupported; Phase 5.2 is incomplete.
+method/override propagation were unsupported at this historical PR #13 milestone.
 
 ## Verified parameter semantics and contract
 
@@ -178,9 +183,8 @@ under `build/scoped-edit-contract-responses/`; the GUI-resaved project is
 passes. Linux/JDK 21 is the verified environment; Windows/macOS and DEX variable
 identity are not claimed.
 
-Next milestone: separately probe Phase 5.2 related-method/override propagation
-for completeness and native GUI persistence. Local support remains an open
-capability gate.
+The historical follow-up gates are now resolved by PR #19 group admission and
+PR #20 unsupported-local decision. Next milestone: Phase 6 Python SDK.
 
 PR #18 parameter batches now use [fresh replacement publication](phase-5-replacement-publication.md),
 retaining the same source-snapshot and scoped-key restrictions. Complete native

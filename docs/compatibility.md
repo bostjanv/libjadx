@@ -1,6 +1,6 @@
 # Compatibility and pinned dependencies
 
-Status: Phase 5.2 verified related-method rename group admission, updated 2026-09-29.
+Status: Phase 5.2 complete with local rename deliberately unsupported, updated 2026-09-30.
 
 ## Jadx pin
 
@@ -60,7 +60,7 @@ Resolved transitive versions are recorded in [gradle.lockfile](../gradle.lockfil
 
 ## Current feasibility status
 
-The public-core smoke probe, in-memory class rename/comment, native project JSON round-trip, unknown-field retention, and matching-GUI save/reopen have executable probes. Remaining P0.3 topics are listed with bounded follow-up probes in [feasibility-matrix.md](feasibility-matrix.md). Phase 2 adds native save/reload/conflict detection, process-scoped revisions, mapping-path rebuilds and isolated temporary decompilation mode. Phase 4.1 adds Jadx-visible class listing and original class/method/field resolution. Phase 4.2 adds class-oriented Java source, validated token annotations and verified method excerpts. Source-only internals are isolated in `JadxSourceAdapter`. Phase 5.1 adds memory-only class/member/emitted-Java search and a complete-index job. Phase 5.2 now includes validated native declaration editing; advanced edit gates remain open.
+The public-core smoke probe, in-memory class rename/comment, native project JSON round-trip, unknown-field retention, and matching-GUI save/reopen have executable probes. Remaining P0.3 topics are listed with bounded follow-up probes in [feasibility-matrix.md](feasibility-matrix.md). Phase 2 adds native save/reload/conflict detection, process-scoped revisions, mapping-path rebuilds and isolated temporary decompilation mode. Phase 4.1 adds Jadx-visible class listing and original class/method/field resolution. Phase 4.2 adds class-oriented Java source, validated token annotations and verified method excerpts. Source-only internals are isolated in `JadxSourceAdapter`. Phase 5.1 adds memory-only class/member/emitted-Java search and a complete-index job. Phase 5.2 now includes the proved declaration, mapping, parameter and related-group edit forms; PR #20 closes local feasibility with local editing deliberately unsupported.
 
 The Phase 5.2 declaration editing slice uses pinned `JadxNodeRef.forJavaNode`,
 `JadxCodeRename`, `JadxCodeComment`, and `JadxDecompiler.reloadCodeData()`.
@@ -235,8 +235,24 @@ may coexist. Raw hidden bridge/synthetic methods block collisions,
 without becoming admitted members. Standard Jadx records persist only on explicit
 save. Restart/discard/reload, accepted input/mapping conflicts and actual matching
 GUI Save As retain their native-only behavior. Covariant/bridge, missing/external,
-duplicate, local and parameter propagation remain unsupported. Phase 5.2 and the
-Python release are not declared complete. No dependencies or locks change.
+duplicate, local and parameter propagation remain unsupported. PR #20 subsequently closes Phase 5.2 with local rename
+deliberately unsupported; the Python release remains open. No dependencies or locks change.
 
 See [admission, status mapping, ordering and persistence](phase-5-related-group-admission.md)
 and [final-head validation](pr-19-review.md).
+
+## PR #20 native local identity boundary
+
+The [28-file source audit](pr-20-source-audit.json) records hashes against the
+same pinned source archive. `CodeRenameVisitor` consumes method+VAR register/SSA
+keys without settings or parameter/local binding. A one-definition, no-phi JVM
+local retargets under matching GUI Use dx/d8; decompilation mode and input-loader
+configuration are global GUI state, absent from ProjectData. Actual editor and
+Save As diagnostics cover AUTO, RESTRUCTURE, SIMPLE, FALLBACK and AUTO+dx/d8.
+The records survive, but their meaning is not settings-independent.
+
+No native-safe product subset is proved. Capability remains UNSUPPORTED,
+evidence `NATIVE_VAR_RETARGETS_WITH_UNBOUND_GUI_SETTINGS`, persistence UNAVAILABLE.
+Phase 5.2 closes with local editing excluded; Phase 6 is next. No dependency,
+lock, runtime GUI, schema or mapping-format change. See
+[feasibility](phase-5-local-rename-feasibility.md) and [validation](pr-20-review.md).

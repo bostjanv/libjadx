@@ -1,6 +1,10 @@
 # Phase 5.2 native declaration editing slice
 
-**Current PR #19 boundary:** [verified related-method group admission](phase-5-related-group-admission.md)
+**Current PR #20 boundary:** Phase 5.2 is complete with local rename deliberately
+unsupported after [native retargeting feasibility](phase-5-local-rename-feasibility.md).
+Phase 6 Python SDK work is next; [PR #20 validation](pr-20-review.md) records the gates.
+
+**PR #19 boundary:** [verified related-method group admission](phase-5-related-group-admission.md)
 now admits the independently COMPLETE conservative subset under the same exclusive
 edit lease, with raw all-owner collisions, exact native records and affectedRefs.
 Earlier unsupported-contract statements below describe historical milestones;
@@ -19,7 +23,7 @@ PR #13 adds snapshot-bound parameter editing for its verified signature subset;
 see [scoped editing](phase-5-scoped-editing.md). Local editing and related-method
 propagation remain unsupported; PR #14 preserves executable completeness
 counterexamples in [related propagation evidence](phase-5-related-propagation.md).
-Phase 5.2 is incomplete.
+These were historical deferrals, superseded by PR #18–20.
 
 PR #15 adds the independent original-input verification prerequisite, including
 the complete four-declaration local interface family omitted by Jadx. It adds
@@ -264,23 +268,17 @@ inner's qualified alias after resave. Exact final-code commands, environment
 versions, current counts, fixture hashes and artifact paths are in
 [PR #12 validation](pr-12-review.md); those gates are renewed after the fix.
 
-## Remaining Phase 5.2 gates
+## Completed Phase 5.2 gates and exclusions
 
-Native mapping **attachment** is available through `/project/settings`.
-Strict Tiny v2 **export** creates a new output without saving or attaching it;
-bounded conflict-safe **import** stages native edits without saving or attaching
-its source. Their separate evidence is linked above.
-
-PR #13 adds original positional parameter identities with source-snapshot
-admission and matching-GUI native persistence for verified plain signatures;
-see [scoped editing](phase-5-scoped-editing.md). Local editing remains unsupported
-after the merged-SSA mode-variation probe. Related-method propagation is not enabled
-because independent completeness alone does not prove safe native replay:
-PR #16 demonstrates nonmember hot/fresh disagreement. See
-[replay evidence](phase-5-propagated-edits.md) and
-[ADR 0001](adr/0001-defer-advanced-native-edits.md).
-These remain Phase 5.2 exit criteria; this slice does not declare the overall
-milestone complete.
+Native mapping attachment is available through `/project/settings`. Strict Tiny
+v2 export and bounded conflict-safe import retain their separate contracts.
+PR #13 snapshot-bound parameter editing, PR #18 fresh replacement and PR #19
+verified related-method admission provide the proved native-edit subset.
+PR #20 retains same-mode local positives but demonstrates native VAR retargeting
+under unbound GUI settings. Local editing remains deliberately unsupported;
+[ADR 0001](adr/0001-defer-advanced-native-edits.md) records this final decision.
+Phase 5.2 is complete with this exclusion. The historical replay counterexamples
+below remain evidence, rather than outstanding implementation gates.
 
 ## Historical PR #17 safe replay feasibility (superseded below)
 
