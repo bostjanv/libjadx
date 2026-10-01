@@ -1,13 +1,8 @@
 # PR #22 review — cross-language release qualification
 
-Current status: **NOT QUALIFIED pending review-fix requalification**. The capability
-snapshot correction supersedes the source fingerprint and results below. The full
-candidate aggregate, including dedicated matching-GUI gates, must run again before
-these evidence files are replaced and qualification is claimed.
-
-Historical milestone: Phase 6.2, first experimental release qualification. **Outcome A at the earlier source below.**
+Milestone: Phase 6.2, first experimental release qualification. **Outcome A: qualified locally.**
 Java candidate `0.1.0-alpha.1` / Python `0.1.0a1` is qualified at source commit
-`f9803ca9c7608aa8909a5ab451580a9b439e133e`. API remains `0.1.0-experimental`.
+`55e46eb707d095abdb067424db77f51a31558e17`. API remains `0.1.0-experimental`.
 Publication status: **NOT PUBLISHED**. No tag, GitHub release, artifact upload,
 PyPI/Maven publication, remote CI result or independent reviewer run is claimed.
 
@@ -19,9 +14,21 @@ Generator: `openapi-python-client 0.29.1`; Ruff `0.16.9`; mypy `1.19.1`;
 pytest `8.4.2`; Hatchling `1.27.0`. Installed runtime dependencies: HTTPX
 `0.28.1`, attrs `26.1.0`, typing-extensions `4.16.0`.
 
+The blocking capability review is corrected: `code.smali=UNSUPPORTED` with
+`NO_PUBLIC_SMALI_REPRESENTATION`; `analysis.concurrent_reads=UNSUPPORTED` with
+`SERIALIZED_PRIMARY_READS_FAIL_FAST_PROJECT_BUSY`; `analysis.cancellation=PARTIAL`
+with `COOPERATIVE_JOBS_CANCELLING_UNTIL_WORK_STOPS_NO_HARD_JADX_INTERRUPTION`.
+OpenAPI descriptions and its complete 37-entry example define the public semantics;
+generated transport, Java contract tests and installed release tests are updated.
+Both interpreters verify every capability field on all five surfaces, including
+actual ordinary processes with hooks disabled. The aggregate validates these
+snapshot records independently. Error samples now distinguish the generated
+`decoder_operation` from `wire_operation` derived from the actual HTTP request.
+The entire core and dedicated GUI aggregate was rerun after the source fix.
+
 The final branch includes an evidence-only commit after the tested source head.
 A report cannot contain its own Git commit hash. Every gate records the immutable
-qualified source head and source fingerprint `d00927f8cdfdf646dbfb86af3eaf23b1be6b301d75f552f8bcdbc4a155ff72c3`.
+qualified source head and source fingerprint `953b38c67da478019a1cc0f90159e6d33a697c73955b09b99638ce09baa9b85d`.
 Freshness validators accept a later Git descendant only when its complete source
 fingerprint is unchanged and its diff contains exclusively `docs/pr-22-*` evidence
 or `docs/changelog.md`. Code and artifact-input changes invalidate qualification.
@@ -36,7 +43,7 @@ generated async, handwritten sync and handwritten async clients. Schema validati
 and same-invocation comparisons preserve every wire field: provenance, diagnostics,
 partial/strict outcomes, source snapshots, revisions, cursors, itemized receipts,
 request IDs and typed error details. Only equivalent UUID/datetime representation
-is normalized. The public OpenAPI paths, schemas and API version are unchanged.
+is normalized. The public paths, request/response shapes and API version are unchanged.
 Convenience-layer gaps use documented generated escape hatches, including pagination
 and override payloads; they do not imply new handwritten convenience APIs.
 
@@ -64,7 +71,7 @@ Java `./gradlew clean check --offline --rerun-tasks`: **487 tests in 90 suites;
 aggregate then reran all 16 GUI tests with **zero skips**, as recorded below.
 The two release-evidence regressions passed.
 
-OpenAPI 3.1 validated all 22 unique operations, 35 referenced JSON examples and
+OpenAPI 3.1 validated all 22 unique operations, 36 referenced JSON examples and
 three SSE example frames. Existing live validators passed unchanged:
 
 - Edit: 16 examples, 20 live responses and four injected results; scoped: 18 live
@@ -79,10 +86,10 @@ interpreters passed the entire unit/integration/release suite, without skips:
 
 | Interpreter | Passed | Failures / errors / skips | Owned Java processes | Maximum observed RSS | Maximum observed readiness |
 | --- | ---: | --- | ---: | ---: | ---: |
-| CPython 3.11.13 | 305 | 0 / 0 / 0 | 203 | 709,864 KiB | 10.701 s |
-| CPython 3.14.4 | 305 | 0 / 0 / 0 | 203 | 683,448 KiB | 10.874 s |
+| CPython 3.11.13 | 307 | 0 / 0 / 0 | 203 | 566,360 KiB | 11.987 s |
+| CPython 3.14.4 | 307 | 0 / 0 / 0 | 203 | 750,984 KiB | 11.902 s |
 
-Each interpreter covers 168 unit, 10 existing integration and 127 release tests.
+Each interpreter covers 169 unit, 10 existing integration and 128 release tests.
 Each independently validates **22/22 operations and 19/19 errors on all five
 surfaces**. Tests run from a temporary directory against a clean installed wheel
 and extracted Java ZIP. An additional extracted-TAR smoke passed both raw HTTP
@@ -171,10 +178,10 @@ included in the sdist, with development-only requirements separate from runtime.
 
 | Archive | Bytes | Outer files | SHA-256 |
 | --- | ---: | ---: | --- |
-| `libjadx-0.1.0-alpha.1.zip` | 51,537,781 | 69 | `633df25165f908d50e76cc552c62e1cbc88c02442e7a635f6b362e68376eda6f` |
-| `libjadx-0.1.0-alpha.1.tar` | 59,785,728 | 69 | `992ff9b822d2996886bb9455e92a3f7d01dcefbe3e2cb2a39447c1323894b024` |
-| `libjadx-0.1.0a1-py3-none-any.whl` | 170,251 | 181 | `107b3bb4be278b4e3e7cf7633fb009d182c32537ceaa7969975594b76d5557f1` |
-| `libjadx-0.1.0a1.tar.gz` | 164,552 | 203 | `9d68d7a187b7d36bccf93fa995de3567943d0df9076eb8ee2e242b99512bce80` |
+| `libjadx-0.1.0-alpha.1.zip` | 51,537,902 | 69 | `9dfc8fe603002c4aa080b25e460d850ee21dd528ec60f34b584da0e596a82435` |
+| `libjadx-0.1.0-alpha.1.tar` | 59,785,728 | 69 | `8e77c1bd0972bdd526ddd82e457f183362c4e3e384617d11298a9f6d6d04ea2a` |
+| `libjadx-0.1.0a1-py3-none-any.whl` | 170,801 | 181 | `c779f037fce8c50f2ef914fbebc8a6b9803ec796cc233f4339c142ca3b6efc6a` |
+| `libjadx-0.1.0a1.tar.gz` | 165,623 | 203 | `d72e31fd985d01f7fd2c1474d49bbff63b95bbd569c150d163e71d28c8ada70b` |
 
 Artifacts remain local under `build/distributions/` and `python/dist/`; binaries
 are not committed. [Artifact manifest](pr-22-artifacts.json) retains full Python
@@ -221,12 +228,14 @@ The aggregate invokes these commands, each recorded with PASS and elapsed time:
 <uv> pip install --offline --python <installed-temp>/python-3.11/bin/python -r <installed-temp>/requirements.txt <repo>/python/dist/libjadx-0.1.0a1-py3-none-any.whl
 <uv> venv --python 3.14 <installed-temp>/python-3.14 --offline
 <uv> pip install --offline --python <installed-temp>/python-3.14/bin/python -r <installed-temp>/requirements.txt <repo>/python/dist/libjadx-0.1.0a1-py3-none-any.whl
-<installed-temp>/python-3.14/bin/python -m pytest -q <repo>/python/tests/unit <repo>/python/tests/integration <repo>/python/tests/release --junitxml=<evidence-dir>/python-3.14.xml
-<repo>/python/.venv/bin/python <repo>/tests/validate-release-route-matrix.py <evidence-dir>/matrix-3.14/routes.json
-<repo>/python/.venv/bin/python <repo>/tests/validate-release-error-matrix.py <evidence-dir>/matrix-3.14/errors.json
 <installed-temp>/python-3.11/bin/python -m pytest -q <repo>/python/tests/unit <repo>/python/tests/integration <repo>/python/tests/release --junitxml=<evidence-dir>/python-3.11.xml
 <repo>/python/.venv/bin/python <repo>/tests/validate-release-route-matrix.py <evidence-dir>/matrix-3.11/routes.json
 <repo>/python/.venv/bin/python <repo>/tests/validate-release-error-matrix.py <evidence-dir>/matrix-3.11/errors.json
+<repo>/python/.venv/bin/python <repo>/tests/validate-release-capabilities.py <evidence-dir>/matrix-3.11/capabilities.json
+<installed-temp>/python-3.14/bin/python -m pytest -q <repo>/python/tests/unit <repo>/python/tests/integration <repo>/python/tests/release --junitxml=<evidence-dir>/python-3.14.xml
+<repo>/python/.venv/bin/python <repo>/tests/validate-release-route-matrix.py <evidence-dir>/matrix-3.14/routes.json
+<repo>/python/.venv/bin/python <repo>/tests/validate-release-error-matrix.py <evidence-dir>/matrix-3.14/errors.json
+<repo>/python/.venv/bin/python <repo>/tests/validate-release-capabilities.py <evidence-dir>/matrix-3.14/capabilities.json
 <installed-temp>/python-3.14/bin/python -m pytest -q <repo>/python/tests/release/test_routes.py -k raw_http or generated_async --junitxml=<evidence-dir>/tar-smoke.xml
 git diff --check
 ./gradlew releaseGuiQualification --offline --rerun-tasks --no-parallel -x test
@@ -236,7 +245,8 @@ See [release qualification runbook](phase-6-release-qualification.md) for requir
 prerequisites, isolated fault hooks, source-freshness rules and supported escape
 hatches. Committed matrices can be checked with
 `python/.venv/bin/python tests/validate-release-route-matrix.py` and
-`python/.venv/bin/python tests/validate-release-error-matrix.py`.
+`python/.venv/bin/python tests/validate-release-error-matrix.py`, and
+`python/.venv/bin/python tests/validate-release-capabilities.py`.
 
 ## Supported state and next milestone
 
@@ -251,8 +261,9 @@ not qualify untested containers or Windows execution.
 Partial or unavailable: reference/search completeness, input provenance,
 source-to-bytecode/debug coordinates, related-group scope and cooperative
 cancellation during uninterruptible Jadx work. Capability statuses remain
-conservative; cancellation stress does not upgrade the adapter's UNKNOWN
-JVM-interruption capability. An internal Smali probe does not expose a Smali API.
+conservative; cancellation is PARTIAL for cooperative jobs and does not guarantee hard
+JVM interruption. Smali and parallel primary reads are UNSUPPORTED on the public
+service; the internal Smali probe remains historical feasibility evidence.
 
 Unsupported or outside this release: local rename (retained GUI retargeting
 negative), remote hosting/authentication, uploads, runtime project switching,

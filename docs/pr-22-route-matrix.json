@@ -1,5 +1,5 @@
 {
-  "head": "f9803ca9c7608aa8909a5ab451580a9b439e133e",
+  "head": "55e46eb707d095abdb067424db77f51a31558e17",
   "records": {
     "applyEditBatch": {
       "error_checked": true,
@@ -126,19 +126,19 @@
       "negative_case": true,
       "positive_case": true,
       "positive_surfaces": {
-        "generated_async": 1,
-        "generated_sync": 1,
-        "high_level_async": 1,
-        "high_level_sync": 1,
-        "raw_http": 1
+        "generated_async": 2,
+        "generated_sync": 2,
+        "high_level_async": 2,
+        "high_level_sync": 2,
+        "raw_http": 2
       },
       "provenance_checked": true,
       "surfaces": {
-        "generated_async": 1,
-        "generated_sync": 1,
-        "high_level_async": 1,
-        "high_level_sync": 1,
-        "raw_http": 1
+        "generated_async": 2,
+        "generated_sync": 2,
+        "high_level_async": 2,
+        "high_level_sync": 2,
+        "raw_http": 2
       }
     },
     "getJob": {
@@ -442,11 +442,11 @@
       }
     }
   },
-  "source_sha256": "d00927f8cdfdf646dbfb86af3eaf23b1be6b301d75f552f8bcdbc4a155ff72c3",
+  "source_sha256": "953b38c67da478019a1cc0f90159e6d33a697c73955b09b99638ce09baa9b85d",
   "primary_interpreter": "CPython 3.14.4",
   "additional_interpreter_evidence": {
     "CPython 3.11.13": {
-      "head": "f9803ca9c7608aa8909a5ab451580a9b439e133e",
+      "head": "55e46eb707d095abdb067424db77f51a31558e17",
       "records": {
         "applyEditBatch": {
           "error_checked": true,
@@ -573,19 +573,19 @@
           "negative_case": true,
           "positive_case": true,
           "positive_surfaces": {
-            "generated_async": 1,
-            "generated_sync": 1,
-            "high_level_async": 1,
-            "high_level_sync": 1,
-            "raw_http": 1
+            "generated_async": 2,
+            "generated_sync": 2,
+            "high_level_async": 2,
+            "high_level_sync": 2,
+            "raw_http": 2
           },
           "provenance_checked": true,
           "surfaces": {
-            "generated_async": 1,
-            "generated_sync": 1,
-            "high_level_async": 1,
-            "high_level_sync": 1,
-            "raw_http": 1
+            "generated_async": 2,
+            "generated_sync": 2,
+            "high_level_async": 2,
+            "high_level_sync": 2,
+            "raw_http": 2
           }
         },
         "getJob": {
@@ -889,7 +889,7 @@
           }
         }
       },
-      "source_sha256": "d00927f8cdfdf646dbfb86af3eaf23b1be6b301d75f552f8bcdbc4a155ff72c3"
+      "source_sha256": "953b38c67da478019a1cc0f90159e6d33a697c73955b09b99638ce09baa9b85d"
     }
   }
 }

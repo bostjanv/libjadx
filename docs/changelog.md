@@ -5,11 +5,15 @@
 - Qualified Java `0.1.0-alpha.1` / Python `0.1.0a1` locally against pinned Jadx
   1.5.6; API remains `0.1.0-experimental`. No external publication or tag.
 - Verified 22 operations and 19 stable errors across raw HTTP, generated sync/async
-  and handwritten sync/async; 305 installed-wheel tests on each Python 3.11/3.14.
+  and handwritten sync/async; 307 installed-wheel tests on each Python 3.11/3.14.
 - Passed clean Java regression and all 12 actual matching-GUI gates with zero GUI
   skips and 27 Save As processes; retained local-rename unsupported diagnostics.
 - Added bounded opt-in filesystem test hooks, full-field parity matrices,
   artifact/license audits and reproducible ZIP/TAR/wheel/sdist evidence.
+- Reconciled public Smali/read/cancellation capabilities with qualified service
+  semantics; added a complete reviewed capability fixture, ordinary-process
+  five-surface gates and independent capability evidence on both interpreters.
+- Distinguished the decoder operation from the actual wire operation in errors.
 - Preserved native explicit-save/restart, partial capabilities, serialized Jadx
   reads and conservative parameter/related subsets. See [qualification report](pr-22-review.md).
 
