@@ -1,5 +1,7 @@
 # Phase 5.2: strict Tiny v2 mapping import and merge
 
+> **Historical milestone record.** This document describes repository state at its named phase/PR. Its “next milestone,” “pending,” and support-status statements are historical. For current product state see the [documentation index](README.md), [compatibility](compatibility.md), [feasibility matrix](feasibility-matrix.md) and [PR #22 qualification](pr-22-review.md).
+
 This is the bounded import sub-slice of Phase 5.2. Parameter/local editing,
 related-method propagation, arbitrary comment reconstruction and Python SDK
 generation remain deferred. Mapping attachment through settings is separate:

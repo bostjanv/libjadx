@@ -1,6 +1,8 @@
 # Phase 5.2 native declaration editing slice
 
-**Current PR #20 boundary:** Phase 5.2 is complete with local rename deliberately
+> **Historical milestone record.** This document describes repository state at its named phase/PR. Its “next milestone,” “pending,” and support-status statements are historical. For current product state see the [documentation index](README.md), [compatibility](compatibility.md), [feasibility matrix](feasibility-matrix.md) and [PR #22 qualification](pr-22-review.md).
+
+**Historical PR #20 boundary:** Phase 5.2 is complete with local rename deliberately
 unsupported after [native retargeting feasibility](phase-5-local-rename-feasibility.md).
 Phase 6 Python SDK work is next; [PR #20 validation](pr-20-review.md) records the gates.
 

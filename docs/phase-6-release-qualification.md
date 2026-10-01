@@ -1,5 +1,11 @@
 # Cross-language release qualification
 
+**Status: PASSED** for source head `55e46eb707d095abdb067424db77f51a31558e17`,
+as recorded by PR #22 and merged to main. Candidate remains **NOT PUBLISHED**
+and not tagged. See the [qualification report](pr-22-review.md),
+[validation record](pr-22-validation.json) and [artifact manifest](pr-22-artifacts.json).
+The main merge SHA is not the tested source SHA.
+
 Product candidate: `0.1.0-alpha.1`
 Python package: `0.1.0a1`
 API contract: `0.1.0-experimental`
@@ -130,3 +136,23 @@ registry upload, branch merge, deployment or license grant. LibJadx has no root
 open-source license grant; Python retains LicenseRef-Proprietary. Upstream notices
 are distributed without suggesting endorsement. Future publication requires the
 human to choose its channels and license policy separately.
+
+## Documentation cleanup and evidence freshness
+
+PR #23 preserves the PR #22 evidence bytes and qualified source identity. The
+existing `tests/release/qualify.py` `source_hash()` hashes ordinary Markdown and
+validator scripts as well as runtime inputs. `validate_evidence_identity()` only
+permits descendants changing `docs/pr-22-*` or `docs/changelog.md`. Therefore the
+broader documentation cleanup is outside its evidence-only descendant rule:
+`validate-release-capabilities.py`, `validate-release-route-matrix.py` and
+`validate-release-error-matrix.py` reject the cleaned checkout with
+`Superseded-source evidence` even though runtime/OpenAPI/generated transport are
+unchanged. All three passed on the unchanged PR #22 main merge before cleanup.
+
+This is a separate documentation-work-order/freshness-policy mismatch. The work
+order expected documentation-only descendants to be accepted, but the existing
+executable rule does not accept them. This PR does not weaken that rule, regenerate
+release evidence, replace the recorded source SHA with a documentation SHA or
+claim a new runtime/GUI qualification. PR #22 evidence remains an audit record
+for its qualified source/artifacts. Qualification of a later release revision
+requires the full existing gate; changing the freshness policy is separate work.

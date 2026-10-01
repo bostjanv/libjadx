@@ -1,19 +1,19 @@
 # LibJadx — Detailed Implementation Instructions for a Coding Agent
 
-**Status:** execution plan derived from the approved architecture, 2026-09-24. This is an implementation specification, **not a claim that code, commands or tests already exist**.  
+**Status:** Phases 0–6 are complete for the defined v0.1 experimental scope. PR #22 locally qualified the candidate; it is not published or tagged. Phase 7 is the active extended-capability roadmap. Completed-phase instructions below are historical acceptance criteria from the original 2026-09-24 plan; current support is governed by OpenAPI and the capability matrix.
 **Read first:** [AGENTS.md](AGENTS.md), then [DESIGN.md](DESIGN.md). If feasibility findings contradict a required feature, implement the documented capability/error path and escalate the smallest genuinely blocking design change; do not invent API support.
 
 ## 0. Execution rules and definition of done
 
-Implement in the milestone order below. Each milestone must produce its listed code, executable tests and a short review report before dependent work begins. Maintain a living `docs/compatibility.md`, `docs/feasibility-matrix.md` and `docs/adr/` as soon as the repo exists. Do not implement GUI plugin support, multi-project management, HTTP uploads, SQLite/other custom project stores, autosave or unapproved libghidra compatibility.
+Preserve the completed baseline and work in reviewable maintenance slices or approved Phase 7 milestones. Each new milestone requires executable feasibility tests and a review report before dependent work. Maintain `docs/compatibility.md`, `docs/feasibility-matrix.md` and decision records. Do not implement GUI plugin support, multi-project management, HTTP uploads, SQLite/other custom project stores, autosave or unapproved libghidra compatibility.
 
 **Milestone definition of done:** reviewed OpenAPI changes if public behavior changes; unit plus real-Jadx tests for Jadx-dependent behavior; negative/error tests; build/format/static checks; explicit record of unsupported/degraded capabilities; no regression of `.jadx` round trips or explicit-save semantics. Provide exact commands and results, not speculative pass reports.
 
-**First-release gate:** vertical slice works end-to-end on real APK/DEX/JAR fixtures from Java and Python, with native project round-trip in actual jadx-gui, API contract coverage, concurrency and conflict tests. Advanced CFG precision and exhaustive Android resource analysis are separate, later milestones and must not block the first experimental release unless they invalidate foundational design assumptions.
+**Completed first-release gate:** the vertical slice works end-to-end on owned class/JAR/DEX/native fixtures from Java and Python, with native project round-trip in actual jadx-gui, API contract coverage, concurrency and conflict tests. Advanced CFG precision and exhaustive Android resource analysis are separate, later milestones and must not block the first experimental release unless they invalidate foundational design assumptions.
 
-## 1. Phase 0 — Pin dependencies and verify feasibility (mandatory gate)
+## 1. Phase 0 — Pin dependencies and verify feasibility (mandatory gate) — COMPLETE
 
-**Do not begin the full HTTP implementation until Phase 0 succeeds.** Create tiny disposable probes/tests instead of a large framework.
+**Historical gate: passed.** Dependency pin, headless native round-trip and capability probes preceded HTTP implementation. The original steps below record that sequence; do not repin Jadx during maintenance.
 
 ### P0.1 Choose and freeze Jadx
 
@@ -62,7 +62,7 @@ Implement independent minimal probes over small APK/DEX/JAR fixtures and one int
 | CFG | Raw and transformed block/edge access and effect of code restructuring; distinguish DOT output from in-memory graph access | Per-representation capability |
 | Editing | Class/method/field rename, comments, parameters/locals, related method propagation, native persistence | Edit capability matrix |
 | Resource decoding | Manifest, decoded XML, string/assets and resolvable resource relationships | Android resource coverage |
-| Concurrent decompile | Different-class parallel requests, same-class duplication, reads during mutation/reload | Lock scope and safe concurrency |
+| Concurrent decompile | Concurrent-client and mutation/reload admission probes | v0.1 outcome: serialized primary reads, fail-fast PROJECT_BUSY; parallel primary reads UNSUPPORTED |
 | Cancellation | Which passes honor interruption or cancellation; how uninterruptible work behaves | Truthful cancellation/deadline model |
 | Caches | Available native cache backends; invalidation after rename/settings change | Search/cache integration |
 
@@ -70,7 +70,7 @@ For every probe, write `SUPPORTED`, `PARTIAL`, `UNSUPPORTED` or `UNKNOWN`, cite 
 
 **Exit gate for Phase 0:** native GUI round-trip passes, basic core APIs work, and every advanced feature has a capability status or a bounded follow-up investigation. Exact CFG/xref availability can remain partial, but must not be falsely advertised as complete.
 
-## 2. Phase 1 — Repository and application foundation
+## 2. Phase 1 — Repository and application foundation — COMPLETE
 
 ### P1.1 Project scaffold
 
@@ -110,7 +110,7 @@ Define common API models **before controllers** in `openapi/openapi.yaml`. Avoid
 
 Automate OpenAPI lint/validation and request/response contract tests that run against the actual server. Freeze and regenerate Python transport after reviewed contract changes. Until version 1.0, breaking changes are allowed but must be recorded in a changelog and tests/SDK updated together.
 
-## 3. Phase 2 — Native project lifecycle and revision tracker
+## 3. Phase 2 — Native project lifecycle and revision tracker — COMPLETE
 
 ### P2.1 Headless project repository
 
@@ -157,18 +157,18 @@ One-operation temporary overrides use a temporary engine initialized from a snap
 
 **Tests:** unsaved rename visible in temporary override source; primary source unaffected by override; primary logical revision stable on read-only override; resource cleanup after failure; concurrent mutation after temporary snapshot does not affect prior result; persistent settings update retains unsaved edits; unsupported native setting save fails clearly.
 
-## 4. Phase 3 — Scheduler, cancellation and lifecycle correctness
+## 4. Phase 3 — Scheduler, cancellation and lifecycle correctness — COMPLETE
 
 ### P3.1 Operation coordinator
 
 Define read/write categories rather than allowing controllers to manipulate locks. Recommended categories:
 
-- `CLASS_READ(classKey)`: parallel across distinct, proven-safe classes; deduplicate same-class decompilation.
+- `CLASS_READ(classKey)`: primary Jadx reads are serialized; conflicting admission fails `PROJECT_BUSY`. Parallel primary reads remain UNSUPPORTED.
 - `INDEX_READ(snapshot)` and `QUERY_READ`: concurrent with compatible state only.
 - `PROJECT_EXCLUSIVE`: mutations, native saves, global reload, unverified internal graph passes and teardown.
 - `TEMPORARY_ANALYSIS(snapshot)`: isolated engine with independent limits and immutable inputs.
 
-Start conservatively with project-wide serialization for uncertain Jadx operations, then enable class-level concurrency **only when Phase 0 proves safe**. Never hold a write lock while blocking on an SSE subscriber or waiting for an HTTP client.
+The qualified v0.1 coordinator serializes primary Jadx work and rejects conflicting admission with `PROJECT_BUSY`. A future concurrency milestone needs new pinned-version proof before enabling parallel primary reads. Never hold a write lock while blocking on an SSE subscriber or waiting for an HTTP client.
 
 ### P3.2 Job registry and SSE
 
@@ -182,7 +182,7 @@ Implement an in-memory bounded job registry with QUEUED/RUNNING/CANCELLING/SUCCE
 
 **Tests:** requests before READY; simultaneous same-class/different-class queries; mutation while searching; concurrent client conflicting edits; cancellation before dispatch, between classes and during a known uninterruptible operation; SSE and polling parity; queue saturation; shutdown while busy; shutdown policies dirty/clean; complete JVM stop/restart.
 
-## 5. Phase 4 — Symbols, decompilation and navigation
+## 5. Phase 4 — Symbols, decompilation and navigation — COMPLETE
 
 ### P4.1 Identity and lookup
 
@@ -200,9 +200,9 @@ Use verified Jadx usage/dependency APIs for first-release callers/callees/class 
 
 **Tests:** known call graph, field read/write fixture, inheritance/override fixture, missing external library, synthetic lambda/inlined method, reflection that cannot be statically resolved.
 
-## 6. Phase 5 — Incremental search and editing vertical slice
+## 6. Phase 5 — Incremental search and editing vertical slice — COMPLETE for the v0.1 subset
 
-### P5.1 Memory-only search
+### P5.1 Memory-only search — COMPLETE
 
 Index original symbols, aliases, annotations, constants/strings and resource metadata during lightweight preparation. As classes are requested/decompiled, index normalized source text and verified references. A complete-index **async job** enumerates all eligible classes, recording successful, skipped, failed and pending classes under a source/settings/revision fingerprint. `strict=true` or `require_complete=true` must not silently return a partial result; it can trigger/await the complete-index job or return a job reference.
 
@@ -210,7 +210,7 @@ Use offset paging only on stable snapshot-bound enumerations; use opaque, in-mem
 
 **Tests:** partial search includes explicit coverage; strict search only succeeds with eligible complete coverage; one class fails to decompile; regex and string searches; mutation invalidates source-index revision; repeated pages stable or explicitly fail stale; index rebuilt on restart without sidecars.
 
-### P5.2 Editing and native propagation
+### P5.2 Editing and native propagation — COMPLETE; local rename UNSUPPORTED
 
 Phase 5.2 is complete for the safely persisted pinned-Jadx edit forms:
 validated declaration edits, strict Tiny v2 export/import, snapshot-bound
@@ -221,9 +221,9 @@ local rename deliberately unsupported. See
 [final validation](docs/pr-20-review.md). The same native VAR key can target a
 different computation under ordinary GUI input settings; no safe product
 admission predicate was proved. No custom local persistence is permitted.
-Phase 6 Python SDK work is next; the Python release is not yet complete.
+Phase 5.2 was closed by PR #20. Phase 6 was subsequently completed by PR #21/#22.
 
-Build validated native-saveable editing operations in this order: class rename, method/field rename, comments, native mapping import/export; then supported parameter/local rename and related-method propagation. Verify each type through Phase 0 and actual GUI round-trip before advertising persistence. Use original entity references plus snapshot-scoped local variable references. Report propagated affected entities when known.
+The completed edit sequence covers declaration renames/comments, strict native mapping export/import, snapshot-bound parameters, replacement publication and conservative related propagation. Public local rename remains unsupported. Every advertised persistent edit form has real native and matching-GUI evidence; original identities and source snapshots remain required.
 
 For `/edits/batch`, prevalidate **all items** (identity, supported persistence, syntax, expected revision, duplicate/conflicting operations). If prevalidation fails, apply none. During execution an unexpected failure may partially apply; return itemized `APPLIED`, `FAILED`, `SKIPPED` and the resulting logical revision. Do not implement an unproven rollback mechanism. Mutations invalidate affected cached results before responding.
 
@@ -231,24 +231,17 @@ The Python high-level API should supply `expected_revision` automatically from t
 
 **Tests:** single rename and native save; related override propagation where native-supported; unsupported local rename rejected; prevalidation failure no edits; forced mid-batch failure accurately describes partial application; stale logical revision; source/cache invalidation; restart discards unsaved edits; GUI round-trip after explicit save.
 
-PR #15 completes the bounded original-input census and independent hierarchy
-completeness prerequisite after PR #14's negative candidate evidence. The
-class/JAR/DEX subset, deterministic budgets and immutable lifecycle are documented
-in [hierarchy verifier evidence](docs/phase-5-hierarchy-verifier.md). This is an
-internal verification slice, with no accepted propagation contract. PR #16
-delivers outcome B: service replay of explicit complete-family records changes
-unrelated bridge aliases in hot owners, while fresh native reopen restores the
-original aliases. See [negative replay evidence](docs/phase-5-propagated-edits.md).
-The public presence-based 422 rejection and UNSUPPORTED capability remain.
-Safe replay must be proved before group admission, collision preflight, atomic
-item staging, exact affectedRefs and propagated service/GUI guarantees can ship.
-Bridge/covariant and external/duplicate families remain excluded. PR #20
-supersedes the open local-variable decision below: Phase 5.2 closes with local
-editing deliberately unsupported.
+Historical PR #14–#18 feasibility/replay evidence remains in the dedicated
+[verifier](docs/phase-5-hierarchy-verifier.md), [negative replay](docs/phase-5-propagated-edits.md)
+and [safe replay](docs/phase-5-safe-replay.md) records. Final v0.1 behavior is
+PR #18 [replacement publication](docs/phase-5-replacement-publication.md), PR #19
+[conservative group admission](docs/phase-5-related-group-admission.md) and PR #20
+[local-rename exclusion](docs/phase-5-local-rename-feasibility.md). Bridge/covariant,
+external/missing and duplicate families remain excluded from group admission.
 
-## 7. Phase 6 — Python SDK and end-to-end experimental release
+## 7. Phase 6 — Python SDK and end-to-end experimental release — COMPLETE; locally qualified, not published
 
-### P6.1 Generated and handwritten layers
+### P6.1 Generated and handwritten layers — COMPLETE
 
 Generate the low-level synchronous and asynchronous clients and typed models from the **reviewed** OpenAPI contract. Do not hand-edit generated files. Maintain handwritten:
 
@@ -265,10 +258,15 @@ sync/async APIs, lazy cursors, explicit revision/save/conflict behavior, bounded
 SSE and local wheel/sdist artifacts. Linux clean-wheel representative generated,
 sync and async server tests cover Python 3.11/3.14. See
 [SDK architecture](docs/phase-6-python-sdk.md) and
-[exact validation/limitations](docs/pr-21-review.md). This is SDK foundation;
-P6.2 release qualification and any external publication remain pending.
+[exact validation/limitations](docs/pr-21-review.md). P6.2 subsequently completed in PR #22; external publication remains separate.
 
-### P6.2 Cross-language and release tests
+### P6.2 Cross-language and release tests — COMPLETE
+
+**Outcome A — completed.** PR #22 passed 22/22 operations, 19/19 published
+errors, all five client surfaces, Python 3.11/3.14 installed-wheel qualification,
+reproducible Java/Python artifacts and all 12 matching-GUI gates at the qualified
+source head. Publication remains separate. See the [release runbook](docs/phase-6-release-qualification.md)
+and [exact evidence](docs/pr-22-review.md); this does not qualify later source revisions.
 
 Run a real service in subprocess integration tests. Exercise every first-release route from raw HTTP, generated low-level Python, handwritten sync Python and async Python. Verify identical typed error codes, provenance fields, source snapshots, strict/partial behavior and SSE/polling outcomes. Generate the Python package and Java standalone distribution reproducibly.
 
@@ -283,9 +281,9 @@ Run a real service in subprocess integration tests. Exercise every first-release
 
 If any mandatory criterion fails, do not label the build a release candidate. Keep the previous milestone usable and report exact blockers.
 
-## 8. Phase 7 — Extended capabilities (post-initial-release)
+## 8. Phase 7 — Extended capabilities (post-initial-release) — ROADMAP
 
-Only after the vertical slice passes:
+The v0.1 vertical slice has passed. The following are post-v0.1 roadmap items:
 
 1. **Instruction-level references:** verified original offsets and per-reference provenance; unresolved references remain first-class.
 2. **CFGs:** independently report raw/original and transformed graphs with availability, block/edge IDs, edge kinds and method/settings provenance. Test try/catch, loops, switch, obfuscation and failed decompilations. A DOT dump is not a sufficient runtime API by itself.
@@ -296,12 +294,12 @@ Only after the vertical slice passes:
 7. **Optional process-isolated analysis:** preserve the internal engine boundary for later worker JVMs if proven necessary. Do not implement process-per-project prematurely; one fixed primary project remains the product contract.
 8. **Optional explicit filesystem deletion:** review separately. There is no managed workspace to remove; any destructive CLI/API operation must preview exact native files, require explicit authorization and never infer deletion of original inputs.
 
-## 9. Test fixtures and automated test matrix
+## 9. Current regression matrix and future fixtures
 
-Maintain **owned** or redistributable fixtures. Suggested fixtures:
+Maintain **owned** or redistributable fixtures. The completed qualification uses class/JAR/DEX/native fixtures. The list below also retains future APK/resource, malformed/large-input and dependency fixture goals; bundled plugin availability is not release qualification:
 
 - Tiny Java project compiled to JAR/class with overloaded methods, inheritance, interfaces, lambdas, inner classes, string literals and Unicode identifiers/comments.
-- Known APK and DEX pair with manifest, permissions, components, decoded XML, images/assets and resource references.
+- Future owned APK/resource fixture and qualified DEX subset; manifest/permissions/components/XML/assets analysis remains Phase 7.
 - Multidex sample with duplicate descriptor provenance, if generation and redistribution allow it.
 - Sample with absent external dependencies and explicit classpath recovery.
 - Intentionally problematic/obfuscated input known to trigger warnings and partial decompilation.
@@ -311,11 +309,11 @@ Maintain **owned** or redistributable fixtures. Suggested fixtures:
 | Test class | Required behavior |
 |---|---|
 | Unit | DTO/revision invariants, path policy, batch validation, indexing coverage, error mapping, cancellation state machine |
-| Native integration | Real Jadx load, original descriptors, code data reload, source locations, xrefs, resources, native caches |
+| Native integration | Real Jadx load, original descriptors, native code-data publication, verified Java locations and partial references; deeper resources/cache reuse require Phase 7 proof |
 | GUI round-trip | Headless save -> open in real matching jadx-gui -> inspect edits and unrelated fields -> GUI save -> headless reopen |
 | API contract | Every endpoint checked against OpenAPI, positive/negative examples, all published error codes and strict/partial responses |
 | Python | Generated sync+async transport and handwritten workflows against an actual local server |
-| Concurrency | Same-class deduplication; proven different-class parallelism; global mutation serialization; multiple clients; shutdown while busy |
+| Concurrency | Multiple HTTP clients; serialized primary Jadx reads; conflicting admission fails PROJECT_BUSY; serialized mutations; shutdown while busy. Parallel primary reads remain UNSUPPORTED |
 | Recovery | Restart discards unsaved edits/jobs/indexes but keeps successfully native-saved changes; failed load remains diagnosable |
 | Security | Loopback bind, no upload routes, disallowed roots, symlinks, archive traversal, large malformed ZIPs and disabled CORS by default |
 | Regression | Compare selected fixture symbols/decompile/mappings across each *explicitly approved* Jadx upgrade; capture unsupported features |
@@ -332,19 +330,27 @@ GUI round-trip tests must actually start or otherwise exercise the matching GUI 
 - Document CLI config precedence, loopback-only security boundary, allowed-root policy, input formats, limitation matrix, partial results, editing/save/conflict behavior, job cancellation truthfulness, and the Python SDK.
 - Maintain a human-readable experimental API changelog; regenerate SDK/tests for contract-breaking changes before 1.0.
 
-### Example local verification commands (create the corresponding Gradle tasks first)
+### Current verification commands
 
 ```bash
-./gradlew clean test
-./gradlew integrationTest
-./gradlew guiRoundTripTest      # dedicated display/Xvfb environment
-./gradlew check
-./gradlew installDist
-# Python environment and package tooling chosen and pinned during setup:
-python -m pytest python/tests
+./gradlew clean test check installDist
+python/.venv/bin/python tests/validate-openapi.py
+python/.venv/bin/python tests/validate-documentation.py
+cd python
+uv run --frozen python scripts/check_generated.py
 ```
 
-The above are **target commands**, not assertions that the tasks or tests are currently available. An agent may adapt exact task names while preserving the corresponding CI gates.
+The comprehensive candidate gate, including all twelve GUI tasks, is:
+
+```bash
+JADX_GUI=/path/to/jadx-1.5.6/bin/jadx-gui \
+  tests/release/validate-release-candidate.sh all --output /tmp/libjadx-release-evidence
+```
+
+See the [release runbook](docs/phase-6-release-qualification.md) for exact interpreter,
+cache and evidence prerequisites. PR #22 source fingerprints include ordinary
+documentation; later Markdown changes fail its freshness validators. Preserve
+that historical evidence rather than rewriting its identity during cleanup.
 
 ## 11. Required milestone handoff template
 
@@ -361,103 +367,21 @@ Supported / partial / unsupported capability changes:
 Behavior under restart / concurrency / conflicts:
 Known failures and regression tests:
 Approval required, if and only if an actual blocking design change exists:
-Next unblocked work package:
+Next work / remaining roadmap:
 ```
 
 Do not treat a checklist tick or written plan as test evidence. The coding agent's deliverable is working, verifiable code under the approved architecture, with truthful capability reporting and native Jadx project compatibility.
 
-## PR #17 handoff — safe native code-data replay / replacement-engine feasibility
+## Completed implementation evidence
 
-Outcome B. Current replay, listener-first replay, exact-owner invalidation and
-fresh replacement have executable probes on pinned 1.5.6. Replacement passes
-Joined hot/cold and complete-state fresh comparisons, but removing a return-only
-method collision changes an untouched automatic alias. The existing supported
-`returnTypeOnlyOverloadsHaveDistinctNativeKeys` regression caught this during a
-provisional implementation; that implementation was reverted. Current production
-editing, prefix/fault semantics, revisions and explicit-save behavior remain
-unchanged. The old bridge failure remains a hard negative control.
+Phases 0–6 are completed history for v0.1; new work starts with maintenance or Phase 7.
+Detailed old handoffs remain in the dedicated records rather than the live roadmap.
 
-Before implementing a generic replacement primitive, obtain an explicit decision
-on whether unedited automatic aliases may be recomputed when a mutation removes
-a collision, or investigate another pinned-engine strategy satisfying both
-fresh equivalence and nonmember stability. Merely accepting replacement cost does
-not resolve this semantic conflict. No bridge-project exclusion, Jadx upgrade,
-manual alias preservation or Phase 6 scope change is authorized. PR #18 cannot
-admit groups until this boundary is resolved and safe publication, complete-state,
-fault, lease, native/restart and service GUI gates pass. Then single-lease COMPLETE
-verification, all-owner collisions, immutable group staging and exact affectedRefs
-remain required. See [feasibility](docs/phase-5-safe-replay.md) and
-[review](docs/pr-17-review.md).
+- PR #17: [safe replay feasibility](docs/phase-5-safe-replay.md) and [review](docs/pr-17-review.md).
+- PR #18: [replacement publication and alias semantics](docs/phase-5-replacement-publication.md) and [review](docs/pr-18-review.md).
+- PR #19: [related-method group admission](docs/phase-5-related-group-admission.md) and [review](docs/pr-19-review.md).
+- PR #20: [local-rename feasibility/exclusion](docs/phase-5-local-rename-feasibility.md) and [review](docs/pr-20-review.md).
+- PR #21: [Python SDK architecture](docs/phase-6-python-sdk.md) and [review](docs/pr-21-review.md).
+- PR #22: [release qualification](docs/phase-6-release-qualification.md) and [review](docs/pr-22-review.md).
 
-## PR #18 approved alias semantics and replacement publication
-
-This section supersedes PR #17's requirement to preserve every incidental alias.
-Automatic Jadx aliases are derived analysis state: collision aliases,
-deobfuscation aliases without explicit persistence, and other generated aliases
-may be recomputed when an edit changes analysis. A declaration with no explicit
-rename may therefore change its display alias without a separate user edit.
-Native declaration renames, mapping aliases/comments, supported scoped renames,
-retained VAR records and declaration comments remain authoritative. Original
-identities, settings, ordered input references and unknown native fields retain
-their existing preservation rules. Never add native records to freeze generated
-aliases.
-
-Effective native batches now privately stage complete code data, load one fresh
-production engine, commit native data once, then publish that engine under the
-existing exclusive lease. No-op retains the engine and revisions; candidate
-failure publishes nothing. See [replacement publication](docs/phase-5-replacement-publication.md) for ordering,
-failures, oracle, persistence and validation. PR #19's
-[verified group admission](docs/phase-5-related-group-admission.md) now supplies same-lease
-COMPLETE verification, immutable plans, all-owner raw collision checks and exact
-native records/affectedRefs. Local editing remains unsupported.
-
-## PR #19 — verified related-method rename group admission
-
-This section supersedes prior propagation deferrals. Explicit METHOD RENAME
-`propagateRelated: true` admits only independently COMPLETE closed-input families
-verified synchronously against the captured current engine under one exclusive
-edit lease. Immutable sorted original/native plans, raw all-owner collision
-inventory, full-batch overlap checks and group-private atomic staging precede
-PR #18 fresh replacement publication. Ordinary omitted/false retains one-record
-semantics and empty affectedRefs. Applied and verified no-op groups return exact
-original family refs; no-op requires every explicit member record already present.
-
-Limits: 64 per family; four propagated items, 128 total members and 800000 reserved
-verification work per batch. No class or ordinary method rename shares a group
-batch; parameter edits on members reject. Field renames and declaration comments
-may coexist. Raw hidden bridge/synthetic methods block collisions,
-without becoming admitted members. Standard Jadx records persist only on explicit
-save. Restart/discard/reload, accepted input/mapping conflicts and actual matching
-GUI Save As retain their native-only behavior. Covariant/bridge, missing/external,
-duplicate, local and parameter propagation remain unsupported. PR #20 subsequently closes Phase 5.2 with local rename
-deliberately unsupported; the Python release remains open. No dependencies or locks change.
-
-See [admission, status mapping, ordering and persistence](docs/phase-5-related-group-admission.md)
-and [final-head validation](docs/pr-19-review.md).
-
-## PR #20 — native local-variable rename retargeting feasibility
-
-Outcome B. Same-mode native replay/save/reopen and full-state replacement remain
-positive evidence, but the smallest owned one-local JVM method has exact,
-unique, one-definition, no-phi metadata and still retargets `(0,2)` from an
-absolute value to its square when matching GUI Use dx/d8 is enabled. The global
-GUI setting is not bound into the native project or VAR record. Actual GUI
-editor capture and Save As in AUTO/RESTRUCTURE/SIMPLE/FALLBACK and AUTO+dx/d8
-preserve the record while confirming that its meaning can change.
-
-No public operation, local identity, verifier, persistence layer or SDK is added.
-`edit.local_rename` remains UNSUPPORTED with evidence
-`NATIVE_VAR_RETARGETS_WITH_UNBOUND_GUI_SETTINGS`. Read-only local metadata remains
-snapshot-scoped. Existing parameter and related-method restrictions are retained.
-Phase 5.2 is complete with this deliberate exclusion; proceed to Phase 6.
-See [feasibility](docs/phase-5-local-rename-feasibility.md) and
-[commands and review checklist](docs/pr-20-review.md).
-
-## PR #22 — Phase 6.2 release qualification
-
-The candidate identity is Java `0.1.0-alpha.1` / Python `0.1.0a1`, independently
-versioned from OpenAPI `0.1.0-experimental`. The repeatable gate and its test-only
-instrumentation are documented in [release qualification](docs/phase-6-release-qualification.md).
-Its [review report](docs/pr-22-review.md), route/error matrices and artifact manifest
-record the exact qualified source revision or executable blocker. All twelve
-matching-GUI gates are mandatory; candidate publication is a separate human action.
+The [documentation index](docs/README.md) classifies earlier phase and PR evidence.

@@ -1,5 +1,7 @@
 # Phase 3.2 jobs and events
 
+> **Historical milestone record.** This document describes repository state at its named phase/PR. Its “next milestone,” “pending,” and support-status statements are historical. For current product state see the [documentation index](README.md), [compatibility](compatibility.md), [feasibility matrix](feasibility-matrix.md) and [PR #22 qualification](pr-22-review.md).
+
 The fixed-project runtime owns one process-local `JobRegistry`. Trusted Java
 callers submit typed `JobSpec` tasks with an operation request, the current
 session and logical revision, a source snapshot identifier, and an optional

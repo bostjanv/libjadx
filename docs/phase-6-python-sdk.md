@@ -1,13 +1,20 @@
 # Phase 6.1 — Python SDK foundation
 
+Phase 6.1 completed in PR #21. Phase 6.2 subsequently completed in PR #22;
+the Java/Python candidate is locally release-qualified but not published or
+tagged. This document records the SDK architecture established by Phase 6.1.
+See the [release runbook](phase-6-release-qualification.md), [PR #22 report](pr-22-review.md)
+and [documentation index](README.md).
+
 LibJadx 0.1.0a1 is one typed distribution containing stock generated transport
 and handwritten sync/async APIs. The Java process remains separately started,
 fixed-project and local. No Java code, native project behavior, Jadx pin or
 OpenAPI schema changes in PR #21. The existing SSE example lacked its required
 JobEvent.progress and the final empty-line delimiter; all three frames now
 parse, with a parser regression. This corrects an example against the unchanged reviewed schema. A file-specific
-Git whitespace attribute permits SSE's required final empty-line delimiter. Phase 6.2 is still required before release
-qualification/publication. The base repository has no root license grant;
+Git whitespace attribute permits SSE's required final empty-line delimiter.
+Phase 6.2 qualification subsequently passed in PR #22; external publication
+remains separate. The base repository has no root license grant;
 SDK metadata reflects the current default reserved-rights state. This does not
 record a human-approved licensing decision. Upstream notices remain separate.
 
@@ -167,7 +174,8 @@ and clean-wheel checks exercise actual site-packages on 3.11 and 3.14. Runtime
 is HTTPX/attrs/typing-extensions; generator, lint/type/test/build/contract tools
 are dev-only. Wheel includes py.typed/licenses and no Java artifacts/tests.
 
-Phase 6.2 must expand to exhaustive route/error parity, larger cancellation and
-concurrent lifecycle workflows, native/GUI release gates and reproducible Java/
-Python release packaging. No external publication/tag/release is authorized.
+PR #22 expanded qualification to exhaustive route/error parity, larger cancellation
+and concurrent lifecycle workflows, native/GUI gates and reproducible Java/Python
+release packaging. Its [review](pr-22-review.md) records the completed gate.
+No external publication/tag/release is authorized.
 Exact local commands, artifacts and limitations are in [PR #21 review](pr-21-review.md).

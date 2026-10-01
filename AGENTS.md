@@ -2,13 +2,13 @@
 
 > **Read this file first.** Then read [DESIGN.md](DESIGN.md) and [IMPLEMENTATION.md](IMPLEMENTATION.md) before changing code. If the three documents appear inconsistent, apply the priority rules below and record the issue; do not silently change architecture.
 >
-> Status: implementation handoff, 2026-09-24. The repository described here is a proposed structure, not a claim that the modules already exist.
+> Status: v0.1 experimental feature baseline implemented and locally release-qualified by PR #22; not externally published or tagged. Phases 0–6 are completed history. New feature work starts from Phase 7 or an explicitly approved maintenance/release task.
 
 ## Mission
 
-Build **LibJadx**, an independently designed, standalone, headless Java service exposing Jadx decompilation and analysis via a versioned REST/JSON API, plus a Python SDK. The target is broad reverse-engineering functionality analogous in purpose to libghidra **where Jadx can actually support it**, not protocol or SDK compatibility with libghidra.
+Build **LibJadx**, an independently designed, standalone, headless Java service exposing Jadx decompilation and analysis via a versioned REST/JSON API, plus a Python SDK. LibJadx is inspired by and modeled in spirit after [libghidra](https://github.com/0xeb/libghidra)'s goal of typed programmatic access to a reverse-engineering engine. It is independently designed around Jadx **where Jadx can actually support it**, without API/protocol compatibility or endorsement from either project.
 
-The human-approved architectural decisions in [DESIGN.md](DESIGN.md) are fixed unless an implementation blocker requires an explicit design change. Follow the ordered, test-gated work packages in [IMPLEMENTATION.md](IMPLEMENTATION.md). **Do not begin by implementing the entire API**: complete the native-project round-trip and Jadx capability probes first.
+The human-approved architectural decisions in [DESIGN.md](DESIGN.md) are fixed unless an implementation blocker requires an explicit design change. Preserve the qualified v0.1 baseline. Phases 0–6 in [IMPLEMENTATION.md](IMPLEMENTATION.md) record completed acceptance criteria; Phase 7 features require proof-first capability probes. Contract changes update OpenAPI, generated SDK, fixtures and release matrices together. Persistence changes require matching-GUI qualification. Source/runtime changes invalidate PR #22 evidence under its [freshness rules](docs/phase-6-release-qualification.md#documentation-cleanup-and-evidence-freshness); ordinary documentation also enters its strict fingerprint.
 
 ## Instruction precedence
 
@@ -30,7 +30,7 @@ When a requirement is infeasible with the pinned Jadx release, gather proof in a
 - **Detect external modification before saving.** Refuse to overwrite a changed native project/mappings file. Support exporting the pending edits in a transient API response and explicitly reloading the project. Do not implement automatic concurrent GUI collaboration or assume external tools honor our locks.
 - **Serve readiness immediately.** Bind the HTTP listener before large-project loading finishes; expose LOADING / READY / FAILED and load-progress information. Business endpoints return a structured not-ready error until initialization succeeds.
 - **HTTP:** versioned REST/JSON, maintained OpenAPI contract with CI validation, synchronous lightweight operations, asynchronous heavy jobs, polling and SSE, typed errors and explicit partial-result semantics. Bind `127.0.0.1` by default; no authentication is required initially. Do not silently enable remote binding.
-- **Jadx version:** at implementation start, identify the latest stable upstream release, pin its exact artifact versions / commit as applicable, record the result in dependency locks and `docs/compatibility.md`, and never pull `master` at build time. Use public APIs first; isolate version-sensitive internal APIs behind adapters.
+- **Jadx version:** the supported pin is **1.5.6**, source `28ff15e4ae69950aebea110a13e5ab895d234dfc`, with JDK 21 and Gradle 8.14.3 recorded in locks and `docs/compatibility.md`. Never pull `master` at build time or upgrade Jadx incidentally. An upgrade is a separate explicitly approved compatibility milestone requiring full regression/release qualification. Use public APIs first; isolate version-sensitive internal APIs behind adapters.
 - **Python:** generate the low-level typed transport from the reviewed OpenAPI contract; maintain handwritten synchronous, asynchronous and object-oriented convenience layers.
 - **Experimental API until 1.0.** Every potentially breaking contract change must update OpenAPI, SDK generation, fixtures and contract tests in the same change.
 
@@ -51,50 +51,44 @@ When a requirement is infeasible with the pinned Jadx release, gather proof in a
 7. **Keep updates reviewable.** Make small commits or coherent patches, record assumptions, add tests and report exact commands/results. Do not claim tests passed unless you ran them.
 8. **No silent scope expansion.** Do not add GUI integration, uploads, server-side persistent metadata, remote listening, extra SDKs, automatic project saves or runtime project switching without human approval.
 
-## Expected repository layout
+## Current repository layout and logical boundaries
 
 ```text
 libjadx/
-  AGENTS.md
-  DESIGN.md
-  IMPLEMENTATION.md
-  docs/
-    compatibility.md           # filled in after pinning Jadx
-    adr/                       # justified departures and technical decisions
-  openapi/
-    openapi.yaml               # reviewed external contract
-  app/                         # main, CLI, config, lifecycle
-  http/                        # controllers, JSON mapping, SSE
-  core/                        # transport-independent models/services
-  jadx-adapter/                # pinned Jadx façade, internal adapters
-  project/                     # native .jadx / mappings / export
-  analysis/                    # code, symbols, xrefs, CFG, resources
-  search/                      # in-memory incremental indexes
-  scheduler/                   # jobs, coordination, cancellation
-  python/                      # generated transport + handwritten API
-  tests/                       # integration and GUI round-trip fixtures
+  AGENTS.md / DESIGN.md / IMPLEMENTATION.md / CONTEXT.md
+  src/main/java/dev/libjadx/   # app, http, core, project, jadxadapter, scheduler packages
+  src/test/java/dev/libjadx/   # real-Jadx probes, service and persistence tests
+  docs/                       # current index, compatibility, history and evidence
+  openapi/                    # reviewed REST contract and examples
+  python/                     # generated transport and handwritten sync/async SDK
+  tests/                      # owned fixtures, contract validators and release gates
+  licenses/                   # bundled upstream notices
+  build.gradle.kts / gradle.lockfile / gradle/
 ```
 
-These are **logical** modules. Start with fewer physical Gradle modules if simpler, but retain clean package/interface boundaries. Use Gradle Kotlin DSL and a JDK compatible with the selected Jadx release; pin and document both.
+Lifecycle, transport, native serialization, analysis/search, scheduling and
+Jadx-version-sensitive adapters remain distinct logical boundaries within the
+current Gradle application. Do not create physical modules merely to match the
+original proposed tree. See [DESIGN.md](DESIGN.md) for dependency rules.
 
 ## Critical implementation invariants
 
 - The source of truth for class/method/field identities is the original descriptor **plus input identity when genuinely recoverable**. Aliases are not identities. If Jadx merges duplicate definitions, disclose that provenance limitation instead of fabricating unique source identities.
-- Local-variable identities are source-snapshot-scoped; parameters prefer original positional identity. Reject edits against outdated snapshots.
+- Read-only local metadata is source-snapshot-scoped; public local rename is UNSUPPORTED. Parameters use original positional identity within the proved snapshot-bound subset. Reject edits against outdated snapshots.
 - Source positions are valid only for their code snapshot and effective settings. Keep bytecode offsets and source offsets in separate coordinate systems. Expose mapping availability/precision.
 - Persisted identity is content-derived from relevant native files and inputs; logical and index revisions are per-running-process. A session/boot identifier prevents accidental reuse of stale revision tokens after restart.
 - A mutation invalidates affected in-memory caches immediately. Recompute lazily, with optional background refresh. Search defaults to explicitly labeled partial coverage, with an option to require complete coverage.
 - Temporary decompiler override requests get a **single-operation, read-only isolated Jadx instance** initialized from an immutable snapshot of the current logical state, **including unsaved renames and comments**. Never mutate or share mutable code-data objects with the primary instance.
-- Concurrent class reads are enabled only after safety tests on the pinned version. Serialize writes, global passes and any unverified operation. Job cancellation is cooperative; a deadline must not be presented as proof of JVM-level interruption.
+- Primary Jadx reads remain serialized; conflicting primary-read admission fails PROJECT_BUSY. `analysis.concurrent_reads = UNSUPPORTED` with evidence `SERIALIZED_PRIMARY_READS_FAIL_FAST_PROJECT_BUSY`. Multiple clients are supported. Future parallelism requires new pinned-version safety proof. Serialize writes/global passes. Cancellation is PARTIAL/cooperative: CANCELLING remains until work stops, and deadlines do not prove JVM-level interruption.
 - Validate all edits in a batch before executing. If an unexpected failure causes partial application, return itemized applied/failed status. Never advertise full rollback unless proved.
 - Close/shutdown and persistent configuration reload are rejected while conflicting work is active; a project-wide settings change, when accepted, immediately rebuilds affected Jadx state and retains unsaved edits.
 - Native project save uses the pinned Jadx release's compatible serialization semantics; there is **no extra transactional backup/recovery layer** unless explicitly approved.
 
 ## Scope boundaries and acceptance
 
-**First usable release:** startup/readiness, class/method enumeration, decompiled Java, basic references/navigation, incremental search, supported rename/comment mutations, explicit native save, synchronous/async Python access, structured errors, jobs/progress, contract tests and automated GUI project round-trip.
+**Qualified v0.1 baseline:** startup/readiness, class/method enumeration, decompiled Java, basic references/navigation, incremental search, supported rename/comment mutations, explicit native save, synchronous/async Python access, structured errors, jobs/progress, contract tests and automated GUI project round-trip.
 
-**Later advanced work:** Smali and deeper code metadata where not already available, instruction-level xrefs, raw/transformed CFGs, comprehensive resource queries, classpath-aware resolution, variable editing, and reproducible portable export. These remain in the design even when delayed past the first vertical slice.
+**Phase 7 roadmap:** Smali and deeper code metadata where not already available, instruction-level xrefs, raw/transformed CFGs, comprehensive resource queries, classpath-aware resolution, variable editing, and reproducible portable export. These are post-v0.1 goals; local editing remains unsupported unless a new native-safe predicate is proved.
 
 **Quality gate:** run real-Jadx integration, OpenAPI contract tests, concurrency/cancellation, malformed-input, stale-revision, external-change, restart, and GUI round-trip suites. Report skipped tests and unsupported capabilities explicitly.
 
@@ -106,14 +100,15 @@ For each finished milestone, report:
 2. **Evidence:** pinned Jadx source links/paths, fixture names, tests and exact commands with outcomes.
 3. **State:** behavior for unsupported/partial capabilities and remaining limitations.
 4. **Persistence check:** how GUI round-trip and explicit-save behavior were verified, where relevant.
-5. **Next milestone:** unblocked tasks and any human decision genuinely required.
+5. **Next work / remaining roadmap:** unblocked tasks and any human decision genuinely required.
 
-If Phase 0 feasibility fails for a mandatory feature, stop dependent implementation, preserve the failing fixture and propose the smallest compatible design adjustment for human review. Do not quietly turn an unverified assumption into a contract guarantee.
+If a future feasibility probe fails for a mandatory feature, stop dependent implementation, preserve the failing fixture and propose the smallest compatible design adjustment for human review. Do not quietly turn an unverified assumption into a contract guarantee.
 
 ## References
 
 - Jadx upstream: https://github.com/skylot/jadx
 - Jadx library usage: https://github.com/skylot/jadx/wiki/Use-jadx-as-a-library
-- Native project model (verify against pinned release): https://github.com/skylot/jadx/blob/master/jadx-gui/src/main/java/jadx/gui/settings/data/ProjectData.java
-- Native project serialization (verify against pinned release): https://github.com/skylot/jadx/blob/master/jadx-gui/src/main/java/jadx/gui/settings/JadxProject.java
-- libghidra licensing reference **only**: https://github.com/0xeb/libghidra/blob/main/LICENSE
+- Native project model (verify against pinned release): https://github.com/skylot/jadx/blob/28ff15e4ae69950aebea110a13e5ab895d234dfc/jadx-gui/src/main/java/jadx/gui/settings/data/ProjectData.java
+- Native project serialization (verify against pinned release): https://github.com/skylot/jadx/blob/28ff15e4ae69950aebea110a13e5ab895d234dfc/jadx-gui/src/main/java/jadx/gui/settings/JadxProject.java
+- libghidra project — product inspiration: https://github.com/0xeb/libghidra
+- libghidra license — review before any reuse: https://github.com/0xeb/libghidra/blob/main/LICENSE

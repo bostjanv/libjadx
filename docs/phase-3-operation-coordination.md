@@ -1,5 +1,7 @@
 # Phase 3.1 operation coordination
 
+> **Historical milestone record.** This document describes repository state at its named phase/PR. Its “next milestone,” “pending,” and support-status statements are historical. For current product state see the [documentation index](README.md), [compatibility](compatibility.md), [feasibility matrix](feasibility-matrix.md) and [PR #22 qualification](pr-22-review.md).
+
 Baseline: `c20cfeda77500553e84450a6cde4000b0aca6c94` (merged PR #2),
 Jadx `1.5.6` at source commit `28ff15e4ae69950aebea110a13e5ab895d234dfc`.
 The coordinator is process local and has no journal or persistence.

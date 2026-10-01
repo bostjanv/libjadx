@@ -1,5 +1,7 @@
 # Phase 5.1: process-local incremental search
 
+> **Historical milestone record.** This document describes repository state at its named phase/PR. Its “next milestone,” “pending,” and support-status statements are historical. For current product state see the [documentation index](README.md), [compatibility](compatibility.md), [feasibility matrix](feasibility-matrix.md) and [PR #22 qualification](pr-22-review.md).
+
 LibJadx 0.1 exposes `POST /api/v1/search` and `POST /api/v1/search/build-index`.
 Search is read-only. It does not save native projects, write an index sidecar, or
 change `logicalRevision` or `dirty`. The index and all result cursors disappear

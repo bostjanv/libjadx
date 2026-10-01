@@ -1,5 +1,7 @@
 # PR #13: snapshot-bound native parameter renames
 
+> **Historical milestone record.** This document describes repository state at its named phase/PR. Its “next milestone,” “pending,” and support-status statements are historical. For current product state see the [documentation index](README.md), [compatibility](compatibility.md), [feasibility matrix](feasibility-matrix.md) and [PR #22 qualification](pr-22-review.md).
+
 **Current status:** PR #20 closes [local feasibility](phase-5-local-rename-feasibility.md)
 with local rename deliberately unsupported and Phase 5.2 complete. PR #19 admits
 its verified related-method subset. The original PR #13 counterexample and

@@ -1,5 +1,10 @@
 # Experimental API changelog
 
+Changelog entries describe repository state at the time of each entry. Historical
+“pending,” “next,” and “unsupported” statements are not the current support matrix;
+see [compatibility](compatibility.md), [public capabilities](../openapi/examples/capabilities.json)
+and the [documentation index](README.md).
+
 ## 2026-10-01 — PR #22 cross-language release qualification
 
 - Qualified Java `0.1.0-alpha.1` / Python `0.1.0a1` locally against pinned Jadx
