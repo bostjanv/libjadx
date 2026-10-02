@@ -17,14 +17,17 @@ T = TypeVar("T", bound="Capability")
 
 @_attrs_define
 class Capability:
-    """
-    Attributes:
-        name (str):
-        status (CapabilityStatus):
-        evidence (str):
-        persistence (str): Persistence scope proven for the capability, or UNAVAILABLE.
-        precision (CapabilityPrecisionType1 | CapabilityPrecisionType2Type1 | CapabilityPrecisionType3Type1 | None |
-            Unset):
+    """Public service capability with an explicit scope and evidence. Internal dependency feasibility does not establish
+    public representation support. PARTIAL retains the limitations described by evidence; UNKNOWN identifies unverified
+    behavior and must not be interpreted as supported.
+
+        Attributes:
+            name (str):
+            status (CapabilityStatus):
+            evidence (str):
+            persistence (str): Persistence scope proven for the capability, or UNAVAILABLE.
+            precision (CapabilityPrecisionType1 | CapabilityPrecisionType2Type1 | CapabilityPrecisionType3Type1 | None |
+                Unset):
     """
 
     name: str

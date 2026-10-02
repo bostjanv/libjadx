@@ -38,7 +38,10 @@ public final class EditBatchService {
 	private final StageHook hook;
 	private final GroupStageHook groupHook;
 
-	public EditBatchService(ProjectRuntime runtime) { this(runtime, ignored -> { }); }
+	public EditBatchService(ProjectRuntime runtime) { this(runtime, index -> {
+		dev.libjadx.testing.ReleaseTestHooks.gate("edit");
+		dev.libjadx.testing.ReleaseTestHooks.fail("edit-item-" + index);
+	}); }
 	EditBatchService(ProjectRuntime runtime, StageHook hook) { this(runtime, hook, (item, member) -> { }); }
 
 	EditBatchService(ProjectRuntime runtime, StageHook hook, GroupStageHook groupHook) {

@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "dev.libjadx"
-version = "0.1.0-SNAPSHOT"
+version = "0.1.0-alpha.1"
 
 repositories {
     google()
@@ -430,4 +430,47 @@ tasks.register<Test>("localRenameGuiDiagnosticTest") {
     classpath = sourceSets.test.get().runtimeClasspath
     filter { includeTestsMatching("dev.libjadx.app.LocalRenameGuiDiagnosticTest.matchingGuiEditorAndSaveAsPreserveRecordsButDoNotBindTheirMeaning") }
     environment("LIBJADX_LOCAL_GUI_ROOT", localRenameGuiRoot.get().asFile.absolutePath)
+}
+
+// One product version feeds CLI and HTTP, with no wall-clock build metadata.
+val candidateVersion = project.version.toString()
+val generateBuildInfo by tasks.registering {
+    val output = layout.buildDirectory.file("generated/build-info/libjadx-build.properties")
+    inputs.property("productVersion", candidateVersion)
+    outputs.file(output)
+    doLast {
+        output.get().asFile.apply {
+            parentFile.mkdirs()
+            writeText("version=$candidateVersion\n")
+        }
+    }
+}
+sourceSets.main { resources.srcDir(layout.buildDirectory.dir("generated/build-info")) }
+tasks.processResources { dependsOn(generateBuildInfo) }
+tasks.withType<AbstractArchiveTask>().configureEach {
+    isPreserveFileTimestamps = false
+    isReproducibleFileOrder = true
+}
+
+// All GUI Exec tasks share display automation/logs. Never run these concurrently.
+val matchingGuiSaveOrder = listOf(
+    "saveNativeProjectWithMatchingGui", "saveRawProjectWithMatchingGui",
+    "saveNativeEditsWithMatchingGui", "saveExportedMappingsWithMatchingGui",
+    "saveImportedMappingsWithMatchingGui", "saveScopedEditsWithMatchingGui",
+    "saveRelatedSeedWithMatchingGui", "saveRelatedMembersWithMatchingGui",
+) + listOf("cold", "hot").flatMap { state -> (0..3).map {
+    "savePropagatedReplay${state.replaceFirstChar { it.uppercase() }}${it}WithMatchingGui"
+} } + listOf("saveSafeReplayDiagnosticWithMatchingGui", "saveReplacementEditsWithMatchingGui") +
+    propagatedEditGuiTasks + localRenameGuiTasks
+matchingGuiSaveOrder.zipWithNext().forEach { (previous, next) ->
+    tasks.named(next) { mustRunAfter(previous) }
+}
+tasks.register("releaseGuiQualification") {
+    group = "verification"
+    description = "All twelve matching-Jadx GUI release gates (zero skips required)"
+    dependsOn("guiRoundTripTest", "rawGuiRoundTripTest", "nativeEditGuiRoundTripTest",
+        "mappingExportGuiRoundTripTest", "mappingImportGuiRoundTripTest", "scopedEditGuiRoundTripTest",
+        "relatedPropagationGuiRoundTripTest", "propagatedEditReplayGuiDiagnosticTest",
+        "safeReplayGuiDiagnosticTest", "replacementEditGuiRoundTripTest",
+        "propagatedEditGuiRoundTripTest", "localRenameGuiDiagnosticTest")
 }

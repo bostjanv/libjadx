@@ -817,6 +817,7 @@ public final class ProjectRuntime implements AutoCloseable {
 			settings = effectiveConfig;
 		}
 		try (lease) {
+			dev.libjadx.testing.ReleaseTestHooks.gate("primary-read");
 			return operation.apply(new PrimarySymbolRead(engine.decompiler(), current.snapshot().revisions(), epoch, settings));
 		}
 	}
@@ -858,6 +859,8 @@ public final class ProjectRuntime implements AutoCloseable {
 		Exception expectedFailure = null;
 		Error fatalFailure = null;
 		try {
+			dev.libjadx.testing.ReleaseTestHooks.gate("startup");
+			dev.libjadx.testing.ReleaseTestHooks.fail("startup");
 			if (nativeProject != null) localRepository = NativeProjectRepository.open(nativeProject.getProjectPath(), allowedRoots);
 			else if (!inputPaths.isEmpty()) localRepository = NativeProjectRepository.fromInputs(inputPaths, allowedRoots);
 			if (localRepository != null && !localRepository.snapshot().inputs().equals(inputPaths)) {

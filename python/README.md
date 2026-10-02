@@ -2,8 +2,10 @@
 
 `libjadx` 0.1.0a1 is an experimental HTTP client for a separately running,
 standalone LibJadx Java service. It does not embed Jadx or use JPype. Minimum
-Python is 3.11; Linux wheel tests cover 3.11 and 3.14. Phase 6.2 release
-qualification remains pending; this package is not published on PyPI.
+Python is 3.11; the release gate covers Linux wheels on 3.11 and 3.14.
+The matching Java candidate is `0.1.0-alpha.1`, with API `0.1.0-experimental`.
+See [the qualification report](../docs/pr-22-review.md) for the validated source
+revision and outcome. This package is not published on PyPI.
 
 Build/install locally from the repository:
 

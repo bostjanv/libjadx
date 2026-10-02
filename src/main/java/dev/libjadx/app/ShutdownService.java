@@ -21,7 +21,10 @@ public final class ShutdownService implements ShutdownRequester {
 
 	@Override public void responseCommitted() {
 		if (triggered.compareAndSet(false, true)) {
-			Thread.ofPlatform().name("libjadx-requested-shutdown").start(closeApplication);
+			Thread.ofPlatform().name("libjadx-requested-shutdown").start(() -> {
+				dev.libjadx.testing.ReleaseTestHooks.gate("shutdown");
+				closeApplication.run();
+			});
 		}
 	}
 }

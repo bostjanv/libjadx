@@ -1,0 +1,895 @@
+{
+  "head": "55e46eb707d095abdb067424db77f51a31558e17",
+  "records": {
+    "applyEditBatch": {
+      "error_checked": true,
+      "negative_case": true,
+      "positive_case": true,
+      "positive_surfaces": {
+        "generated_async": 8,
+        "generated_sync": 8,
+        "high_level_async": 8,
+        "high_level_sync": 8,
+        "raw_http": 8
+      },
+      "provenance_checked": true,
+      "surfaces": {
+        "generated_async": 15,
+        "generated_sync": 15,
+        "high_level_async": 17,
+        "high_level_sync": 17,
+        "raw_http": 17
+      }
+    },
+    "buildSearchIndex": {
+      "error_checked": true,
+      "negative_case": true,
+      "positive_case": true,
+      "positive_surfaces": {
+        "generated_async": 6,
+        "generated_sync": 6,
+        "high_level_async": 6,
+        "high_level_sync": 6,
+        "raw_http": 6
+      },
+      "provenance_checked": true,
+      "surfaces": {
+        "generated_async": 6,
+        "generated_sync": 6,
+        "high_level_async": 6,
+        "high_level_sync": 6,
+        "raw_http": 6
+      }
+    },
+    "cancelJob": {
+      "error_checked": true,
+      "negative_case": true,
+      "positive_case": true,
+      "positive_surfaces": {
+        "generated_async": 5,
+        "generated_sync": 5,
+        "high_level_async": 5,
+        "high_level_sync": 5,
+        "raw_http": 5
+      },
+      "provenance_checked": true,
+      "surfaces": {
+        "generated_async": 6,
+        "generated_sync": 6,
+        "high_level_async": 6,
+        "high_level_sync": 6,
+        "raw_http": 6
+      }
+    },
+    "decompileJava": {
+      "error_checked": true,
+      "negative_case": true,
+      "positive_case": true,
+      "positive_surfaces": {
+        "generated_async": 13,
+        "generated_sync": 9,
+        "high_level_async": 13,
+        "high_level_sync": 9,
+        "raw_http": 9
+      },
+      "provenance_checked": true,
+      "surfaces": {
+        "generated_async": 20,
+        "generated_sync": 16,
+        "high_level_async": 20,
+        "high_level_sync": 16,
+        "raw_http": 16
+      }
+    },
+    "exportMappings": {
+      "error_checked": true,
+      "negative_case": true,
+      "positive_case": true,
+      "positive_surfaces": {
+        "generated_async": 2,
+        "generated_sync": 2,
+        "high_level_async": 2,
+        "high_level_sync": 2,
+        "raw_http": 2
+      },
+      "provenance_checked": true,
+      "surfaces": {
+        "generated_async": 3,
+        "generated_sync": 3,
+        "high_level_async": 3,
+        "high_level_sync": 3,
+        "raw_http": 3
+      }
+    },
+    "exportPendingEdits": {
+      "error_checked": true,
+      "negative_case": true,
+      "positive_case": true,
+      "positive_surfaces": {
+        "generated_async": 3,
+        "generated_sync": 3,
+        "high_level_async": 3,
+        "high_level_sync": 3,
+        "raw_http": 3
+      },
+      "provenance_checked": true,
+      "surfaces": {
+        "generated_async": 3,
+        "generated_sync": 3,
+        "high_level_async": 3,
+        "high_level_sync": 3,
+        "raw_http": 3
+      }
+    },
+    "getCapabilities": {
+      "error_checked": true,
+      "negative_case": true,
+      "positive_case": true,
+      "positive_surfaces": {
+        "generated_async": 2,
+        "generated_sync": 2,
+        "high_level_async": 2,
+        "high_level_sync": 2,
+        "raw_http": 2
+      },
+      "provenance_checked": true,
+      "surfaces": {
+        "generated_async": 2,
+        "generated_sync": 2,
+        "high_level_async": 2,
+        "high_level_sync": 2,
+        "raw_http": 2
+      }
+    },
+    "getJob": {
+      "error_checked": true,
+      "negative_case": true,
+      "positive_case": true,
+      "positive_surfaces": {
+        "generated_async": 4,
+        "generated_sync": 4,
+        "high_level_async": 4,
+        "high_level_sync": 4,
+        "raw_http": 4
+      },
+      "provenance_checked": true,
+      "surfaces": {
+        "generated_async": 7,
+        "generated_sync": 7,
+        "high_level_async": 7,
+        "high_level_sync": 7,
+        "raw_http": 7
+      }
+    },
+    "getJobEvents": {
+      "error_checked": true,
+      "negative_case": true,
+      "positive_case": true,
+      "positive_surfaces": {
+        "generated_async": 5,
+        "generated_sync": 5,
+        "high_level_async": 5,
+        "high_level_sync": 5,
+        "raw_http": 5
+      },
+      "provenance_checked": true,
+      "surfaces": {
+        "generated_async": 10,
+        "generated_sync": 10,
+        "high_level_async": 10,
+        "high_level_sync": 10,
+        "raw_http": 10
+      }
+    },
+    "getLiveness": {
+      "error_checked": true,
+      "negative_case": true,
+      "positive_case": true,
+      "positive_surfaces": {
+        "generated_async": 3,
+        "generated_sync": 3,
+        "high_level_async": 3,
+        "high_level_sync": 3,
+        "raw_http": 3
+      },
+      "provenance_checked": true,
+      "surfaces": {
+        "generated_async": 3,
+        "generated_sync": 3,
+        "high_level_async": 3,
+        "high_level_sync": 3,
+        "raw_http": 3
+      }
+    },
+    "getProject": {
+      "error_checked": true,
+      "negative_case": true,
+      "positive_case": true,
+      "positive_surfaces": {
+        "generated_async": 4,
+        "generated_sync": 4,
+        "high_level_async": 8,
+        "high_level_sync": 4,
+        "raw_http": 4
+      },
+      "provenance_checked": true,
+      "surfaces": {
+        "generated_async": 12,
+        "generated_sync": 12,
+        "high_level_async": 16,
+        "high_level_sync": 12,
+        "raw_http": 12
+      }
+    },
+    "getProjectSettings": {
+      "error_checked": true,
+      "negative_case": true,
+      "positive_case": true,
+      "positive_surfaces": {
+        "generated_async": 1,
+        "generated_sync": 1,
+        "high_level_async": 1,
+        "high_level_sync": 1,
+        "raw_http": 1
+      },
+      "provenance_checked": true,
+      "surfaces": {
+        "generated_async": 1,
+        "generated_sync": 1,
+        "high_level_async": 1,
+        "high_level_sync": 1,
+        "raw_http": 1
+      }
+    },
+    "getStatus": {
+      "error_checked": true,
+      "negative_case": true,
+      "positive_case": true,
+      "positive_surfaces": {
+        "generated_async": 4,
+        "generated_sync": 4,
+        "high_level_async": 4,
+        "high_level_sync": 4,
+        "raw_http": 4
+      },
+      "provenance_checked": true,
+      "surfaces": {
+        "generated_async": 4,
+        "generated_sync": 4,
+        "high_level_async": 4,
+        "high_level_sync": 4,
+        "raw_http": 4
+      }
+    },
+    "importMappings": {
+      "error_checked": true,
+      "negative_case": true,
+      "positive_case": true,
+      "positive_surfaces": {
+        "generated_async": 2,
+        "generated_sync": 2,
+        "high_level_async": 2,
+        "high_level_sync": 2,
+        "raw_http": 2
+      },
+      "provenance_checked": true,
+      "surfaces": {
+        "generated_async": 4,
+        "generated_sync": 4,
+        "high_level_async": 4,
+        "high_level_sync": 4,
+        "raw_http": 4
+      }
+    },
+    "listClasses": {
+      "error_checked": true,
+      "negative_case": true,
+      "positive_case": true,
+      "positive_surfaces": {
+        "generated_async": 6,
+        "generated_sync": 2,
+        "high_level_async": 6,
+        "high_level_sync": 2,
+        "raw_http": 2
+      },
+      "provenance_checked": true,
+      "surfaces": {
+        "generated_async": 8,
+        "generated_sync": 4,
+        "high_level_async": 8,
+        "high_level_sync": 4,
+        "raw_http": 4
+      }
+    },
+    "queryReferences": {
+      "error_checked": true,
+      "negative_case": true,
+      "positive_case": true,
+      "positive_surfaces": {
+        "generated_async": 1,
+        "generated_sync": 1,
+        "high_level_async": 1,
+        "high_level_sync": 1,
+        "raw_http": 1
+      },
+      "provenance_checked": true,
+      "surfaces": {
+        "generated_async": 3,
+        "generated_sync": 3,
+        "high_level_async": 3,
+        "high_level_sync": 3,
+        "raw_http": 3
+      }
+    },
+    "reloadProject": {
+      "error_checked": true,
+      "negative_case": true,
+      "positive_case": true,
+      "positive_surfaces": {
+        "generated_async": 1,
+        "generated_sync": 1,
+        "high_level_async": 1,
+        "high_level_sync": 1,
+        "raw_http": 1
+      },
+      "provenance_checked": true,
+      "surfaces": {
+        "generated_async": 2,
+        "generated_sync": 2,
+        "high_level_async": 2,
+        "high_level_sync": 2,
+        "raw_http": 2
+      }
+    },
+    "resolveSymbol": {
+      "error_checked": true,
+      "negative_case": true,
+      "positive_case": true,
+      "positive_surfaces": {
+        "generated_async": 9,
+        "generated_sync": 5,
+        "high_level_async": 9,
+        "high_level_sync": 5,
+        "raw_http": 5
+      },
+      "provenance_checked": true,
+      "surfaces": {
+        "generated_async": 10,
+        "generated_sync": 6,
+        "high_level_async": 10,
+        "high_level_sync": 6,
+        "raw_http": 6
+      }
+    },
+    "saveProject": {
+      "error_checked": true,
+      "negative_case": true,
+      "positive_case": true,
+      "positive_surfaces": {
+        "generated_async": 9,
+        "generated_sync": 9,
+        "high_level_async": 13,
+        "high_level_sync": 9,
+        "raw_http": 9
+      },
+      "provenance_checked": true,
+      "surfaces": {
+        "generated_async": 11,
+        "generated_sync": 11,
+        "high_level_async": 15,
+        "high_level_sync": 11,
+        "raw_http": 11
+      }
+    },
+    "search": {
+      "error_checked": true,
+      "negative_case": true,
+      "positive_case": true,
+      "positive_surfaces": {
+        "generated_async": 8,
+        "generated_sync": 4,
+        "high_level_async": 8,
+        "high_level_sync": 4,
+        "raw_http": 4
+      },
+      "provenance_checked": true,
+      "surfaces": {
+        "generated_async": 10,
+        "generated_sync": 6,
+        "high_level_async": 10,
+        "high_level_sync": 6,
+        "raw_http": 6
+      }
+    },
+    "shutdownService": {
+      "error_checked": true,
+      "negative_case": true,
+      "positive_case": true,
+      "positive_surfaces": {
+        "generated_async": 7,
+        "generated_sync": 7,
+        "high_level_async": 7,
+        "high_level_sync": 7,
+        "raw_http": 7
+      },
+      "provenance_checked": true,
+      "surfaces": {
+        "generated_async": 17,
+        "generated_sync": 17,
+        "high_level_async": 17,
+        "high_level_sync": 17,
+        "raw_http": 17
+      }
+    },
+    "updateProjectSettings": {
+      "error_checked": true,
+      "negative_case": true,
+      "positive_case": true,
+      "positive_surfaces": {
+        "generated_async": 3,
+        "generated_sync": 3,
+        "high_level_async": 3,
+        "high_level_sync": 3,
+        "raw_http": 3
+      },
+      "provenance_checked": true,
+      "surfaces": {
+        "generated_async": 5,
+        "generated_sync": 5,
+        "high_level_async": 5,
+        "high_level_sync": 5,
+        "raw_http": 5
+      }
+    }
+  },
+  "source_sha256": "953b38c67da478019a1cc0f90159e6d33a697c73955b09b99638ce09baa9b85d",
+  "primary_interpreter": "CPython 3.14.4",
+  "additional_interpreter_evidence": {
+    "CPython 3.11.13": {
+      "head": "55e46eb707d095abdb067424db77f51a31558e17",
+      "records": {
+        "applyEditBatch": {
+          "error_checked": true,
+          "negative_case": true,
+          "positive_case": true,
+          "positive_surfaces": {
+            "generated_async": 8,
+            "generated_sync": 8,
+            "high_level_async": 8,
+            "high_level_sync": 8,
+            "raw_http": 8
+          },
+          "provenance_checked": true,
+          "surfaces": {
+            "generated_async": 15,
+            "generated_sync": 15,
+            "high_level_async": 17,
+            "high_level_sync": 17,
+            "raw_http": 17
+          }
+        },
+        "buildSearchIndex": {
+          "error_checked": true,
+          "negative_case": true,
+          "positive_case": true,
+          "positive_surfaces": {
+            "generated_async": 6,
+            "generated_sync": 6,
+            "high_level_async": 6,
+            "high_level_sync": 6,
+            "raw_http": 6
+          },
+          "provenance_checked": true,
+          "surfaces": {
+            "generated_async": 6,
+            "generated_sync": 6,
+            "high_level_async": 6,
+            "high_level_sync": 6,
+            "raw_http": 6
+          }
+        },
+        "cancelJob": {
+          "error_checked": true,
+          "negative_case": true,
+          "positive_case": true,
+          "positive_surfaces": {
+            "generated_async": 5,
+            "generated_sync": 5,
+            "high_level_async": 5,
+            "high_level_sync": 5,
+            "raw_http": 5
+          },
+          "provenance_checked": true,
+          "surfaces": {
+            "generated_async": 6,
+            "generated_sync": 6,
+            "high_level_async": 6,
+            "high_level_sync": 6,
+            "raw_http": 6
+          }
+        },
+        "decompileJava": {
+          "error_checked": true,
+          "negative_case": true,
+          "positive_case": true,
+          "positive_surfaces": {
+            "generated_async": 13,
+            "generated_sync": 9,
+            "high_level_async": 13,
+            "high_level_sync": 9,
+            "raw_http": 9
+          },
+          "provenance_checked": true,
+          "surfaces": {
+            "generated_async": 20,
+            "generated_sync": 16,
+            "high_level_async": 20,
+            "high_level_sync": 16,
+            "raw_http": 16
+          }
+        },
+        "exportMappings": {
+          "error_checked": true,
+          "negative_case": true,
+          "positive_case": true,
+          "positive_surfaces": {
+            "generated_async": 2,
+            "generated_sync": 2,
+            "high_level_async": 2,
+            "high_level_sync": 2,
+            "raw_http": 2
+          },
+          "provenance_checked": true,
+          "surfaces": {
+            "generated_async": 3,
+            "generated_sync": 3,
+            "high_level_async": 3,
+            "high_level_sync": 3,
+            "raw_http": 3
+          }
+        },
+        "exportPendingEdits": {
+          "error_checked": true,
+          "negative_case": true,
+          "positive_case": true,
+          "positive_surfaces": {
+            "generated_async": 3,
+            "generated_sync": 3,
+            "high_level_async": 3,
+            "high_level_sync": 3,
+            "raw_http": 3
+          },
+          "provenance_checked": true,
+          "surfaces": {
+            "generated_async": 3,
+            "generated_sync": 3,
+            "high_level_async": 3,
+            "high_level_sync": 3,
+            "raw_http": 3
+          }
+        },
+        "getCapabilities": {
+          "error_checked": true,
+          "negative_case": true,
+          "positive_case": true,
+          "positive_surfaces": {
+            "generated_async": 2,
+            "generated_sync": 2,
+            "high_level_async": 2,
+            "high_level_sync": 2,
+            "raw_http": 2
+          },
+          "provenance_checked": true,
+          "surfaces": {
+            "generated_async": 2,
+            "generated_sync": 2,
+            "high_level_async": 2,
+            "high_level_sync": 2,
+            "raw_http": 2
+          }
+        },
+        "getJob": {
+          "error_checked": true,
+          "negative_case": true,
+          "positive_case": true,
+          "positive_surfaces": {
+            "generated_async": 4,
+            "generated_sync": 4,
+            "high_level_async": 4,
+            "high_level_sync": 4,
+            "raw_http": 4
+          },
+          "provenance_checked": true,
+          "surfaces": {
+            "generated_async": 7,
+            "generated_sync": 7,
+            "high_level_async": 7,
+            "high_level_sync": 7,
+            "raw_http": 7
+          }
+        },
+        "getJobEvents": {
+          "error_checked": true,
+          "negative_case": true,
+          "positive_case": true,
+          "positive_surfaces": {
+            "generated_async": 5,
+            "generated_sync": 5,
+            "high_level_async": 5,
+            "high_level_sync": 5,
+            "raw_http": 5
+          },
+          "provenance_checked": true,
+          "surfaces": {
+            "generated_async": 10,
+            "generated_sync": 10,
+            "high_level_async": 10,
+            "high_level_sync": 10,
+            "raw_http": 10
+          }
+        },
+        "getLiveness": {
+          "error_checked": true,
+          "negative_case": true,
+          "positive_case": true,
+          "positive_surfaces": {
+            "generated_async": 3,
+            "generated_sync": 3,
+            "high_level_async": 3,
+            "high_level_sync": 3,
+            "raw_http": 3
+          },
+          "provenance_checked": true,
+          "surfaces": {
+            "generated_async": 3,
+            "generated_sync": 3,
+            "high_level_async": 3,
+            "high_level_sync": 3,
+            "raw_http": 3
+          }
+        },
+        "getProject": {
+          "error_checked": true,
+          "negative_case": true,
+          "positive_case": true,
+          "positive_surfaces": {
+            "generated_async": 4,
+            "generated_sync": 4,
+            "high_level_async": 8,
+            "high_level_sync": 4,
+            "raw_http": 4
+          },
+          "provenance_checked": true,
+          "surfaces": {
+            "generated_async": 12,
+            "generated_sync": 12,
+            "high_level_async": 16,
+            "high_level_sync": 12,
+            "raw_http": 12
+          }
+        },
+        "getProjectSettings": {
+          "error_checked": true,
+          "negative_case": true,
+          "positive_case": true,
+          "positive_surfaces": {
+            "generated_async": 1,
+            "generated_sync": 1,
+            "high_level_async": 1,
+            "high_level_sync": 1,
+            "raw_http": 1
+          },
+          "provenance_checked": true,
+          "surfaces": {
+            "generated_async": 1,
+            "generated_sync": 1,
+            "high_level_async": 1,
+            "high_level_sync": 1,
+            "raw_http": 1
+          }
+        },
+        "getStatus": {
+          "error_checked": true,
+          "negative_case": true,
+          "positive_case": true,
+          "positive_surfaces": {
+            "generated_async": 4,
+            "generated_sync": 4,
+            "high_level_async": 4,
+            "high_level_sync": 4,
+            "raw_http": 4
+          },
+          "provenance_checked": true,
+          "surfaces": {
+            "generated_async": 4,
+            "generated_sync": 4,
+            "high_level_async": 4,
+            "high_level_sync": 4,
+            "raw_http": 4
+          }
+        },
+        "importMappings": {
+          "error_checked": true,
+          "negative_case": true,
+          "positive_case": true,
+          "positive_surfaces": {
+            "generated_async": 2,
+            "generated_sync": 2,
+            "high_level_async": 2,
+            "high_level_sync": 2,
+            "raw_http": 2
+          },
+          "provenance_checked": true,
+          "surfaces": {
+            "generated_async": 4,
+            "generated_sync": 4,
+            "high_level_async": 4,
+            "high_level_sync": 4,
+            "raw_http": 4
+          }
+        },
+        "listClasses": {
+          "error_checked": true,
+          "negative_case": true,
+          "positive_case": true,
+          "positive_surfaces": {
+            "generated_async": 6,
+            "generated_sync": 2,
+            "high_level_async": 6,
+            "high_level_sync": 2,
+            "raw_http": 2
+          },
+          "provenance_checked": true,
+          "surfaces": {
+            "generated_async": 8,
+            "generated_sync": 4,
+            "high_level_async": 8,
+            "high_level_sync": 4,
+            "raw_http": 4
+          }
+        },
+        "queryReferences": {
+          "error_checked": true,
+          "negative_case": true,
+          "positive_case": true,
+          "positive_surfaces": {
+            "generated_async": 1,
+            "generated_sync": 1,
+            "high_level_async": 1,
+            "high_level_sync": 1,
+            "raw_http": 1
+          },
+          "provenance_checked": true,
+          "surfaces": {
+            "generated_async": 3,
+            "generated_sync": 3,
+            "high_level_async": 3,
+            "high_level_sync": 3,
+            "raw_http": 3
+          }
+        },
+        "reloadProject": {
+          "error_checked": true,
+          "negative_case": true,
+          "positive_case": true,
+          "positive_surfaces": {
+            "generated_async": 1,
+            "generated_sync": 1,
+            "high_level_async": 1,
+            "high_level_sync": 1,
+            "raw_http": 1
+          },
+          "provenance_checked": true,
+          "surfaces": {
+            "generated_async": 2,
+            "generated_sync": 2,
+            "high_level_async": 2,
+            "high_level_sync": 2,
+            "raw_http": 2
+          }
+        },
+        "resolveSymbol": {
+          "error_checked": true,
+          "negative_case": true,
+          "positive_case": true,
+          "positive_surfaces": {
+            "generated_async": 9,
+            "generated_sync": 5,
+            "high_level_async": 9,
+            "high_level_sync": 5,
+            "raw_http": 5
+          },
+          "provenance_checked": true,
+          "surfaces": {
+            "generated_async": 10,
+            "generated_sync": 6,
+            "high_level_async": 10,
+            "high_level_sync": 6,
+            "raw_http": 6
+          }
+        },
+        "saveProject": {
+          "error_checked": true,
+          "negative_case": true,
+          "positive_case": true,
+          "positive_surfaces": {
+            "generated_async": 9,
+            "generated_sync": 9,
+            "high_level_async": 13,
+            "high_level_sync": 9,
+            "raw_http": 9
+          },
+          "provenance_checked": true,
+          "surfaces": {
+            "generated_async": 11,
+            "generated_sync": 11,
+            "high_level_async": 15,
+            "high_level_sync": 11,
+            "raw_http": 11
+          }
+        },
+        "search": {
+          "error_checked": true,
+          "negative_case": true,
+          "positive_case": true,
+          "positive_surfaces": {
+            "generated_async": 8,
+            "generated_sync": 4,
+            "high_level_async": 8,
+            "high_level_sync": 4,
+            "raw_http": 4
+          },
+          "provenance_checked": true,
+          "surfaces": {
+            "generated_async": 10,
+            "generated_sync": 6,
+            "high_level_async": 10,
+            "high_level_sync": 6,
+            "raw_http": 6
+          }
+        },
+        "shutdownService": {
+          "error_checked": true,
+          "negative_case": true,
+          "positive_case": true,
+          "positive_surfaces": {
+            "generated_async": 7,
+            "generated_sync": 7,
+            "high_level_async": 7,
+            "high_level_sync": 7,
+            "raw_http": 7
+          },
+          "provenance_checked": true,
+          "surfaces": {
+            "generated_async": 17,
+            "generated_sync": 17,
+            "high_level_async": 17,
+            "high_level_sync": 17,
+            "raw_http": 17
+          }
+        },
+        "updateProjectSettings": {
+          "error_checked": true,
+          "negative_case": true,
+          "positive_case": true,
+          "positive_surfaces": {
+            "generated_async": 3,
+            "generated_sync": 3,
+            "high_level_async": 3,
+            "high_level_sync": 3,
+            "raw_http": 3
+          },
+          "provenance_checked": true,
+          "surfaces": {
+            "generated_async": 5,
+            "generated_sync": 5,
+            "high_level_async": 5,
+            "high_level_sync": 5,
+            "raw_http": 5
+          }
+        }
+      },
+      "source_sha256": "953b38c67da478019a1cc0f90159e6d33a697c73955b09b99638ce09baa9b85d"
+    }
+  }
+}

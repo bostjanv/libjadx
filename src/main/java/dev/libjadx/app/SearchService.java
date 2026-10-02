@@ -231,6 +231,8 @@ public final class SearchService {
 
 	private JobSpec.JobResult runBuild(JobSpec.JobContext job, ProjectRuntime.PrimarySymbolRead captured,
 			SearchIndexKey expected, List<SearchQuery.Domain> domains, boolean force) {
+		dev.libjadx.testing.ReleaseTestHooks.gate("job");
+		dev.libjadx.testing.ReleaseTestHooks.fail("job");
 		job.cancellation().throwIfCancellationRequested();
 		if (!expected.equals(runtime.searchIdentity())) throw new JobRegistry.StaleJobSnapshotException();
 		if (force) store.resetDomains(expected, domains);

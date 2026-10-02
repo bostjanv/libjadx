@@ -222,6 +222,7 @@ public final class JobRegistry implements AutoCloseable {
 				runningSlots++;
 			}
 			OperationCoordinator.Lease lease;
+			dev.libjadx.testing.ReleaseTestHooks.gate("dispatch");
 			try {
 				lease = gate.tryAdmit(record.spec.operation(), record.spec.admission());
 			} catch (ProjectBusyException | AdmissionDeferredException busy) {

@@ -7,5 +7,5 @@ uv run python scripts/check_generated.py
 uv run ruff format --check .
 uv run ruff check .
 uv run mypy src/libjadx
-uv run pytest -q
+uv run pytest -q tests/unit tests/integration
 uv build

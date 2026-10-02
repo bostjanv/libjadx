@@ -452,3 +452,12 @@ snapshot-scoped. Existing parameter and related-method restrictions are retained
 Phase 5.2 is complete with this deliberate exclusion; proceed to Phase 6.
 See [feasibility](docs/phase-5-local-rename-feasibility.md) and
 [commands and review checklist](docs/pr-20-review.md).
+
+## PR #22 — Phase 6.2 release qualification
+
+The candidate identity is Java `0.1.0-alpha.1` / Python `0.1.0a1`, independently
+versioned from OpenAPI `0.1.0-experimental`. The repeatable gate and its test-only
+instrumentation are documented in [release qualification](docs/phase-6-release-qualification.md).
+Its [review report](docs/pr-22-review.md), route/error matrices and artifact manifest
+record the exact qualified source revision or executable blocker. All twelve
+matching-GUI gates are mandatory; candidate publication is a separate human action.

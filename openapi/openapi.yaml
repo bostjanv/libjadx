@@ -47,6 +47,16 @@ paths:
       tags: [Service]
       operationId: getCapabilities
       summary: Read server and pinned-Jadx capability evidence
+      description: >-
+        Status describes the public service behavior, not an internal Jadx probe.
+        code.smali is UNSUPPORTED because no public Smali representation exists.
+        analysis.concurrent_reads describes parallel primary Jadx reads: it is
+        UNSUPPORTED because those reads are serialized and conflicting admission
+        fails fast with PROJECT_BUSY. Multiple HTTP clients remain supported.
+        analysis.cancellation is PARTIAL: queued/running jobs support cooperative
+        cancellation, but CANCELLING persists until work stops and hard interruption
+        of arbitrary Jadx work is not guaranteed. Client deadlines, task cancellation
+        and SSE disconnect do not request server cancellation.
       responses:
         '200':
           description: Capability status is scoped to tested behavior.
@@ -54,6 +64,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Capabilities'
+              examples:
+                releaseCandidate:
+                  externalValue: examples/capabilities.json
         'default':
           $ref: '#/components/responses/ApiErrorResponse'
   /shutdown:
@@ -1588,6 +1601,11 @@ components:
             $ref: '#/components/schemas/Capability'
     Capability:
       type: object
+      description: >-
+        Public service capability with an explicit scope and evidence. Internal
+        dependency feasibility does not establish public representation support.
+        PARTIAL retains the limitations described by evidence; UNKNOWN identifies
+        unverified behavior and must not be interpreted as supported.
       required: [name, status, evidence, persistence]
       properties:
         name:

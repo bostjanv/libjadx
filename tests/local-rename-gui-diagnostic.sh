@@ -70,7 +70,7 @@ xdotool key ctrl+a
 xdotool type --delay 5 "$output_project"
 xdotool mousemove "$((X + WIDTH - 110))" "$((Y + HEIGHT - 23))" click 1
 for _ in $(seq 1 30); do
-    if [[ -f "$output_project" ]]; then exit 0; fi
+    if [[ -f "$output_project" ]]; then printf "RELEASE_GUI_SAVE_AS pid=%s output=%s\n" "$gui_pid" "$output_project"; exit 0; fi
     sleep 1
 done
 exit 1
