@@ -1,32 +1,32 @@
 # LibJadx — Architecture and API Design
 
-**Status:** approved architectural baseline; API shapes below are the proposed implementation contract and become binding after review of `openapi/openapi.yaml`.  
-**Prepared:** 2026-09-24.  
-**Implementation version:** choose and pin the *latest stable Jadx release available when implementation begins*; record the exact tag, Maven artifacts, source commit and compatible JDK in `docs/compatibility.md`. Do not silently substitute Jadx `master`.
+**Status:** implemented v0.1 architectural baseline, locally release-qualified by PR #22; candidate not published or tagged.
+**Original design prepared:** 2026-09-24.
+**Current implementation pin:** Jadx 1.5.6 / source `28ff15e4ae69950aebea110a13e5ab895d234dfc`, JDK 21. [OpenAPI](openapi/openapi.yaml) is authoritative for the implemented HTTP contract; illustrative models and Phase 7 goals below are not additional public guarantees.
 
 [Agent rules](AGENTS.md) · [Detailed implementation instructions](IMPLEMENTATION.md)
 
 ## 1. Purpose, boundaries and success criteria
 
-LibJadx is an independently designed headless Java service that makes Jadx analysis accessible to local HTTP clients. It aims for broad functional coverage similar in *purpose* to libghidra, restricted to capabilities actually offered or reliably derivable from Jadx. It is **not** a clone of libghidra's interface, wire protocol, data models or internal architecture.
+LibJadx is a headless Java service for local Jadx analysis, inspired by and modeled in spirit after [libghidra](https://github.com/0xeb/libghidra)'s goal of typed programmatic access to a reverse-engineering engine. LibJadx is independently designed for Jadx and does not copy or implement libghidra's interfaces, protobuf schemas, wire protocol, data models, internal architecture, examples or tests. It is not API/protocol compatible; neither libghidra nor Jadx endorses it.
 
-A successful initial release enables a Python or REST client to start a fixed-project service, observe load progress, list classes and methods, decompile source, follow basic references, perform indexed searches, rename supported entities, save the edits in a Jadx-native project, and open that project with the matching jadx-gui. Success requires contract, concurrency, external-modification and GUI round-trip tests.
+The qualified v0.1 baseline enables a Python or REST client to start a fixed-project service, observe load progress, list classes and methods, decompile source, follow basic references, perform indexed searches, rename supported entities, save the edits in a Jadx-native project, and open that project with the matching jadx-gui. PR #22 passed the contract, concurrent-client, external-modification and actual matching-GUI gates at its recorded source revision; see [qualification evidence](docs/pr-22-review.md).
 
-### Hard requirements
+### Current v0.1 requirements
 
 | Dimension | Approved decision |
 |---|---|
 | Runtime | Standalone, headless JVM; **exactly one fixed project per process**, specified via CLI at startup. No runtime project switching. Multiple local clients share the project. Independent processes handle additional projects. |
-| Jadx dependency | Latest stable release at implementation start, then exact pin. Independent Gradle repository and no permanent Jadx fork. Prefer public APIs; isolate internal APIs. |
+| Jadx dependency | Pinned Jadx 1.5.6 at `28ff15e4ae69950aebea110a13e5ab895d234dfc`; upgrades require explicit compatibility qualification. Independent Gradle repository and no permanent Jadx fork. Prefer public APIs; isolate internal APIs. |
 | Input | Filesystem-only, at original locations; existing `.jadx` files or any pinned-Jadx-supported input format. **No HTTP upload.** Allowed filesystem roots are configurable. |
 | Transport | Versioned REST/JSON, reviewed OpenAPI with automated implementation validation; polling and SSE; structured errors; partial-result/strict modes; hybrid synchronous/asynchronous execution. |
 | Networking | Loopback-only (`127.0.0.1`) by default, no initial authentication, no remote bind enabled silently. |
 | Persistence | **Only native Jadx project, mapping and supported cache formats**. No separate project DB, job journal, custom persistent search indexes or proprietary additions to `.jadx`. Edits are saved **explicitly**. |
 | Close and shutdown | No HTTP project-switch operation. Normal close/disposal discards unsaved edits by default. Shutdown policy: `discard` (default), `save`, `refuse_if_dirty`. Reject incompatible lifecycle changes while work is active. |
-| Search | Incremental in-memory symbol/source/resource indexing; partial coverage reported; complete-index async option; only reuse caches already understood by the pinned Jadx release. |
-| Analysis | Rich decompilation metadata, instruction-level xrefs where available, original and transformed CFGs independently where available, resources, configurable external classpath. |
-| Editing | Supported native renames/comments/mappings, including supported parameters and locals; validated batches, no unproven all-or-nothing guarantee. Unsupported persistent edits are rejected. |
-| Versioning | Experimental external API before 1.0. A Python SDK with generated typed transport and handwritten sync/async high-level access ships first. |
+| Search | Incremental in-memory class/member/emitted-Java indexing; partial coverage reported; complete-index async option; only reuse caches already understood by the pinned Jadx release. |
+| Analysis | Java class source, verified method excerpts/token metadata and partial basic references. No public Smali, CFG or resource query API. Deeper analysis/classpath work is Phase 7. |
+| Editing | Native declaration renames/LINE comments, strict Tiny v2 import/export, a snapshot-bound parameter subset and PARTIAL related propagation. Local rename is UNSUPPORTED; validated batches expose unexpected partial application rather than unproved rollback. |
+| Versioning | Experimental external API before 1.0. Generated typed transport and handwritten sync/async Python access are implemented and locally qualified. |
 | Delivery | Standalone Java archive and launch scripts; no official Docker requirement for the initial release. |
 
 ### Explicitly out of scope
@@ -48,7 +48,7 @@ flowchart TB
     HTTP[REST/JSON + OpenAPI + SSE]
     HTTP --> APP[Fixed-project application lifecycle]
     APP --> COORD[Operation coordinator + async scheduler]
-    COORD --> ANA[Symbols / code / xrefs / CFG / resources]
+    COORD --> ANA[Symbols / Java / partial references]
     COORD --> SEARCH[Incremental in-memory search]
     COORD --> EDIT[Native-compatible edit service]
     ANA --> JAD[Public jadx-core façade + isolated internal adapters]
@@ -64,15 +64,15 @@ Logical modules and their dependency rules:
 
 - `core`: immutable domain models, revisions, capabilities and service interfaces; **no HTTP or Jadx types in public core contracts**.
 - `jadx-adapter`: owns `JadxDecompiler` and pinned-version integration; version-sensitive code stays here. It should never depend on HTTP controllers.
-- `project`: native `.jadx` loading/saving, native mappings, external-change detection, allowed-root path policy and portable export.
-- `analysis`: symbol queries, decompiled code and metadata, references, inheritance, CFGs and resource analysis.
+- `project`: native `.jadx` loading/saving, native mappings, external-change detection, allowed-root path policy; portable export is Phase 7.
+- `analysis`: symbol queries, Java metadata and basic references; deeper inheritance/CFG/resource queries are Phase 7.
 - `search`: transient incremental indexes, coverage, cursor/snapshot management, and complete-index jobs.
-- `scheduler`: per-class/read/global-write coordination, limits, cooperative cancellation, async status, in-memory result retention and SSE events.
+- `scheduler`: serialized primary-read/global-write coordination, limits, cooperative cancellation, async status, in-memory result retention and SSE events.
 - `http`: request validation, JSON DTOs, endpoint implementation, standardized errors, status mapping, SSE and OpenAPI checks.
 - `app`: CLI, external server config, project initialization, fixed-project lifecycle and shutdown.
 - `python`: generated low-level sync/async transport; handwritten ergonomic API, job progress and typed errors.
 
-Separate **logical boundaries** from physical Gradle modules; a smaller first build may group several modules so long as imports remain directed.
+These are **logical boundaries**, implemented within the current Gradle application packages; physical modules need not mirror this list. Keep imports directed. Planned analysis/export subsystems must preserve these boundaries.
 
 ## 3. Lifecycle and ownership
 
@@ -94,9 +94,9 @@ A process is permanently bound to its startup project identity. An explicit **re
 
 ### 3.3 Shared clients and coordination
 
-All clients of an instance share one active project, unsaved edits, logical revision and in-memory index. Safe reads on different classes may execute concurrently **only after pinned-version stress tests**. Synchronize class loading/decompilation per class; serialize project-wide operations, mutations, saves and any internal APIs without validated thread safety. Enforce configurable maximum active/queued jobs, temporary override instances and cache budgets. No automatic eviction of the one active project.
+All clients of an instance share one active project, unsaved edits, logical revision and in-memory index. Primary Jadx reads remain serialized; conflicting admission fails `PROJECT_BUSY`. `analysis.concurrent_reads` is UNSUPPORTED (`SERIALIZED_PRIMARY_READS_FAIL_FAST_PROJECT_BUSY`). Serialize project-wide operations, mutations, saves and unverified internal APIs. Enabling future parallel reads requires new pinned-version stress proof. Enforce configurable maximum active/queued jobs, temporary override instances and cache budgets. No automatic eviction of the one active project.
 
-Lightweight queries are synchronous. Whole-source indexing, bulk decompilation, large searches, export and slow initialization are jobs. Prefer async by default for known expensive operations; support `execution: sync|async|auto` on suitable request bodies. An accepted async operation returns `202 Accepted`, `Location` and a job ID. SSE is optional for consumers; polling is always functional.
+Lightweight queries are synchronous. Complete-source indexing and complete-coverage search use jobs, and initialization is asynchronous. Bulk decompilation and portable export are Phase 7 goals. Prefer async by default for known expensive operations; use the operation-specific sync/job behavior defined in OpenAPI. An accepted async operation returns `202 Accepted`, `Location` and a job ID. SSE is optional for consumers; polling is always functional.
 
 Job states: `QUEUED`, `RUNNING`, `CANCELLING`, `SUCCEEDED`, `FAILED`, `CANCELLED`. A successful job may have a `PARTIAL` completeness status. `CANCELLING` may remain until underlying work stops; a request timeout must not report arbitrary JVM work as killed. Job IDs/results/history are volatile and invalid after process restart. Restart lazily or explicitly rebuilds necessary indexes, **not** user job history.
 
@@ -115,13 +115,13 @@ Per-request decompiler overrides always use a **single-operation, read-only temp
 - Reuse Jadx-native cache implementations where feasible, and maintain additional search indexes and job data **in memory only**. Logs and external server config may exist outside the project, but must not carry authoritative project edits or revisions.
 - Do not confuse `JadxDecompiler.save()` (decompiled source/resources export) with native `.jadx` project serialization. The native project adapter is independently responsible for `.jadx` and mappings.
 
-The currently inspected upstream `jadx-gui` sources provide useful starting points: `JadxProject.loadProjectData`, `ProjectData` and `JadxProject`'s path and code-data adapters. **Do not assume these exact APIs work headlessly in the pinned release**: `JadxProject` references GUI classes, and round-trip validation is a Phase 0 gate.
+The pinned upstream `jadx-gui` sources establish native serialization semantics: `JadxProject.loadProjectData`, `ProjectData` and `JadxProject`'s path and code-data adapters. `JadxProject` references GUI classes. Phase 0 proved the independent headless native codec, and PR #22 qualified matching-GUI persistence; production does not require the GUI.
 
 ### 4.2 Save, reload and external changes
 
 `dirty` means in-memory native-saveable edits differ from the last successful native save. `POST /project/save` validates the expected logical revision if supplied and **always** checks the relevant current on-disk native project/mapping state against the baseline observed when opened/last saved. A mismatch returns `EXTERNAL_MODIFICATION_CONFLICT`, never silently overwrites it. This is optimistic detection, **not** a cross-process lock or a guarantee against races with uncooperative GUI processes.
 
-On conflict, `POST /project/pending-edits/export` returns a **transient** machine-readable change set in the HTTP response; no file is created or persisted automatically. The client may save it externally, explicitly discard unsaved changes and reload, then selectively reapply compatible edits. `POST /project/reload` rereads the **same fixed native project**. With unsaved edits, require explicit `discard_unsaved: true`; no silent merge. Config changes on the live project that are accepted cause an internal immediate reload (see 3.4), which is distinct from external-file reload.
+On conflict, `POST /project/pending-edits/export` returns a **transient** machine-readable change set in the HTTP response; no file is created or persisted automatically. The client may save it externally, explicitly discard unsaved changes and reload, then selectively reapply compatible edits. `POST /project/reload` rereads the **same fixed native project**. With unsaved edits, require explicit `discardUnsaved: true`; no silent merge. Config changes on the live project that are accepted cause an internal immediate reload (see 3.4), which is distinct from external-file reload.
 
 A save uses the pinned Jadx release's compatible native serialization behavior; the product intentionally does **not** introduce custom atomic-save or operation-journal machinery. Document that interruption during native file writing may require restoring a user backup. GUI round-trip testing validates saved comments, renames, mappings, settings and input references.
 
@@ -143,40 +143,22 @@ A save uses the pinned Jadx release's compatible native serialization behavior; 
 
 This is an illustrative response, not the final wire schema. The persisted fingerprint is derived from relevant **native project, mappings and required input content**, not from a LibJadx sidecar file. Hash large inputs incrementally and report hashing progress/unknown fingerprint until ready. Revalidate project and mapping fingerprints just before save; fingerprint dependencies when they materially affect reproducibility. Logical and derived counters are session-local. Result identifiers and cursors carry `session_id`, relevant logical revision and settings/code-snapshot identity so they cannot be reused across restarts or incompatible decompilation modes.
 
-### 4.4 Export and deletion
+### 4.4 Portable export and deletion — Phase 7 roadmap
 
-Portable export is an **explicit job** that writes a ZIP containing native `.jadx`, referenced input files, native mappings and explicitly configured classpath dependencies when redistributable. Rebase native-relative paths where supported; verify extracted archive can open in the matching jadx-gui and reproduce source behavior. Report omissions, restricted dependencies and unsupported settings. ZIP is an export artifact, not a new project format.
+Planned portable export will be an **explicit job** that writes a ZIP containing native `.jadx`, referenced input files, native mappings and explicitly configured classpath dependencies when redistributable. Rebase native-relative paths where supported; verify extracted archive can open in the matching jadx-gui and reproduce source behavior. Report omissions, restricted dependencies and unsupported settings. ZIP is an export artifact, not a new project format.
 
 Distinguish `shutdown/close` from filesystem deletion. Since the final design has **no managed workspace**, the older `remove from workspace` concept is inapplicable. A later, separately reviewed destructive command may explicitly delete native project files after the active service has stopped or is quiescent, with a dry-run/preview, allowed-root validation and explicit opt-in for deleting mappings; never delete original inputs as a side effect. This is not part of the initial vertical slice.
 
-## 5. External API contract (proposed)
+## 5. Implemented external API contract
 
-All routes have prefix `/api/v1`. There are **no HTTP upload routes** and **no dynamic project-open or project-switch routes**. Class/method lookup uses structured descriptor request bodies or query parameters to avoid lossy slash-containing URL segments. Endpoint names below guide the reviewed OpenAPI specification; a naming adjustment must be applied consistently to the server, SDK, tests and these documents.
+All routes have prefix `/api/v1`. There are **no HTTP uploads or dynamic project-open/switch routes**. [OpenAPI](openapi/openapi.yaml) defines the exact 22-operation inventory, schemas and examples; the [README route families](README.md#api) provide a compact map.
 
-| Method | Path | Purpose | Initial release? |
-|---|---|---|---|
-| GET | `/health/live` | Process liveness, available before project load | Yes |
-| GET | `/status` | Lifecycle phase, active input identity, loading progress and failures | Yes |
-| GET | `/capabilities` | Server, project and result-level capability vocabulary | Yes |
-| GET | `/project` | Fixed active project, inputs, native path, dirty and revisions | Yes |
-| GET / PATCH | `/project/settings` | Effective settings and supported persistent-setting updates; accepted updates rebuild analysis | Partial |
-| POST | `/project/save` | Explicit native save with revision/external-file conflict checks | Yes |
-| POST | `/project/reload` | Explicitly reread same project; explicit discard if dirty | Yes |
-| POST | `/project/pending-edits/export` | Return unsaved native-compatible edits on conflict | Later |
-| POST | `/project/export` | Async native portable ZIP at an allowed output path | Later |
-| GET | `/classes` | Filtered/paginated package and class listing | Yes |
-| POST | `/symbols/resolve` | Lookup class/method/field by structured original identity | Yes |
-| POST | `/decompile` | Java source, Smali and supported lower-level modes with metadata | Java first; Smali next |
-| POST | `/references/query` | Callers/callees/field/type references and original locations | Basic first |
-| POST | `/analysis/cfg` | Raw or transformed CFG with separate availability | Later |
-| POST | `/search` | Symbols/source/regex/strings/annotations/resources; coverage and revisions | Core first |
-| POST | `/search/build-index` | Async full coverage indexing | Yes |
-| POST | `/edits/batch` | Validate/apply native-saveable rename/comment/mapping edits | Core first |
-| POST | `/resources/query` | Manifest/XML/assets and higher-level Android resource analysis | Later |
-| GET | `/jobs/{jobId}` | Status, progress, result link/inline result, diagnostics | Yes |
-| POST | `/jobs/{jobId}/cancel` | Cooperative cancellation | Yes |
-| GET | `/jobs/{jobId}/events` | SSE progress and completion events | Yes |
-| POST | `/shutdown` | Explicit configured shutdown policy | Yes |
+| Scope | Route families / representations |
+| --- | --- |
+| Implemented v0.1 | Liveness/status/capabilities/shutdown; native project/settings/save/reload/pending edits; Tiny v2 import/export; classes/symbol resolution; Java decompile/basic references; search/build-index; edit batches; job polling/cancellation/SSE |
+| Planned Phase 7 | Portable `/project/export`, `/analysis/cfg`, `/resources/query`, public Smali and richer representations. No current schema or support guarantee is implied. |
+
+Class/member lookup uses structured original descriptors. Contract changes must update server, OpenAPI, generated SDK, fixtures and release matrices in one change. Recognized planned operations return `OPERATION_NOT_IMPLEMENTED` after readiness and are outside the current OpenAPI inventory.
 
 ### 5.1 Symbol and location models
 
@@ -188,7 +170,7 @@ Local declaration metadata is source-snapshot-scoped and read-only in pinned
 no persistent local edit identity or local operation is exposed. Any future
 supported variable edit must reject stale source snapshots and logical revisions.
 
-Represent locations as distinct coordinate systems: `(source_snapshot_id, source range)` for decompiled code and `(input identity, method descriptor, bytecode offset/range)` for original code; retain original debug source-line info only if available. Define line and column numbering unambiguously in OpenAPI (proposed: 1-based lines and 0-based Unicode-code-point columns), and expose Java/Jadx native UTF-16 offsets or converted UTF-8 byte offsets **with explicit units**. Record precision as `EXACT`, `APPROXIMATE`, `UNKNOWN` or `UNAVAILABLE`; avoid false exactness after inlining or restructuring.
+Represent locations as distinct coordinate systems: `(source_snapshot_id, source range)` for decompiled code and `(input identity, method descriptor, bytecode offset/range)` for original code; retain original debug source-line info only if available. Source ranges are zero-based half-open UTF-16 code-unit offsets in the exact returned Java text; line/column fields use the units defined by OpenAPI. They are not Python string indexes or original bytecode offsets. Record precision as `EXACT`, `APPROXIMATE`, `UNKNOWN` or `UNAVAILABLE`; avoid false exactness after inlining or restructuring.
 
 ### 5.2 Result envelope and errors
 
@@ -217,31 +199,31 @@ Partial results are successful with `status=PARTIAL`, per-item warnings and expl
 
 ### 5.3 Pagination and jobs
 
-Stable, revision-bound lists use `limit`/`offset`; expensive search results use opaque, expiring cursor tokens containing or referencing the session, settings, index revision and query identity. Reject cursors after mutation, reindexing, restart or other incompatible state changes with `STALE_CURSOR`. The Python SDK exposes iterators that surface these conflicts instead of silently skipping/duplicating results.
+Stable, revision-bound lists use `limit`/`offset`; expensive search results use opaque, expiring cursor tokens containing or referencing the session, settings, index revision and query identity. Reject cursors after mutation, reindexing, restart or other incompatible state changes with `STALE_REVISION`. The Python SDK exposes iterators that surface these conflicts instead of silently skipping/duplicating results.
 
 SSE events include `job.queued`, `job.started`, `job.progress`, `job.completed`, `job.failed`, `job.cancel_requested` and `job.cancelled`, with monotonic per-job event sequence numbers for the **current process lifetime only**. SSE reconnection may replay buffered in-memory events while available; polling is the fallback. Document in-memory result TTLs and bounded buffers. Server restart invalidates all previous job IDs.
 
 ## 6. Analysis capabilities
 
-### 6.1 Java/Smali/low-level code
+### 6.1 Current Java source and Phase 7 representations
 
-Support class- and method-oriented requests. Since Jadx generally generates Java at class scope, method-level Java excerpts must be extracted with verified declaration/source mapping, not regenerated as if methods were independent. Return class source metadata and method range, and report absence when Jadx inlining obscures a precise method span. Smali is a separately requested representation. Additional IR is optional and must be versioned with its internal adapter.
+Support class- and method-oriented requests. Since Jadx generally generates Java at class scope, method-level Java excerpts must be extracted with verified declaration/source mapping, not regenerated as if methods were independent. Return class source metadata and method range, and report absence when Jadx inlining obscures a precise method span. The public Smali representation is UNSUPPORTED in v0.1 despite successful internal retrieval probes. A separately requested Smali representation and additional versioned IR are Phase 7 goals requiring their own reviewed contracts.
 
 ### 6.2 Cross-references and graph analysis
 
-Offer resolved and unresolved references, original descriptors, source/destination entity identities, reference kind (`CALL`, `READ`, `WRITE`, `TYPE`, etc.) and instruction location when available. Include inheritance, implemented interfaces, related overrides, dependencies, and caller/callee relationships. A reference lacking exact bytecode location is still useful, but marks its precision accordingly.
+v0.1 reports Jadx-observed method pairs, field users, class dependencies and unresolved original method descriptors with PARTIAL coverage. Optional source sites are verified against a Java snapshot. READ/WRITE distinctions and original instruction offsets are unavailable. Deeper reference kinds, inheritance queries and exact instruction provenance are Phase 7 goals.
 
-Expose raw/original and transformed/decompiled CFG independently, with `availability`, representation-specific block/edge IDs, provenance and diagnostics. Verify how the pinned Jadx release exposes its original and transformed graphs. A DOT export alone does not prove a stable in-memory CFG API. Do not infer an "exact original CFG" by parsing decompiled Java. Capability reporting may vary per method.
+For Phase 7, expose raw/original and transformed/decompiled CFG independently, with `availability`, representation-specific block/edge IDs, provenance and diagnostics. Verify how the pinned Jadx release exposes its original and transformed graphs. A DOT export alone does not prove a stable in-memory CFG API. Do not infer an "exact original CFG" by parsing decompiled Java. Capability reporting may vary per method.
 
-### 6.3 Resources and classpath
+### 6.3 Resources and classpath — Phase 7 roadmap
 
-Offer decoded manifest and Android metadata, declared permissions/components, decoded XML, raw assets, strings and resource relationships **where actually resolved**. Raw and decoded resource content remain distinct. Accept explicitly configured external classpath/framework paths through supported Jadx configuration, subject to allowed-root checks; unresolved references remain visible even when dependencies are absent.
+Future resource APIs should offer decoded manifest and Android metadata, declared permissions/components, decoded XML, raw assets, strings and resource relationships **where actually resolved**. Raw and decoded resource content remain distinct. Accept explicitly configured external classpath/framework paths through supported Jadx configuration, subject to allowed-root checks; unresolved references remain visible even when dependencies are absent.
 
 ## 7. Indexing, editing and invalidation
 
-Initial indexes cover names, original descriptors, annotations, strings and available resource metadata without forcing all source decompilation. Build source-text and reference indexes lazily per class, then allow a complete-index async job. In-memory state stores which eligible classes were indexed under which settings and logical revision; present actual coverage and per-class failures. Never confuse '100% processed' with '100% successfully decompiled'.
+Current indexes cover class names immediately, with member names and emitted-Java source ingested as owners are processed. Complete-index jobs scan eligible Jadx-visible owners. Original string constants, annotation/resource search and exhaustive input coverage are unverified; they are Phase 7 investigations. In-memory state stores which eligible classes were indexed under which settings and logical revision; present actual coverage and per-class failures. Never confuse '100% processed' with '100% successfully decompiled'.
 
-Validated editing operations use supported native Jadx renames/comments/mappings. Explicit related-method propagation uses the independent COMPLETE verifier and standard per-member native records under the PR #19 admission rules below. Validate entity identities, naming rules, revision preconditions, and whether each operation is persistable. A batch that fails prevalidation applies nothing; unexpected mid-execution failure returns the exact per-item applied/failed set. Invalidate affected source, reference and search caches immediately. Index refresh is lazy or an optional background job; a `require_complete`/`require_current` query waits via the job mechanism if needed.
+Validated editing operations use supported native Jadx renames/comments/mappings. Explicit related-method propagation uses the independent COMPLETE verifier and standard per-member native records under the PR #19 admission rules below. Validate entity identities, naming rules, revision preconditions, and whether each operation is persistable. A batch that fails prevalidation applies nothing; unexpected mid-execution failure returns the exact per-item applied/failed set. Invalidate affected source, reference and search caches immediately. Index refresh is lazy or an optional background job; `requireComplete` search returns a job when additional indexing is needed, while `strict` rejects partial coverage.
 
 An unsupported persistable operation must fail with `UNSUPPORTED_CAPABILITY`, not silently become an unsaved-only feature. Reports of code-analysis completeness and persistence status are separate.
 
@@ -253,7 +235,7 @@ Canonicalize and check inputs, project references, classpath and export paths ag
 
 ## 9. Configuration and distribution
 
-Proposed CLI (subject to reviewing the final OpenAPI/CLI documentation):
+Current CLI (see [configuration](docs/configuration.md) for complete options):
 
 ```bash
 libjadx --project /work/sample.jadx --port 18777 --config ~/.config/libjadx/config.yaml
@@ -267,52 +249,41 @@ Ship a standalone Java distribution with startup scripts and a Python package. D
 
 ## 10. Python SDK
 
-Build typed transport from the reviewed OpenAPI contract, with synchronized blocking and `asyncio` variants. Add handwritten high-level classes such as `Client`, `Project`, `JavaClass`, `JavaMethod`, `SearchCursor` and `Job`, plus typed exceptions for conflicts, partial analysis and unsupported capabilities. High-level abstractions must preserve underlying revisions and diagnostics, surface expensive operations, and avoid hidden autosaving.
+The SDK generates typed transport from the reviewed OpenAPI contract, with synchronized blocking and `asyncio` variants. It provides handwritten high-level classes such as `Client`, `Project`, `JavaClass`, `JavaMethod`, `SearchCursor` and `Job`, plus typed exceptions for conflicts, partial analysis and unsupported capabilities. High-level abstractions must preserve underlying revisions and diagnostics, surface expensive operations, and avoid hidden autosaving.
 
-Illustrative *desired usage* (not an implemented API):
-
-```python
-from libjadx import Client
-
-with Client("http://127.0.0.1:18777") as client:
-    client.wait_ready()
-    cls = client.project.class_by_descriptor("Lcom/example/Main;", input_id="...")
-    print(cls.decompile().java)
-    result = client.project.search("TODO", require_complete=True)
-    for hit in result:
-        print(hit.location)
-    client.project.rename(cls, "MainActivity", expected_revision=client.project.revision)
-    client.project.save()  # explicitly persists native Jadx data
-```
+Implemented usage and conflict handling are documented in [python/README.md](python/README.md) and [SDK architecture](docs/phase-6-python-sdk.md). The SDK connects to an already running fixed-project service; it does not start Java, autosave or retry stale mutations implicitly.
 
 ## 11. Validation and release strategy
 
-The mandatory Phase 0 gate is **headless native project load/save and GUI round-trip** for real rename and comment fixtures. Also prove which xrefs, code offsets, CFG representations and class-level concurrency are attainable. The first experimental release is an end-to-end vertical slice; richer resource queries, variable editing and portable export can follow in subsequent milestones. See [IMPLEMENTATION.md](IMPLEMENTATION.md) for exact work packages, tests, failure handling and exit criteria.
+The initial release was gated by **headless native project load/save and actual matching-GUI round trips**. Phases 0–6 are complete for the defined v0.1 scope; [PR #22](docs/pr-22-review.md) records 22/22 operations, 19/19 errors, five client surfaces, installed wheels on Python 3.11/3.14, reproducible archives and all twelve matching-GUI gates at the qualified source revision. The candidate remains untagged/unpublished.
+
+The [release runbook](docs/phase-6-release-qualification.md) defines repeatable qualification and strict evidence freshness. Existing evidence is not a qualification of every later Git revision. Phase 7 requires fresh capability probes and relevant regression/GUI gates before advertising deeper analysis or persistence. See [IMPLEMENTATION.md](IMPLEMENTATION.md) for retained historical acceptance criteria and the active roadmap.
 
 ### Known technical risks
 
-1. `JadxProject` lives in `jadx-gui` and uses GUI-dependent types; native serialization may require a thin independent headless codec that reproduces **native** format and retains unknown fields.
+1. `JadxProject` lives in `jadx-gui` and uses GUI-dependent types; the independent headless codec reproduces **native** format and retains unknown fields where promised; serialization changes require renewed GUI qualification.
 2. Jadx's internal graph and code metadata may not expose all requested distinctions with exact provenance. Capability responses and tests prevent fabricated completeness.
 3. Jadx may merge or normalize duplicate definitions; original-input provenance is conditional on preservation by the pinned loader.
-4. A shared in-process Jadx instance may be unsafe for some parallel operations. Begin conservatively, enable only tested concurrency.
+4. A shared in-process Jadx instance may be unsafe for some parallel operations. Primary reads remain serialized/fail-fast; enable parallelism only after new proof.
 5. Explicit save plus native write behavior means an interrupted save is not guaranteed atomic. No custom persistence layer is permitted.
 6. Headless runtime cannot assume `.jadx` stores every GUI-wide decompiler preference. Persist **only** natively representable settings; expose limitations.
 
 ## 12. Source and license references
 
-These are **investigation pointers**, not unpinned implementation contracts:
+Jadx implementation references are pinned to the supported source commit:
 
 - Jadx repository and license: https://github.com/skylot/jadx
-- Jadx public decompiler: https://github.com/skylot/jadx/blob/master/jadx-core/src/main/java/jadx/api/JadxDecompiler.java
-- Jadx arguments: https://github.com/skylot/jadx/blob/master/jadx-core/src/main/java/jadx/api/JadxArgs.java
-- Native GUI project serialization: https://github.com/skylot/jadx/blob/master/jadx-gui/src/main/java/jadx/gui/settings/JadxProject.java
-- Native project data representation: https://github.com/skylot/jadx/blob/master/jadx-gui/src/main/java/jadx/gui/settings/data/ProjectData.java
+- Jadx public decompiler: https://github.com/skylot/jadx/blob/28ff15e4ae69950aebea110a13e5ab895d234dfc/jadx-core/src/main/java/jadx/api/JadxDecompiler.java
+- Jadx arguments: https://github.com/skylot/jadx/blob/28ff15e4ae69950aebea110a13e5ab895d234dfc/jadx-core/src/main/java/jadx/api/JadxArgs.java
+- Native GUI project serialization: https://github.com/skylot/jadx/blob/28ff15e4ae69950aebea110a13e5ab895d234dfc/jadx-gui/src/main/java/jadx/gui/settings/JadxProject.java
+- Native project data representation: https://github.com/skylot/jadx/blob/28ff15e4ae69950aebea110a13e5ab895d234dfc/jadx-gui/src/main/java/jadx/gui/settings/data/ProjectData.java
 - Jadx library usage: https://github.com/skylot/jadx/wiki/Use-jadx-as-a-library
-- libghidra license reference (do not copy its implementation/contracts): https://github.com/0xeb/libghidra/blob/main/LICENSE
+- libghidra project — product inspiration: https://github.com/0xeb/libghidra
+- libghidra license — human review before reuse; no copying of implementation/contracts: https://github.com/0xeb/libghidra/blob/main/LICENSE
 
-After the version pin, replace implementation citations with links at the exact tag or commit and document tested deviations from these proposed contracts.
+Tested capability boundaries are recorded in [compatibility](docs/compatibility.md) and the [feasibility matrix](docs/feasibility-matrix.md).
 
-## PR #18 approved alias semantics and replacement publication
+## 13. Current alias semantics and replacement publication
 
 This section supersedes PR #17's requirement to preserve every incidental alias.
 Automatic Jadx aliases are derived analysis state: collision aliases,
@@ -334,7 +305,7 @@ failures, oracle, persistence and validation. PR #19's
 COMPLETE verification, immutable plans, all-owner raw collision checks and exact
 native records/affectedRefs. Local editing remains unsupported.
 
-## PR #19 — verified related-method rename group admission
+## 14. Current related-method group admission
 
 This section supersedes prior propagation deferrals. Explicit METHOD RENAME
 `propagateRelated: true` admits only independently COMPLETE closed-input families
@@ -353,13 +324,12 @@ without becoming admitted members. Standard Jadx records persist only on explici
 save. Restart/discard/reload, accepted input/mapping conflicts and actual matching
 GUI Save As retain their native-only behavior. Covariant/bridge, missing/external,
 duplicate, local and parameter propagation remain unsupported. PR #20 closes
-Phase 5.2 with the local exclusion below; the Python release remains pending.
-No dependencies or locks change.
+Phase 5.2 with the local exclusion below. Phase 6 SDK and qualification are complete; external publication remains separate.
 
 See [admission, status mapping, ordering and persistence](docs/phase-5-related-group-admission.md)
 and [final-head validation](docs/pr-19-review.md).
 
-## PR #20 — native local identity boundary
+## 15. Current native local identity boundary
 
 Outcome B: local-variable mutation remains unsupported. Native VAR records bind
 only an original method and packed register/SSA; a current source snapshot
@@ -368,6 +338,6 @@ An owned one-local straight-line method retargets an exact nonmerged VAR key
 from an absolute value to its square under normal Use dx/d8 configuration.
 Same-mode replay, save/reopen and record preservation are insufficient.
 No custom identity or persistence layer is permitted by this architecture.
-Phase 5.2 is complete for safely proved native edit forms; Phase 6 is next.
+Phase 5.2 is complete for safely proved native edit forms. Phase 6 subsequently completed; Phase 7 is the active roadmap.
 See [feasibility and exclusions](docs/phase-5-local-rename-feasibility.md) and
 [validation](docs/pr-20-review.md).

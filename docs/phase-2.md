@@ -1,5 +1,7 @@
 # Phase 2 native lifecycle notes
 
+> **Historical milestone record.** This document describes repository state at its named phase/PR. Its “next milestone,” “pending,” and support-status statements are historical. For current product state see the [documentation index](README.md), [compatibility](compatibility.md), [feasibility matrix](feasibility-matrix.md) and [PR #22 qualification](pr-22-review.md).
+
 The native project repository owns the in-memory `.jadx` JSON tree. Explicit save
 updates that native file and preserves unrelated GUI and unknown root fields.
 For raw input, no project file exists until `POST /api/v1/project/save` supplies

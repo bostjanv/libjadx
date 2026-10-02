@@ -1,5 +1,7 @@
 # Phase 5.2: Tiny v2 mapping export evidence
 
+> **Historical milestone record.** This document describes repository state at its named phase/PR. Its “next milestone,” “pending,” and support-status statements are historical. For current product state see the [documentation index](README.md), [compatibility](compatibility.md), [feasibility matrix](feasibility-matrix.md) and [PR #22 qualification](pr-22-review.md).
+
 The feasibility probe uses Jadx 1.5.6 commit
 `28ff15e4ae69950aebea110a13e5ab895d234dfc` and mapping-io 0.8.0.
 It does not call `MappingExporter.exportMappings`.

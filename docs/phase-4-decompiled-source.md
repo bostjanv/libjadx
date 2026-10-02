@@ -1,5 +1,7 @@
 # Phase 4.2: class Java source and metadata
 
+> **Historical milestone record.** This document describes repository state at its named phase/PR. Its “next milestone,” “pending,” and support-status statements are historical. For current product state see the [documentation index](README.md), [compatibility](compatibility.md), [feasibility matrix](feasibility-matrix.md) and [PR #22 qualification](pr-22-review.md).
+
 `POST /api/v1/decompile` accepts an original `CLASS` or `METHOD` `SymbolRef`.
 It returns the exact Java string produced by Jadx 1.5.6 for the emitted source
 owner. A method request returns that same complete class string and, when

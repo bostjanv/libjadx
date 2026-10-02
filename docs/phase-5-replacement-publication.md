@@ -1,5 +1,7 @@
 # Fresh-equivalent replacement-engine edit publication
 
+> **Historical milestone record.** This document describes repository state at its named phase/PR. Its “next milestone,” “pending,” and support-status statements are historical. For current product state see the [documentation index](README.md), [compatibility](compatibility.md), [feasibility matrix](feasibility-matrix.md) and [PR #22 qualification](pr-22-review.md).
+
 **Current PR #19 boundary:** [verified related-method group admission](phase-5-related-group-admission.md)
 now admits the independently COMPLETE conservative subset under the same exclusive
 edit lease, with raw all-owner collisions, exact native records and affectedRefs.

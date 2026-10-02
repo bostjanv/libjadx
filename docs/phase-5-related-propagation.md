@@ -1,5 +1,7 @@
 # PR #14: related-method propagation feasibility
 
+> **Historical milestone record.** This document describes repository state at its named phase/PR. Its “next milestone,” “pending,” and support-status statements are historical. For current product state see the [documentation index](README.md), [compatibility](compatibility.md), [feasibility matrix](feasibility-matrix.md) and [PR #22 qualification](pr-22-review.md).
+
 **Current PR #20 status:** Phase 5.2 closes with local rename deliberately
 unsupported; [native retargeting feasibility](phase-5-local-rename-feasibility.md)
 supersedes the open local decision in the historical account below.

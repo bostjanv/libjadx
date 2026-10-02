@@ -1,5 +1,7 @@
 # Native local-variable rename retargeting feasibility (PR #20)
 
+> **Historical milestone record.** This document describes repository state at its named phase/PR. Its “next milestone,” “pending,” and support-status statements are historical. For current product state see the [documentation index](README.md), [compatibility](compatibility.md), [feasibility matrix](feasibility-matrix.md) and [PR #22 qualification](pr-22-review.md).
+
 Outcome B on pinned Jadx **1.5.6**, source
 **28ff15e4ae69950aebea110a13e5ab895d234dfc**: local rename remains deliberately
 unsupported. No public local target, operation, verifier, persistence format or

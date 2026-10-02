@@ -1,5 +1,7 @@
 # Phase 3.3 requested shutdown
 
+> **Historical milestone record.** This document describes repository state at its named phase/PR. Its “next milestone,” “pending,” and support-status statements are historical. For current product state see the [documentation index](README.md), [compatibility](compatibility.md), [feasibility matrix](feasibility-matrix.md) and [PR #22 qualification](pr-22-review.md).
+
 Baseline: merged PR #4 at `91ae20c9a7b04fac287a5f19647126a2cc4c81d7`.
 Jadx remains pinned to 1.5.6, source revision
 `28ff15e4ae69950aebea110a13e5ab895d234dfc`.

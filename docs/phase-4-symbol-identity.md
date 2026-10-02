@@ -1,5 +1,7 @@
 # Phase 4.1: original symbol identity and lookup
 
+> **Historical milestone record.** This document describes repository state at its named phase/PR. Its “next milestone,” “pending,” and support-status statements are historical. For current product state see the [documentation index](README.md), [compatibility](compatibility.md), [feasibility matrix](feasibility-matrix.md) and [PR #22 qualification](pr-22-review.md).
+
 The experimental API now supports `GET /api/v1/classes` and `POST
 /api/v1/symbols/resolve`. It enumerates **Jadx-visible** declarations in the
 current fixed project. It cannot promise a census of every definition in every

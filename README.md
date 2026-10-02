@@ -1,60 +1,73 @@
 # LibJadx
 
-**LibJadx is an experimental, standalone, headless Java service for accessing [Jadx](https://github.com/skylot/jadx) from local HTTP clients.** It is intended to make reverse-engineering workflows scriptable through a versioned REST/JSON API and an experimental Python SDK.
+LibJadx is a standalone, headless Java service that exposes [Jadx](https://github.com/skylot/jadx) through a versioned REST/JSON API and a typed Python SDK for local reverse-engineering workflows.
 
-> **Project status — early development.** Startup, native project lifecycle, jobs, explicit shutdown, original symbol lookup, Java decompilation, incremental search and native declaration editing are implemented. Advanced editing remains gated by Jadx and GUI probes. See [Current functionality](#current-functionality) before integrating it.
+> **Project status — experimental v0.1 candidate.** The defined first-release scope is feature-complete and locally release-qualified by PR #22 as Java `0.1.0-alpha.1` / Python `0.1.0a1` against Jadx 1.5.6. The candidate is not tagged or externally published on GitHub Releases, PyPI or Maven. Phase 7 is the extended-capability roadmap.
 
-LibJadx is an independent project built on Jadx. It is not an official Jadx component and does not provide libghidra API or protocol compatibility.
+## Inspiration
 
-## Current functionality
+LibJadx is inspired by [libghidra](https://github.com/0xeb/libghidra) and is modeled in spirit after its goal of making a reverse-engineering engine accessible through typed, scriptable APIs and client libraries. LibJadx applies that general product idea to Jadx.
 
-The implementation currently includes:
+LibJadx is an independent implementation. It does not copy or implement libghidra's API, protobuf contracts, wire protocol, data models, internal architecture, examples or tests, and it is not API/protocol compatible with libghidra. Neither libghidra nor Jadx endorses LibJadx.
 
-- A fixed-project service: one existing native `.jadx` project **or** one or more local input files per process, selected at startup. Multiple clients can connect to the same service; there is no project-switching endpoint.
-- A loopback-only HTTP listener, started before potentially expensive Jadx initialization. The default address is `127.0.0.1:18777`.
-- CLI, environment-variable, and optional YAML configuration, including canonical-path checks against allowed filesystem roots.
-- Asynchronous project loading with lifecycle/status reporting, state-specific error responses, request IDs, and a capability-evidence endpoint.
-- Native `.jadx` feasibility code and tests for project-relative inputs, mapping references, in-memory class renames/comments, preservation of selected unknown JSON fields, and a save/reopen round trip through the matching Jadx GUI.
-- Explicit native save, reload, mapping-path updates, transient pending-edit export, bounded job polling/cancellation/SSE, and requested shutdown policies.
-- Bounded listing of Jadx-visible classes and exact lookup of classes, methods, and fields by original JVM descriptors. Current aliases are separate from identity.
-- Class-oriented Java source with validated token annotations, source snapshots, and method excerpts only where the pinned Jadx metadata and boundary checks agree. Per-request mode overrides use an isolated engine.
-- Fresh-equivalent replacement publication for effective native batches; private loading before commit preserves the old state on candidate failure. Automatic aliases may recompute; explicit native/mapping/scoped edits remain authoritative.
-- Validated in-memory batches for original class/method/field renames and single-line native declaration comments. Explicit save is required for durability. Safe Tiny v2 export creates a new local artifact, bounded Tiny v2 import stages pending edits, and verified parameter targets support snapshot-bound renames. Local edits remain unsupported; explicit related-method renames admit independently COMPLETE closed-input families.
-- Controlled startup/shutdown behavior, including bounded waiting for loader cleanup on ordinary shutdown and separate handling of fatal startup errors.
-- An internal bounded original-input census and independent hierarchy verifier for a closed class/JAR/DEX subset. It proves the conservative family subset admitted by explicit related-method renames, independently of incomplete Jadx candidates.
+## What works
 
-Native declaration edits and a matching-GUI save/reopen round trip are exercised by real Jadx tests. The capability endpoint identifies narrower support and remaining unverified edit forms.
+- One fixed native `.jadx` project or local input set per process, shared by multiple clients.
+- Loopback-only REST/JSON with immediate liveness, load progress and readiness reporting.
+- Jadx-visible class enumeration and original class/method/field identities, separate from aliases.
+- Java decompilation, source snapshots, verified token metadata and method excerpts where available.
+- Basic references with explicit partial coverage, incremental search and complete-index jobs.
+- Process-local jobs with polling, cooperative cancellation and SSE progress.
+- Declaration renames/comments, strict Tiny v2 mapping import/export, snapshot-bound parameter renames and a conservative related-method propagation subset.
+- Explicit native save, reload, pending-edit export and external-modification conflict detection.
+- Generated typed Python transport and handwritten synchronous/asynchronous SDKs.
+- Locally qualified standalone Java archives and Python wheel/sdist artifacts.
 
-Public capabilities describe service behavior: Smali representation and parallel
-primary Jadx reads are `UNSUPPORTED`; conflicting primary reads fail fast with
-`PROJECT_BUSY`. Job cancellation is `PARTIAL`: it is cooperative, and CANCELLING
-lasts until work stops. Multiple HTTP clients are supported; deadlines and stream
-closure do not request cancellation or guarantee hard Jadx interruption.
+## Current limitations
 
-| HTTP endpoint | Current behavior |
-| --- | --- |
-| `GET /api/v1/health/live` | Process liveness (`ALIVE`); does **not** imply the project is ready. |
-| `GET /api/v1/status` | Current project lifecycle (`LOADING`, `READY`, `FAILED`, and shutdown states), progress, and safe error details. |
-| `GET /api/v1/capabilities` | Jadx version and evidence-backed capability status. |
-| `GET /api/v1/project`, `POST /api/v1/project/save`, `POST /api/v1/project/reload`, `GET/PATCH /api/v1/project/settings`, `POST /api/v1/project/pending-edits/export` | Native project state, explicit persistence, reload, mapping configuration, and transient edit export. |
-| `POST /api/v1/project/mappings/import` | Strict conflict-safe local Tiny v2 merge into unsaved native declaration edits. |
-| `POST /api/v1/project/mappings/export` | Strict verified Tiny v2 declaration export to a new local file, without changing project state. |
-| `GET /api/v1/jobs/{id}`, `POST /api/v1/jobs/{id}/cancel`, `GET /api/v1/jobs/{id}/events` | Process-local job polling, cooperative cancellation, and SSE. |
-| `POST /api/v1/shutdown` | Graceful local shutdown with `discard` (default), `save`, or `refuse_if_dirty`; active work returns `PROJECT_BUSY`. |
-| `GET /api/v1/classes`, `POST /api/v1/symbols/resolve` | Jadx-visible class pages and exact original class/member lookup. Input provenance may be unavailable. |
-| `POST /api/v1/decompile` | Java source for an original class or method ref. Method requests include the containing class source and either a verified excerpt or an explicit range-unavailable fallback. |
-| `POST /api/v1/edits/batch` | Validate all items, then stage native class/method/field renames and LINE declaration comments under one exclusive admission. Mutations remain unsaved until explicit native save. |
-| Other planned analysis routes | Structured `PROJECT_NOT_READY` while loading, a non-retryable load failure after failed initialization, or `OPERATION_NOT_IMPLEMENTED` after readiness. |
+The [public capability snapshot](openapi/examples/capabilities.json) is authoritative for formal statuses; see the [support summary](docs/README.md#compatibility-and-capabilities).
 
-Unknown paths return `NOT_FOUND`. The API contract is in [`openapi/openapi.yaml`](openapi/openapi.yaml).
+References, method excerpts, member/source search, native save and related propagation are `PARTIAL` within their documented boundaries. Exact input provenance and original debug-line/bytecode mappings are unverified. Local-variable rename and the public Smali representation are `UNSUPPORTED`. CFG and resource query APIs are not implemented; they remain Phase 7 work.
 
-## Experimental candidate and Python SDK
+Multiple clients are supported. Primary Jadx reads are serialized, and conflicting primary-read admission fails with `PROJECT_BUSY`; parallel primary reads are `UNSUPPORTED`. Cancellation is `PARTIAL` and cooperative: `CANCELLING` remains until work stops. Client deadlines and stream closure do not request cancellation or guarantee hard interruption of arbitrary Jadx work.
 
-The experimental `libjadx` 0.1.0a1 SDK provides generated typed transport,
-handwritten synchronous/asynchronous APIs, explicit revisions and save,
-pagination and job polling/SSE. It connects to an already running service.
-Python 3.11 is the minimum; Linux wheel validation covers 3.11 and 3.14.
-Build/install locally (no PyPI publication):
+## Quick start
+
+Build and run with **JDK 21** and the pinned Gradle **8.14.3** wrapper. Dependency resolution needs network access on an empty cache. Jadx is pinned to **1.5.6**; exact sources and other dependencies are in [compatibility](docs/compatibility.md).
+
+```bash
+git clone https://github.com/bostjanv/libjadx.git
+cd libjadx
+./gradlew run --args="--input /absolute/path/to/sample.jar --allowed-root /absolute/path/to"
+# Or open an existing native project:
+./gradlew run --args="--project /absolute/path/to/sample.jadx --port 18777"
+```
+
+On Windows use `gradlew.bat` and Windows paths. Windows/macOS execution is not release-qualified; the recorded qualification platform is Linux x86_64.
+
+In another terminal, poll status until `READY`; liveness alone is not readiness. If loading fails, status retains safe diagnostics.
+
+```bash
+curl http://127.0.0.1:18777/api/v1/health/live
+curl http://127.0.0.1:18777/api/v1/status
+curl 'http://127.0.0.1:18777/api/v1/classes?pageSize=50'
+curl -H 'Content-Type: application/json' \
+  -d '{"ref":{"kind":"CLASS","originalClassDescriptor":"Lprobe/Sample;"},"representation":"JAVA"}' \
+  http://127.0.0.1:18777/api/v1/decompile
+```
+
+To build a local distribution with Unix/Windows launch scripts:
+
+```bash
+./gradlew installDist
+./build/install/libjadx/bin/libjadx --input /absolute/path/to/sample.jar
+```
+
+The distribution is a locally built artifact from the qualified experimental candidate, not an externally published release. A JDK is not bundled. Phase 7 capabilities remain outside v0.1 scope. PR #22 qualification applies to its [recorded source revision and artifact hashes](docs/pr-22-review.md), not every later build.
+
+## Python SDK
+
+Phase 6.1 SDK foundation and Phase 6.2 release qualification are complete. Python **3.11** is the minimum; installed-wheel qualification covers **3.11.13** and **3.14.4** on Linux. Build/install locally; the package is not published on PyPI:
 
 ```bash
 cd python
@@ -63,268 +76,89 @@ uv build
 python -m pip install dist/libjadx-0.1.0a1-py3-none-any.whl
 ```
 
-See [SDK usage, conflicts and limitations](python/README.md) and
-[Phase 6 architecture](docs/phase-6-python-sdk.md). Phase 6.2 cross-language
-release qualification is tracked in [the PR #22 report](docs/pr-22-review.md).
-The local candidate uses Java `0.1.0-alpha.1`, Python `0.1.0a1` and API
-`0.1.0-experimental`. Qualification is separate from publication; no tag or
-external artifact publication is performed by the release harness.
+Connect to an already running Java service:
 
-## Requirements
+```python
+from libjadx import Client, SymbolRef
 
-- **JDK 21** to build and run LibJadx.
-- A local filesystem input supported by the pinned Jadx release, or an existing compatible native `.jadx` project.
-- Network access for the first Gradle dependency resolution, unless the required artifacts are already cached.
+with Client("http://127.0.0.1:18777") as client:
+    client.wait_ready()
+    result = client.project.decompile(SymbolRef.class_("Lprobe/Sample;"))
+    print(result.source)
+```
 
-The Gradle wrapper pins Gradle **8.14.3**. The current build pins **Jadx 1.5.6**, **Jetty 12.1.13**, and **Jackson 2.21.7**, with Gradle dependency locking. See [`docs/compatibility.md`](docs/compatibility.md) for the exact dependency and upstream-source record.
+See [SDK usage](python/README.md), [SDK architecture](docs/phase-6-python-sdk.md) and the [completed release gate](docs/phase-6-release-qualification.md). The SDK preserves diagnostics and revisions, surfaces stale-state errors and never saves or retries mutations implicitly.
 
-## Quick start
+## API
 
-Clone the repository and run the service against a local file:
+All routes use `/api/v1`. These families cover the **22 implemented operations**; [OpenAPI](openapi/openapi.yaml) is authoritative for exact requests, responses and typed errors.
+
+| Family | Operations (prefix omitted) |
+| --- | --- |
+| Process and readiness | `GET /health/live`, `GET /status`, `GET /capabilities`, `POST /shutdown` |
+| Native project | `GET /project`, `POST /project/save`, `GET /project/settings`, `PATCH /project/settings`, `POST /project/reload`, `POST /project/pending-edits/export` |
+| Mappings | `POST /project/mappings/import`, `POST /project/mappings/export` |
+| Symbols and code | `GET /classes`, `POST /symbols/resolve`, `POST /decompile`, `POST /references/query` |
+| Search and edits | `POST /search`, `POST /search/build-index`, `POST /edits/batch` |
+| Jobs | `GET /jobs/{jobId}`, `POST /jobs/{jobId}/cancel`, `GET /jobs/{jobId}/events` |
+
+Planned Phase 7 routes include `/project/export`, `/analysis/cfg` and `/resources/query`; a public Smali representation also requires a reviewed contract. These are outside the current operation inventory. Unknown paths return `NOT_FOUND`; recognized planned routes return `OPERATION_NOT_IMPLEMENTED` after readiness.
+
+## Persistence and editing
+
+Edits change in-memory native state first. **Explicit native save** is required for durability; ordinary close discards unsaved edits. Requested shutdown supports `discard` (default), `save` or `refuse_if_dirty`, and conflicting active work returns `PROJECT_BUSY`.
+
+Batches prevalidate every item before application. Unexpected execution failures report itemized applied/failed/skipped status rather than promising rollback. Declaration renames and one-line `LINE` comments are supported; parameter renames require a current source snapshot and a verified AUTO/RESTRUCTURE plain-signature target. Related-method propagation admits only independently verified closed-input families and remains `PARTIAL`. Local rename is unsupported because native VAR records can retarget under ordinary GUI settings.
+
+Automatic aliases are derived and may recompute after edits; explicit native/mapping intent remains authoritative. [Editing evidence](docs/phase-5-editing.md), [parameter limits](docs/phase-5-scoped-editing.md) and [group admission](docs/phase-5-related-group-admission.md) describe the precise restrictions.
+
+Mapping import stages pending native edits; mapping attachment uses project settings; mapping export creates a new local Tiny v2 artifact without saving or attaching it. Save refuses changed native project/mapping files with `EXTERNAL_MODIFICATION_CONFLICT`. Pending-edit export returns transient native data, and reload requires explicit discard when dirty. No database, autosave, persistent job journal or custom project sidecar is used. Native writes have no extra transactional recovery layer.
+
+## Configuration and security
+
+Choose `--project PATH` or repeatable `--input PATH` at startup. Configure `--port`, `--allowed-root` and optional YAML through `--config`. Precedence is **CLI > environment > YAML > defaults**. Native references remain at their original locations; canonical paths, including symlinks, must satisfy allowed-root checks.
+
+Only `127.0.0.1` is accepted as the bind address. There is no authentication; use a trusted local environment. Runtime project switching and HTTP uploads are absent. An owner-only cursor signing key is operational state outside native project persistence. See [configuration](docs/configuration.md) for options, key location and shutdown behavior.
+
+## Development and testing
+
+Read [AGENTS.md](AGENTS.md), [DESIGN.md](DESIGN.md) and [IMPLEMENTATION.md](IMPLEMENTATION.md) before contributing. Public changes update OpenAPI, generated transport and contract fixtures together.
 
 ```bash
-git clone https://github.com/bostjanv/libjadx.git
-cd libjadx
-./gradlew run --args="--input /absolute/path/to/sample.jar --allowed-root /absolute/path/to"
+./gradlew clean test check installDist
+python/.venv/bin/python tests/validate-documentation.py
+cd python
+uv run --frozen python scripts/check_generated.py
 ```
 
-On Windows, use `gradlew.bat` instead of `./gradlew` and Windows filesystem paths.
-
-To open an existing Jadx project instead:
-
-```bash
-./gradlew run --args="--project /absolute/path/to/sample.jadx --port 18777"
-```
-
-An existing project can refer to multiple inputs and a mapping file. Those paths are resolved relative to the native project as appropriate and checked against the allowed roots. When no roots are explicitly supplied, roots are derived from the project/input parent directories.
-
-When the process starts, query the diagnostic API in another terminal:
-
-```bash
-curl http://127.0.0.1:18777/api/v1/health/live
-curl http://127.0.0.1:18777/api/v1/status
-curl http://127.0.0.1:18777/api/v1/capabilities
-curl 'http://127.0.0.1:18777/api/v1/classes?pageSize=50'
-curl -H 'Content-Type: application/json' -d '{"ref":{"kind":"CLASS","originalClassDescriptor":"Lprobe/Sample;"}}' http://127.0.0.1:18777/api/v1/symbols/resolve
-curl -H 'Content-Type: application/json' -d '{"ref":{"kind":"CLASS","originalClassDescriptor":"Lprobe/Sample;"},"representation":"JAVA"}' http://127.0.0.1:18777/api/v1/decompile
-```
-
-The listener is available while the project loads. Poll `/status` until it reports `READY`, or inspect the safe error information if it reports `FAILED`. A liveness response alone is not a readiness check.
-
-To request a clean shutdown after work finishes:
-
-```bash
-curl -X POST http://127.0.0.1:18777/api/v1/shutdown -H 'Content-Type: application/json' -d '{"policy":"refuse_if_dirty"}'
-```
-
-To build a local application distribution with launch scripts:
-
-```bash
-./gradlew installDist
-./build/install/libjadx/bin/libjadx --input /absolute/path/to/sample.jar
-```
-
-The application distribution is a **local build artifact**, not a published release or a claim that the planned analysis API is complete.
-
-## Configuration
-
-Choose exactly one startup mode: `--project PATH`, or one or more `--input PATH` arguments. Other options are `--config PATH`, `--port PORT`, `--bind 127.0.0.1`, and repeatable `--allowed-root PATH`. Use `--help` or `--version` for CLI information.
-
-A minimal optional YAML configuration:
-
-```yaml
-project: /work/sample.jadx
-bind: 127.0.0.1
-port: 18777
-allowedRoots:
-  - /work
-```
-
-Configuration precedence is **command line > environment > YAML > defaults**. The project/input selection comes from the highest-precedence source specifying it; project and input selections are not combined across sources.
-
-Supported environment variables are `LIBJADX_PROJECT`, `LIBJADX_INPUT`, `LIBJADX_BIND`, `LIBJADX_PORT`, and `LIBJADX_ALLOWED_ROOT`. List-valued environment variables use the platform's path separator.
-
-LibJadx currently accepts only `127.0.0.1` as the bind address and provides no authentication. It is designed for trusted local use; do not expose the listener to untrusted networks or forward it through a public proxy. Paths are canonicalized, including symlinks, before allowed-root checks.
-
-Class pagination uses an owner-only cursor signing key in `$XDG_STATE_HOME/libjadx/cursor-signing.key` (default `~/.local/state/libjadx/cursor-signing.key`). This is operational state outside native `.jadx` project persistence. See [Phase 4.1 notes](docs/phase-4-symbol-identity.md) for cursor behavior.
-
-Java source is read-only and limited to 4 MiB UTF-8 per request. Source offsets are UTF-16 indices in the exact returned Java text. See [Phase 4.2 notes](docs/phase-4-decompiled-source.md) for method-range proof and metadata limits. Basic references, incremental search and native declaration editing are available; Smali remains planned.
-
-`POST /api/v1/search` queries class names immediately and member/emitted-Java
-text as classes are processed. It reports partial coverage until every eligible
-Jadx-visible class or owner is indexed. `POST /api/v1/search/build-index`
-starts the complete-index job; `strict` rejects partial results, while
-`requireComplete` returns a job to poll. Safe source regex uses RE2/J.
-Indexes and cursors are memory-only and disappear on restart. See
-[Phase 5.1 search](docs/phase-5-search.md) for exact semantics and limits.
-
-`POST /api/v1/edits/batch` accepts 1–64 exact original-declaration edits and
-returns per-item results plus before/after revisions. `RENAME` supports ordinary
-classes, methods and fields; `SET_COMMENT` supports one-line `LINE` comments.
-Prevalidation failure changes nothing, and a no-op leaves revisions unchanged.
-See [Phase 5.2 editing](docs/phase-5-editing.md) for a request example, native
-identity rules, persistence proof and unsupported cases.
-
-To export current aliases and LINE declaration comments, including unsaved
-edits and accepted attached Tiny v2 mappings, send `targetPath`, `format:
-"TINY_V2"`, `expectedSessionId` and `expectedLogicalRevision` to
-`POST /api/v1/project/mappings/export`. The absolute `.tiny` destination must
-be new, with an existing nonsymlink parent under allowed roots. Unsupported or
-ambiguous source entries fail before publication. Export does not save or
-attach the file. See [mapping export evidence and limits](docs/phase-5-mapping-export.md).
-
-See [`docs/configuration.md`](docs/configuration.md) for startup, path handling, response-state, and shutdown details.
-
-## Development and tests
-
-Run the Java tests and compile the service:
-
-```bash
-./gradlew clean test compileJava
-```
-
-The repository includes unit/HTTP lifecycle tests, Jadx feasibility probes, and native-project compatibility fixtures. A separate **opt-in** test checks a real save-and-reopen round trip using the matching **Jadx 1.5.6** GUI. On a Linux machine with `xvfb-run`, `xdotool`, and the matching GUI installed, run:
-
-```bash
-JADX_GUI=/absolute/path/to/jadx-gui ./gradlew guiRoundTripTest
-JADX_GUI=/absolute/path/to/jadx-gui ./gradlew nativeEditGuiRoundTripTest
-JADX_GUI=/absolute/path/to/jadx-gui ./gradlew mappingExportGuiRoundTripTest
-JADX_GUI=/absolute/path/to/jadx-gui ./gradlew scopedEditGuiRoundTripTest
-JADX_GUI=/absolute/path/to/jadx-gui ./gradlew replacementEditGuiRoundTripTest
-```
-
-The opt-in GUI test is not part of a normal `./gradlew test` run. Results from the small fixture and GUI round-trip probes do not establish correctness for all Jadx-supported input formats or all edit types.
-
-Before contributing, read [`AGENTS.md`](AGENTS.md), [`DESIGN.md`](DESIGN.md), and [`IMPLEMENTATION.md`](IMPLEMENTATION.md). Changes to public behavior should update the OpenAPI contract and include relevant regression tests.
-
-## Architecture and roadmap
-
-The intended architecture separates application lifecycle and HTTP transport from native project persistence, Jadx-version-sensitive integration, analysis, in-memory search, and operation scheduling. The current Gradle application is the initial implementation slice; the full logical architecture is documented in [`DESIGN.md`](DESIGN.md).
-
-Phase 5.2 is complete for the proved native edit capabilities: declaration edits,
-strict Tiny v2 export/import, snapshot-bound AUTO/RESTRUCTURE parameter renames,
-and verified related-method group renames. Local editing remains deliberately
-unsupported: normal GUI input settings can make a persisted VAR key rename a
-different computation. See [local feasibility evidence](docs/phase-5-local-rename-feasibility.md).
-The Python SDK follows in Phase 6. Smali, CFG and resource capabilities depend on
-further tests against the pinned Jadx release.
-
-The long-term design retains **one project per process**, native Jadx persistence, explicit saves, and no HTTP file uploads. Planned endpoints and behavior must not be mistaken for features already delivered.
-
-For implementation sequencing and known technical limits, see [`IMPLEMENTATION.md`](IMPLEMENTATION.md) and [`docs/feasibility-matrix.md`](docs/feasibility-matrix.md).
-
-## Project documentation
-
-- [`DESIGN.md`](DESIGN.md) — approved architecture, behavior, and future API design.
-- [`IMPLEMENTATION.md`](IMPLEMENTATION.md) — phased work plan and acceptance criteria.
-- [`AGENTS.md`](AGENTS.md) — instructions for coding agents and contributors.
-- [`openapi/openapi.yaml`](openapi/openapi.yaml) — current experimental HTTP contract.
-- [`docs/configuration.md`](docs/configuration.md) — local service configuration and startup behavior.
-- [`docs/compatibility.md`](docs/compatibility.md) — pinned upstream and build dependencies.
-- [`docs/feasibility-matrix.md`](docs/feasibility-matrix.md) — tested Jadx behavior, limitations, and follow-up probes.
-- [`docs/phase-4-symbol-identity.md`](docs/phase-4-symbol-identity.md) — original identity, paging, provenance, and pinned-source evidence.
-- [`docs/phase-5-search.md`](docs/phase-5-search.md) — incremental search, coverage, jobs, cursors and pinned-source evidence.
-- [`docs/phase-5-editing.md`](docs/phase-5-editing.md) — native declaration editing, batch semantics, GUI evidence and exclusions.
-- [`docs/phase-5-scoped-editing.md`](docs/phase-5-scoped-editing.md) — snapshot-bound parameter targets, native persistence and unsupported local forms.
-- [`docs/phase-5-local-rename-feasibility.md`](docs/phase-5-local-rename-feasibility.md) — native VAR retargeting, controlled matching-GUI diagnostics and the final unsupported-local decision.
-- [`docs/phase-5-hierarchy-verifier.md`](docs/phase-5-hierarchy-verifier.md) — raw declaration census, independent completeness rules, budgets and propagation prerequisites.
-
-## License and attribution
-
-LibJadx depends on [Jadx](https://github.com/skylot/jadx) and other third-party libraries, each subject to its own license. **No LibJadx project license file is present in the repository at the time this README was drafted**; do not assume that Jadx's license also licenses LibJadx. Review the repository's licensing status and third-party notices before redistributing a build.
-
-### Basic references (Phase 4.3)
-
-`POST /api/v1/references/query` accepts original class/method/field refs and an
-explicit `INCOMING` or `OUTGOING` direction (fields: incoming only). For example:
-
-```json
-{"ref":{"kind":"METHOD","originalClassDescriptor":"Lprobe/Sample;","originalName":"caller","originalDescriptor":"()I"},"direction":"OUTGOING","includeSourceSites":true}
-```
-
-Results report Jadx-observed method pairs, unresolved original method descriptors,
-field users and class dependencies. Optional source sites are verified against a
-P4.2 Java snapshot. Coverage is always partial; READ/WRITE and original offsets
-are unavailable. Signed pagination detects changes in observed graph content,
-including those caused by decompilation without project edits. Queries do not
-save or dirty native state. See [semantics, limits and evidence](docs/phase-4-references.md).
-
-`POST /api/v1/project/mappings/import` reads an existing local `.tiny` file with
-required `sourcePath`, `format:"TINY_V2"`, `mode:"MERGE_FAIL_ON_CONFLICT"`,
-`expectedSessionId` and `expectedLogicalRevision`. All records are validated
-before one in-memory commit. Matching aliases/comments are unchanged; differing
-values or collisions reject the whole import. A new LINE comment or an exact
-attached prefix plus one native LINE suffix is supported. An equivalent file
-or valid header-only file returns `NO_CHANGE` without invalidating caches.
-The receipt distinguishes parsed records from effective alias/comment edits.
-Import neither attaches nor writes the source, and requires explicit native
-save for persistence. See [supported semantics and gates](docs/phase-5-mapping-import.md).
-
-### Scoped parameter renames (PR #13)
-
-`/decompile` returns `variables` with exact declaration ranges, original method
-refs, parameter indexes and explicit persistability. Use a `SUPPORTED` parameter
-entry in `/edits/batch`:
-
-```json
-{"expectedSessionId":"<current UUID>","expectedLogicalRevision":0,"items":[{"kind":"RENAME_PARAMETER","method":{"kind":"METHOD","originalClassDescriptor":"Lprobe/Variables;","originalName":"instance","originalDescriptor":"(IJDLjava/lang/String;)I"},"parameterIndex":1,"sourceSnapshotId":"<current sha256 snapshot>","newName":"wideCount"}]}
-```
-
-Indexes count original parameters from zero, excluding `this`; `long` and
-`double` each count once. A snapshot from an override or before a mutation,
-reload, settings rebuild, save publication or restart cannot authorize an edit.
-All declared variable names in a method are conservatively treated as overlapping.
-Local renames, constructors, synthetic/bridge methods, bodyless/annotated or
-transformed signatures and unproved generic forms fail closed. Methods with
-unverified catch declarations, including Jadx's unannotated unused catch arguments,
-also expose unsupported parameter targets and reject edits before staging. Changes remain
-in memory until explicit native save. Tiny export continues to reject scoped
-code refs. See [evidence and limits](docs/phase-5-scoped-editing.md).
-
-### Verified related-method group renames (PR #19)
-
-On METHOD `RENAME`, optional `propagateRelated: true` requires both current
-session and logical revision preconditions. The service independently verifies
-a COMPLETE closed-input family under the exclusive edit lease, collision-checks
-all declaring owners including hidden bridge/synthetic blockers, and stages one
-explicit native rename per member. The receipt returns exact sorted original
-`affectedRefs`; omitted/false retains ordinary behavior and empty affected refs.
-
-Limits are 64 members per family, four propagated items and 128 total members
-per batch. Overlapping renames, parameter edits on group members, class renames
-and ordinary method renames in the same batch reject. Field renames and comments
-may coexist with a group. Bridge/covariant, missing/external, duplicate
-and other unproved families remain unsupported. Every edit stays in memory until
-explicit native save; saved groups survive matching-GUI Save As and restart.
-See [admission rules and persistence evidence](docs/phase-5-related-group-admission.md).
-
-Fresh replacement publication retains explicit native/mapping/scoped intent and
-recomputes automatic aliases as derived state. No-op retains the engine and
-revisions and requires every group record already explicitly present. See
-[replacement publication](docs/phase-5-replacement-publication.md). Historical
-[candidate incompleteness](docs/phase-5-related-propagation.md),
-[in-place replay failure](docs/phase-5-propagated-edits.md), and
-[safe replay probes](docs/phase-5-safe-replay.md) remain executable evidence.
-
-Run `propagatedEditGuiRoundTripTest` with `JADX_GUI` set to the matching Jadx
-1.5.6 GUI for the positive service-produced gate from all four Joined seeds.
-Final validation is recorded in [PR #19 review](docs/pr-19-review.md).
-
-## Local release qualification
-
-Build candidate archives with `./gradlew distZip distTar` and `cd python && uv build`.
-Extract `build/distributions/libjadx-0.1.0-alpha.1.zip` (or `.tar`) into an owned
-local directory, then launch its `bin/libjadx` with `--input`/`--project` and
-`--allowed-root`. Install the locally built wheel into a separate Python environment.
-JDK 21 is required; a JDK is not bundled.
-
-The complete offline gate (after populating the frozen dependency/tool caches) is:
+The comprehensive release gate includes all **12 matching-GUI tasks** and cross-language installed-artifact tests:
 
 ```bash
 JADX_GUI=/path/to/jadx-1.5.6/bin/jadx-gui \
   tests/release/validate-release-candidate.sh all --output /tmp/libjadx-release-evidence
 ```
 
-The matching GUI is test infrastructure only. Runtime archives contain headless
-Jadx plugins. See [the repeatable release gate](docs/phase-6-release-qualification.md)
-for required interpreters, tooling, evidence and support boundaries.
+See the [release runbook](docs/phase-6-release-qualification.md) for cached tools, interpreters and evidence rules. The matching GUI is qualification infrastructure only, absent from production runtime. Documentation cleanup preserves PR #22's evidence; its strict fingerprint validator also hashes documentation, so later documentation edits do not pass that evidence's freshness check. See the [documented finding](docs/phase-6-release-qualification.md#documentation-cleanup-and-evidence-freshness).
+
+## Roadmap
+
+Phases 0–6 are complete for v0.1. Phase 7 covers deeper reference provenance and offsets, raw/transformed CFGs, Smali and richer representations, advanced annotations, resources/external classpaths, portable native export, optional isolated analysis workers and separately reviewed filesystem deletion. Each needs proof against the pinned Jadx release. One project per process, native persistence, explicit save and filesystem-only inputs remain architectural invariants.
+
+See [Phase 7](IMPLEMENTATION.md#8-phase-7--extended-capabilities-post-initial-release--roadmap); the long-term roadmap is not complete.
+
+## Documentation
+
+The [documentation index](docs/README.md) separates current guidance from historical evidence:
+
+- User docs: [configuration](docs/configuration.md) and [Python usage](python/README.md).
+- Architecture: [design](DESIGN.md), [implementation history and roadmap](IMPLEMENTATION.md), [domain terms](CONTEXT.md).
+- SDK/API: [OpenAPI](openapi/openapi.yaml) and [SDK architecture](docs/phase-6-python-sdk.md).
+- Compatibility and limitations: [pins](docs/compatibility.md) and [feasibility matrix](docs/feasibility-matrix.md).
+- Release evidence: [runbook](docs/phase-6-release-qualification.md) and [PR #22 report](docs/pr-22-review.md).
+- Historical milestone and PR records: [index](docs/README.md#historical-milestone-evidence).
+
+## License and attribution
+
+Jadx is the implementation dependency; upstream and bundled dependency notices are included under [licenses](licenses/JADX-NOTICE). LibJadx has no root open-source license grant; the Python package uses the interim reserved-rights policy documented in [python/LICENSE](python/LICENSE) and [python/THIRD_PARTY.md](python/THIRD_PARTY.md).
+
+libghidra is product inspiration only, not a dependency or bundled component. Its [license](https://github.com/0xeb/libghidra/blob/main/LICENSE) requires human review before any proposed reuse; implementation mining/copying is prohibited by the agent rules.

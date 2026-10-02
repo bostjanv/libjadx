@@ -1,5 +1,7 @@
 # Safe native replay: PR #17 historical evidence and PR #18 approved interpretation
 
+> **Historical milestone record.** This document describes repository state at its named phase/PR. Its “next milestone,” “pending,” and support-status statements are historical. For current product state see the [documentation index](README.md), [compatibility](compatibility.md), [feasibility matrix](feasibility-matrix.md) and [PR #22 qualification](pr-22-review.md).
+
 **Historical PR #17 outcome B (superseded by PR #18 below): no production mutation change.** No investigated generic strategy
 passes both fresh-engine equivalence and unchanged raw nonmember aliases for all
 currently supported declaration edits. Explicit propagation and local editing

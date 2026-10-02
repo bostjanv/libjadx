@@ -1,5 +1,7 @@
 # Verified related-method rename group admission (PR #19)
 
+> **Historical milestone record.** This document describes repository state at its named phase/PR. Its “next milestone,” “pending,” and support-status statements are historical. For current product state see the [documentation index](README.md), [compatibility](compatibility.md), [feasibility matrix](feasibility-matrix.md) and [PR #22 qualification](pr-22-review.md).
+
 Pinned Jadx **1.5.6**, source **28ff15e4ae69950aebea110a13e5ab895d234dfc**.
 PR #19 consumes PR #15's independent closed-input verifier and PR #18's fresh
 replacement publication. Historical candidate incompleteness and in-place replay

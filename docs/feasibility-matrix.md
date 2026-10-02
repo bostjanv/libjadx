@@ -1,10 +1,20 @@
 # Jadx feasibility matrix
 
+This matrix records pinned Jadx probes and subsystem evidence, not an additional
+public API contract. The v0.1 candidate was locally release-qualified by PR #22
+and is not published or tagged. [Public capabilities](../openapi/examples/capabilities.json)
+and [OpenAPI](../openapi/openapi.yaml) govern service support; internal feasibility
+and historical investigations are explicitly separated below. See [docs index](README.md).
+
+Internal `JavaClass.getSmali()` retrieval was observed in pinned Jadx, but
+`code.smali = UNSUPPORTED` (`NO_PUBLIC_SMALI_REPRESENTATION`) in LibJadx v0.1.
+Phase 7 may investigate a public representation contract.
+
 Evidence is tied to Jadx `1.5.6` source commit `28ff15e4ae69950aebea110a13e5ab895d234dfc` (annotated tag object `4c0ac37699aa8c9803f1c73cfaacd9205acb044b`). Capabilities are reported at the precision actually exercised; UNKNOWN entries include bounded follow-up probes.
 
 | Capability | Status | Evidence / next probe |
 |---|---|---|
-| Public Java loading/decompilation and class/Smali metadata | SUPPORTED for a small JAR | `JadxSmokeProbeTest` loads a generated JAR, resolves an aliased class, reads Java, non-empty code metadata and `JavaClass.getSmali()`. This does not establish behavior for every input type. |
+| Pinned Jadx Java loading/decompilation and internal Smali feasibility | SUPPORTED for a small JAR | `JadxSmokeProbeTest` loads a generated JAR, resolves an aliased class, reads Java, non-empty code metadata and `JavaClass.getSmali()`. This does not establish behavior for every input type. |
 | Basic method, field and class references | PARTIAL | `JadxReferenceProbeTest` verifies distinct incoming/outgoing method pairs, field user methods, class dependencies and missing external method descriptors. `ReferenceEndpointsTest` verifies source sites and real graph-content changes at unchanged revision. READ/WRITE, original offsets, exhaustive coverage and multidex provenance remain unverified. |
 | Headless native `.jadx` parsing and relative input paths | SUPPORTED for the pinned simple project | `NativeProjectModelProbeTest` calls `JadxProject.loadProjectData(Path)` under headless test execution and checks project-relative input resolution. The service codec does not invoke GUI windows. |
 | Multiple input and native mapping references | SUPPORTED for two JAR inputs and a Tiny v2 class mapping | The native fixture references two relative JARs and `sample.tiny`. `NativeGuiFixtureRoundTripProbeTest` resolves both inputs, passes the mapping path through `JadxArgs.setUserRenamesMappingsPath`, and verifies the mapped class alias. The matching GUI log reported two classes loaded. |
@@ -23,9 +33,9 @@ Evidence is tied to Jadx `1.5.6` source commit `28ff15e4ae69950aebea110a13e5ab89
 | Original bytecode offsets | UNKNOWN; API UNAVAILABLE | Pinned `InsnCodeOffset` exists, but its origin/precision relative to generated Java and DEX/JVM inputs are unproved. No bytecode offsets are returned. Follow-up: compare pinned instruction disassembly and annotations on owned JAR/DEX fixtures. |
 | CFG access and representation distinction | UNKNOWN | Bounded follow-up: inspect pinned graph APIs and test one loop/branch/try-catch method. No CFG endpoint or exactness guarantee is permitted yet. |
 | Android resources and manifest decoding | UNKNOWN | Bounded follow-up: use an owned minimal APK containing manifest, XML and assets; compare `ResourceFile` output with decoded fixture entries. |
-| Concurrent reads, same-class deduplication and mutation races | UNKNOWN | Bounded follow-up: stress two fixture classes and the same class concurrently, then add mutation/reload overlap tests. Keep project-wide serialization until this passes. |
-| Cancellation and cache invalidation | PARTIAL for search; general graph behavior UNKNOWN | `SearchBuildJobTest` checks cooperative class-boundary cancellation and lease release; `SearchInvalidationTest` checks code-data, native save and reload cursor invalidation. JVM-level interruption, complete graph invalidation and broader concurrent class-read safety remain unproved. |
-| Cold class-name search | SUPPORTED for owned JAR/native fixtures; input census UNVERIFIED | `JadxSearchProbeTest` observes unchanged Jadx class process state after catalog and original-owner enumeration. `SearchEndpointsTest` and installed-distribution test show cold class hits with original refs. Duplicate original input definitions can be collapsed by Jadx. |
+| Public parallel primary Jadx reads | UNSUPPORTED | `analysis.concurrent_reads`: `SERIALIZED_PRIMARY_READS_FAIL_FAST_PROJECT_BUSY`. Multiple clients are supported; primary reads remain serialized and conflicting admission fails PROJECT_BUSY. PR #22 qualifies this behavior. Future parallelism needs separate stress proof. |
+| Public cancellation and cache invalidation | PARTIAL | `analysis.cancellation`: `COOPERATIVE_JOBS_CANCELLING_UNTIL_WORK_STOPS_NO_HARD_JADX_INTERRUPTION`. PR #22 checks queued/running jobs, truthful CANCELLING and leases. `SearchBuildJobTest` proves class-boundary cancellation; `SearchInvalidationTest` covers edit/save/reload cursors. Complete graph invalidation and hard JVM interruption remain unproved. |
+| Cold class-name search | SUPPORTED for owned JAR/native fixtures; input census UNKNOWN | `JadxSearchProbeTest` observes unchanged Jadx class process state after catalog and original-owner enumeration. `SearchEndpointsTest` and installed-distribution test show cold class hits with original refs. Duplicate original input definitions can be collapsed by Jadx. |
 | Incremental member-name search | SUPPORTED for Jadx-visible processed classes; initially PARTIAL | `JadxSearchProbeTest` preserves distinct return-only overload descriptors; decompile ingestion and the complete-index job copy original refs and aliases. Unprocessed or failed classes remain explicit. |
 | Exact emitted-Java source search | SUPPORTED for successful owner source; initially PARTIAL | `SearchEndpointsTest` compares UTF-16 half-open hit ranges and snapshot IDs with the exact `/decompile` Java, including a supplementary Unicode code point. Anonymous/inner classes share one emitted owner. Failed or evicted owners keep coverage partial. |
 | Safe source regex | SUPPORTED with bounded RE2/J 1.8 syntax | RE2/J uses linear-time matching; unsupported backreferences return 422. Expressions are limited to 256 characters; hits and copied DTOs are capped. This is emitted Java search only. |
@@ -44,16 +54,25 @@ Evidence is tied to Jadx `1.5.6` source commit `28ff15e4ae69950aebea110a13e5ab89
 | Original-input declaration census | SUPPORTED for bounded class/JAR/DEX subset, internal only | `RawInputCensusProbeTest` and `InputCensusTest` retain duplicates and divergent methods/access/supertypes before RootNode selection, with exact configured origins, hard-limit boundaries and strict parse/checksum failures. No source bodies or mutable Jadx nodes are retained. |
 | Independent override-family completeness | SUPPORTED for conservative closed-input exact-return subset, internal only | `IndependentHierarchyVerifierTest` verifies chains/defaults/diamonds/independent branches, visibility, inherited interface implementations, two inputs and DEX. Every complete family is seed independent. Bridge/covariant/synthetic, missing/external/duplicate and resource-limited results expose no partial family. `HierarchyVerifierLifecycleTest` checks lifecycle and input invalidation. See [rules](phase-5-hierarchy-verifier.md). |
 
-## PR #21 Python SDK foundation
+## Python SDK and current PR #22 qualification
 
 Generated OpenAPI 3.1 transport, sync/async wrappers and local packaging are
 SUPPORTED for the representative owned-server workflows on CPython 3.11.13 and
-3.14.4 (Linux). All 22 operation IDs have generated functions; live exhaustive
-route/error parity and larger cancellation/lifecycle workflows remain Phase 6.2.
+3.14.4 (Linux). PR #22 subsequently completed exhaustive 22/22 route and 19/19 error parity on
+five client surfaces, installed-wheel tests on Python 3.11/3.14, larger cooperative
+cancellation/lifecycle workflows, reproducible artifacts and all twelve matching-GUI
+gates. The candidate is locally qualified, not externally published or tagged. See
+[release qualification](phase-6-release-qualification.md) and [PR #22 report](pr-22-review.md).
 Native/GUI behavior and all Jadx capability limitations above are unchanged.
 See [SDK architecture](phase-6-python-sdk.md) and [validation](pr-21-review.md).
 
-## Phase 2 exercised behavior
+## Historical milestone investigations
+
+These records describe intermediate phase/PR states. Their future work and
+intermediate propagation rejections are historical; current v0.1 group admission
+is PARTIAL and local rename remains UNSUPPORTED.
+
+### Phase 2 exercised behavior
 
 `ProjectEndpointsTest` uses the pinned Jadx engine and native fixture to check
 explicit save, mapping conflict, pending edit export, discard/reload, and a
@@ -64,11 +83,11 @@ project in the matching GUI and reads the GUI-resaved file headlessly. These
 tests do not establish concurrent class-read safety, source position precision,
 or a persistent representation for decompilation mode.
 
-## Phase 0 exit status
+### Phase 0 exit status
 
 **Phase 0 exit gate passed for the first implementation slice.** A matching-GUI native fixture, two relative inputs, a native mapping reference, headless class rename/comment save, unknown-field retention, and actual GUI open/save/headless reopen are covered. Advanced behavior remains limited or unknown as listed above; keep those capability limits explicit and probe them before implementing corresponding API features.
 
-## Phase 4.3 reference probe
+### Phase 4.3 reference probe
 
 `JadxReferenceProbeTest` proves distinct incoming/outgoing method pairs, field
 users, class dependencies and omitted-dependency original method descriptors
@@ -76,7 +95,7 @@ on an owned JAR. Graphs exist before owner decompilation, but may be pruned by
 later processing. Recursive self edges can be absent. READ/WRITE, exhaustive
 coverage and original offsets remain unavailable. See [reference evidence](phase-4-references.md).
 
-## Historical PR #17 safe replay feasibility (superseded below)
+### Historical PR #17 safe replay feasibility (superseded below)
 
 Outcome B; production replay and every accepted edit contract remain unchanged.
 Fresh replacement reconstructs complete native/mapping/scoped state and fixes
@@ -95,7 +114,7 @@ autosave, API/SDK or dependency change is shipped. The next decision concerns
 automatic nonmember alias recomputation; group admission remains dependent on
 safe publication and its separate service/native/GUI gates.
 
-## PR #18 approved alias semantics and replacement publication
+### PR #18 approved alias semantics and replacement publication
 
 This section supersedes PR #17's requirement to preserve every incidental alias.
 Automatic Jadx aliases are derived analysis state: collision aliases,
@@ -117,7 +136,7 @@ failures, oracle, persistence and validation. PR #19's
 COMPLETE verification, immutable plans, all-owner raw collision checks and exact
 native records/affectedRefs. Local editing remains unsupported.
 
-## PR #19 — verified related-method rename group admission
+### PR #19 — verified related-method rename group admission
 
 This section supersedes prior propagation deferrals. Explicit METHOD RENAME
 `propagateRelated: true` admits only independently COMPLETE closed-input families
@@ -136,7 +155,7 @@ without becoming admitted members. Standard Jadx records persist only on explici
 save. Restart/discard/reload, accepted input/mapping conflicts and actual matching
 GUI Save As retain their native-only behavior. Covariant/bridge, missing/external,
 duplicate, local and parameter propagation remain unsupported. PR #20 subsequently closes Phase 5.2 with local rename
-deliberately unsupported; the Python release remains open. No dependencies or locks change.
+deliberately unsupported; Phase 6 subsequently completed in PR #21/#22. No dependencies or locks change.
 
 See [admission, status mapping, ordering and persistence](phase-5-related-group-admission.md)
 and [final-head validation](pr-19-review.md).
