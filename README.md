@@ -4,6 +4,10 @@ LibJadx is a standalone, headless Java service that exposes [Jadx](https://githu
 
 > **Project status — experimental v0.1 candidate.** The defined first-release scope is feature-complete and locally release-qualified by PR #22 as Java `0.1.0-alpha.1` / Python `0.1.0a1` against Jadx 1.5.6. The candidate is not tagged or externally published on GitHub Releases, PyPI or Maven. Phase 7 is the extended-capability roadmap.
 
+PR #24 adopts Apache-2.0 before public alpha publication. Fresh qualification
+uses `docs/release-evidence/0.1.0-alpha.1/`; PR #22 reports are immutable historical
+evidence. Publication remains a separate explicit action.
+
 ## Inspiration
 
 LibJadx is inspired by [libghidra](https://github.com/0xeb/libghidra) and is modeled in spirit after its goal of making a reverse-engineering engine accessible through typed, scriptable APIs and client libraries. LibJadx applies that general product idea to Jadx.
@@ -159,6 +163,6 @@ The [documentation index](docs/README.md) separates current guidance from histor
 
 ## License and attribution
 
-Jadx is the implementation dependency; upstream and bundled dependency notices are included under [licenses](licenses/JADX-NOTICE). LibJadx has no root open-source license grant; the Python package uses the interim reserved-rights policy documented in [python/LICENSE](python/LICENSE) and [python/THIRD_PARTY.md](python/THIRD_PARTY.md).
+LibJadx is licensed under the [Apache License 2.0](LICENSE). Jadx and other dependencies retain their own upstream licenses and notices under [licenses](licenses/JADX-NOTICE). The Python package carries the same Apache-2.0 LibJadx license and preserves its generated-template/runtime dependency notices in [python/THIRD_PARTY.md](python/THIRD_PARTY.md).
 
 libghidra is product inspiration only, not a dependency or bundled component. Its [license](https://github.com/0xeb/libghidra/blob/main/LICENSE) requires human review before any proposed reuse; implementation mining/copying is prohibited by the agent rules.

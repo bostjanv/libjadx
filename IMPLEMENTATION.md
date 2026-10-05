@@ -1,5 +1,9 @@
 # LibJadx — Detailed Implementation Instructions for a Coding Agent
 
+PR #24 adopts Apache-2.0 before public alpha publication. Fresh qualification
+uses `docs/release-evidence/0.1.0-alpha.1/`; PR #22 reports are immutable historical
+evidence. Publication remains a separate explicit action.
+
 **Status:** Phases 0–6 are complete for the defined v0.1 experimental scope. PR #22 locally qualified the candidate; it is not published or tagged. Phase 7 is the active extended-capability roadmap. Completed-phase instructions below are historical acceptance criteria from the original 2026-09-24 plan; current support is governed by OpenAPI and the capability matrix.
 **Read first:** [AGENTS.md](AGENTS.md), then [DESIGN.md](DESIGN.md). If feasibility findings contradict a required feature, implement the documented capability/error path and escalate the smallest genuinely blocking design change; do not invent API support.
 
@@ -326,7 +330,7 @@ GUI round-trip tests must actually start or otherwise exercise the matching GUI 
 - Build/format/lint/test Gradle packages; run small fixture integration tests on every change and expanded GUI/concurrency/security suites before release.
 - Validate OpenAPI schema and live-server request/response behavior; regenerate Python models and fail CI if generated code differs from committed outputs.
 - Bundle Java runtime or document supported JDK explicitly; ship Unix/Windows launch scripts as appropriate; keep runtime free of GUI requirements. **Standalone Java distribution only** unless scope changes.
-- Include upstream Jadx and dependency licenses/NOTICES and independent project attribution; do not copy libghidra code or schemas.
+- LibJadx first-party source and distributions use Apache-2.0. Include upstream Jadx and dependency licenses/NOTICES and independent project attribution; do not copy libghidra code or schemas.
 - Document CLI config precedence, loopback-only security boundary, allowed-root policy, input formats, limitation matrix, partial results, editing/save/conflict behavior, job cancellation truthfulness, and the Python SDK.
 - Maintain a human-readable experimental API changelog; regenerate SDK/tests for contract-breaking changes before 1.0.
 

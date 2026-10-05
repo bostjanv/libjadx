@@ -233,5 +233,5 @@ with caches populated, use `uv sync --offline --frozen --all-groups`.
 The SDK assumes a trusted local service, no authentication and a loopback listener.
 Do not expose it publicly. Errors may contain project diagnostics; the SDK does
 not sanitize a malicious server beyond protocol parsing and bounded SSE buffers.
-No Windows/macOS test claim is made. No source license has been chosen yet;
-local artifacts reserve contributors' rights (see LICENSE/THIRD_PARTY.md).
+No Windows/macOS test claim is made. LibJadx is licensed under
+[Apache-2.0](LICENSE); [third-party notices](THIRD_PARTY.md) remain separate.

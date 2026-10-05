@@ -1,7 +1,11 @@
 # Compatibility and pinned dependencies
 
+PR #24 adopts Apache-2.0 before public alpha publication. Fresh qualification
+uses `release-evidence/0.1.0-alpha.1/`; PR #22 reports are immutable historical
+evidence. Publication remains a separate explicit action.
+
 Status: v0.1 candidate locally release-qualified after PR #22; Phase 6.2 complete.
-Candidate not externally published or tagged. Updated 2026-10-02.
+Candidate not externally published or tagged. Updated 2026-10-05.
 
 ## Current version matrix
 
@@ -9,6 +13,7 @@ Candidate not externally published or tagged. Updated 2026-10-02.
 | --- | --- |
 | Java candidate | `0.1.0-alpha.1` |
 | Python SDK | `0.1.0a1` |
+| LibJadx license | Apache-2.0 |
 | OpenAPI | `0.1.0-experimental` |
 | Jadx | `1.5.6` |
 | Jadx source | `28ff15e4ae69950aebea110a13e5ab895d234dfc` |
@@ -259,8 +264,9 @@ lock, runtime GUI, schema or mapping-format change. See
 
 ## PR #21 Python SDK baseline
 
-Distribution/import: `libjadx` **0.1.0a1**, HTTP-only, all rights reserved for now
-(`LicenseRef-Proprietary`, human-selected interim policy). Jadx pin/source, Java
+Distribution/import: `libjadx` **0.1.0a1**, HTTP-only, currently Apache-2.0.
+At PR #21 time the package used an interim reserved-rights policy; PR #24 replaced
+it with Apache-2.0 before public alpha publication. Jadx pin/source, Java
 runtime and OpenAPI 0.1.0-experimental remain unchanged. This is Phase 6.1 SDK
 foundation; subsequent PR #22 completed Phase 6.2 qualification. External publication remains separate.
 
@@ -288,7 +294,7 @@ records generator limitations; [review](pr-21-review.md) records actual commands
 counts and artifact fingerprints. PyPI name check returned 404 on 2026-09-30;
 no package was published or reserved.
 
-## Current PR #22 cross-language candidate qualification
+## Historical PR #22 cross-language candidate qualification
 
 Java `0.1.0-alpha.1` and Python `0.1.0a1` identify the same experimental candidate;
 OpenAPI remains `0.1.0-experimental`. CLI and capabilities use one deterministic
@@ -299,8 +305,8 @@ platform; Windows/macOS execution is unqualified (the batch launcher is audited)
 The completed executable [release gate](phase-6-release-qualification.md) exercises all 22
 operations on raw/generated/handwritten sync/async surfaces, all 19 stable errors,
 real class/JAR/DEX/native input, explicit native persistence and process restarts.
-[Current evidence](pr-22-review.md) determines qualification; historical PR results
-are not substituted for this run. No runtime GUI, project store, authentication,
+[Historical evidence](pr-22-review.md) qualifies only its recorded source;
+PR #24 requires a fresh run and versioned reports. No runtime GUI, project store, authentication,
 remote listening, extra transport or package publication is introduced.
 
 Public release capabilities are reconciled with the service contract, not the

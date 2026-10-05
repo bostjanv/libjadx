@@ -26,8 +26,19 @@ CURRENT_DOCS = {
     "docs/phase-6-release-qualification.md",
     "docs/README.md",
     "python/README.md",
+    "python/THIRD_PARTY.md",
+    "docs/releases/0.1.0-alpha.1.md",
+    "docs/alpha-publication-checklist.md",
 }
 STALE_PHRASES = (
+    "LibJadx has no root open-source license grant",
+    "no root license",
+    "LicenseRef-Proprietary",
+    "all rights reserved for now",
+    "no chosen source license",
+    "no source license has been chosen",
+    "license policy still undecided",
+    "human-selected interim policy",
     "Project status — early development",
     "repository described here is a proposed structure",
     "Phase 6 Python SDK work is next",
@@ -229,7 +240,9 @@ def self_test():
 ```
 `[inline example](missing.md)`
 """)
-        historical.write_text("# Old\nPhase 6 Python SDK work is next\n")
+        historical.write_text(
+            "# Old\nPhase 6 Python SDK work is next\nLicenseRef-Proprietary\n"
+        )
         (root / "file with spaces.txt").touch()
         (root / "file(1).txt").touch()
         _, errors = audit(root, [doc, historical])
@@ -244,8 +257,15 @@ def self_test():
         assert any("missing anchor" in error for error in errors)
         assert any("undefined reference" in error for error in errors)
         assert any("stale current-document" in error for error in errors)
+        doc.write_text("# Current\nLibJadx is licensed under Apache-2.0.\n")
+        _, errors = audit(root, [doc, historical])
+        assert not errors, errors
+        for phrase in STALE_PHRASES[:8]:
+            doc.write_text("# Current\n" + phrase + "\n")
+            _, errors = audit(root, [doc, historical])
+            assert len(errors) == 1 and "stale current-document" in errors[0], errors
     print(
-        "Documentation checker self-test passed (valid links and four negative cases)"
+        "Documentation checker self-test passed (valid links, four link/language negatives and eight stale-license negatives)"
     )
 
 

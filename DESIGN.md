@@ -1,5 +1,9 @@
 # LibJadx — Architecture and API Design
 
+PR #24 adopts Apache-2.0 before public alpha publication. Fresh qualification
+uses `docs/release-evidence/0.1.0-alpha.1/`; PR #22 reports are immutable historical
+evidence. Publication remains a separate explicit action.
+
 **Status:** implemented v0.1 architectural baseline, locally release-qualified by PR #22; candidate not published or tagged.
 **Original design prepared:** 2026-09-24.
 **Current implementation pin:** Jadx 1.5.6 / source `28ff15e4ae69950aebea110a13e5ab895d234dfc`, JDK 21. [OpenAPI](openapi/openapi.yaml) is authoritative for the implemented HTTP contract; illustrative models and Phase 7 goals below are not additional public guarantees.
@@ -269,6 +273,8 @@ The [release runbook](docs/phase-6-release-qualification.md) defines repeatable 
 6. Headless runtime cannot assume `.jadx` stores every GUI-wide decompiler preference. Persist **only** natively representable settings; expose limitations.
 
 ## 12. Source and license references
+
+LibJadx first-party source and documentation use [Apache-2.0](LICENSE). Jadx is separate upstream work under Apache-2.0. libghidra is product inspiration only; its Human-Origin license applies to libghidra itself, not independently created LibJadx work.
 
 Jadx implementation references are pinned to the supported source commit:
 

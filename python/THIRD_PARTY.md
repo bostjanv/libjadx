@@ -6,4 +6,5 @@ is in OPENAPI-PYTHON-CLIENT-LICENSE. Runtime dependencies retain their own
 package notices: HTTPX (BSD-3-Clause), attrs (MIT), typing-extensions (PSF-2.0).
 Their notices are supplied with the separately installed dependency packages.
 Jadx is not included in the wheel. Java distribution attribution is separate.
-LibJadx has no chosen source license yet; LICENSE states the reserved rights.
+LibJadx itself is licensed under Apache-2.0. This file records third-party
+components and generated-template notices that retain their own licenses.

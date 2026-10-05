@@ -14,9 +14,8 @@ JobEvent.progress and the final empty-line delimiter; all three frames now
 parse, with a parser regression. This corrects an example against the unchanged reviewed schema. A file-specific
 Git whitespace attribute permits SSE's required final empty-line delimiter.
 Phase 6.2 qualification subsequently passed in PR #22; external publication
-remains separate. The base repository has no root license grant;
-SDK metadata reflects the current default reserved-rights state. This does not
-record a human-approved licensing decision. Upstream notices remain separate.
+remains separate. PR #24 licenses LibJadx first-party work and both distributions
+under Apache-2.0 before public alpha publication. Upstream notices remain separate.
 
 ## Generator compatibility and boundary
 

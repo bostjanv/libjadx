@@ -1,5 +1,9 @@
 # AGENTS.md — LibJadx Coding-Agent Instructions
 
+PR #24 adopts Apache-2.0 before public alpha publication. Fresh qualification
+uses `docs/release-evidence/0.1.0-alpha.1/`; PR #22 reports are immutable historical
+evidence. Publication remains a separate explicit action.
+
 > **Read this file first.** Then read [DESIGN.md](DESIGN.md) and [IMPLEMENTATION.md](IMPLEMENTATION.md) before changing code. If the three documents appear inconsistent, apply the priority rules below and record the issue; do not silently change architecture.
 >
 > Status: v0.1 experimental feature baseline implemented and locally release-qualified by PR #22; not externally published or tagged. Phases 0–6 are completed history. New feature work starts from Phase 7 or an explicitly approved maintenance/release task.
@@ -36,7 +40,9 @@ When a requirement is infeasible with the pinned Jadx release, gather proof in a
 
 ## Source and license hygiene
 
+- LibJadx first-party code and documentation use Apache-2.0. Do not introduce first-party files under incompatible licenses without human approval.
 - Jadx is the implementation dependency and primary engineering reference. Check its exact pinned source before using an API; don't guess signatures from current `master`.
+- libghidra source/contracts/examples/tests/history must not be used as implementation input for LibJadx feature development.
 - libghidra is a **functional inspiration only**, not a dependency or implementation template. Do **not** copy its protobuf schemas, API relationships, code, architecture, documentation, tests or client implementations into LibJadx. Its current Human-Origin Source License restricts materially derived or API-compatible replacements without permission. If anyone proposes direct reuse, stop that portion of work and request a human license review/permission. Design independent HTTP and domain contracts from Jadx's capabilities and product requirements.
 - Preserve upstream license notices and third-party attribution; review distribution licenses before packaging. Never claim libghidra or Jadx endorses LibJadx.
 

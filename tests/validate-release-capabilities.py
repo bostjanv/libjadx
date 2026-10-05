@@ -20,7 +20,9 @@ expected = json.loads(
 )
 data = json.loads(
     Path(
-        sys.argv[1] if len(sys.argv) > 1 else ROOT / "docs/pr-22-capabilities.json"
+        sys.argv[1]
+        if len(sys.argv) > 1
+        else ROOT / "docs/release-evidence/0.1.0-alpha.1/capabilities.json"
     ).read_text()
 )
 validate_evidence_identity(data)
