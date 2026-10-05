@@ -9,8 +9,8 @@ independent reviewer rerun is claimed.
 
 ## Source and evidence identity
 
-- Qualified source HEAD: `186a43d561367384f720465df0dd9ffd48829d96`.
-- Source SHA-256: `c43f7b6a0e1bf6350c0994e348ba21bf83426d2bee9ed95842f182c65ad0466e`.
+- Qualified source HEAD: `ea2560abbbc237ffd48268899b68a5a6b0237e65`.
+- Source SHA-256: `20b93c16b32e52b711ef648a9e1eb320f63de4ee1bac756288edbaf529851e18`.
 - The enclosing report commit is an evidence-only descendant. Its own hash cannot
   be embedded in this report; Git identifies that commit. Final freshness
   validation checks its ancestry, unchanged source digest and every intervening path.
@@ -21,36 +21,40 @@ independent reviewer rerun is claimed.
   CPython 3.14 is preserved under `additional_interpreter_evidence`.
 - PR #22 report bytes remain unchanged and historical.
 
-The first attempt was intentionally interrupted before completion to replace
-Jadx's appendix-brace variant with the exact canonical Apache text. Only the
-complete run on the corrected source above is qualification evidence.
+[Review #5418946904](https://github.com/bostjanv/libjadx/pull/24#pullrequestreview-5418946904)
+identified stale current-facing PR #22/pending PR #24 status wording. The fix
+updates current status documents and direct links to the versioned report and
+validation record; historical PR #22 files remain unchanged. The validation
+record owns the exact source HEAD, avoiding a self-referential hash in ordinary
+Markdown. The source commit above includes those documentation and validator
+changes, and the entire release gate was rerun at that clean commit.
 
 ## Implemented
 
-Root LICENSE and python/LICENSE are byte-identical canonical Apache-2.0 text.
-Python SPDX metadata agrees. Java ZIP/TAR carry a distribution-root LICENSE and
-all five separate upstream notices; wheel/sdist preserve the LibJadx license,
-openapi-python-client MIT notice and runtime attribution. No root NOTICE was
-manufactured, no libghidra component was bundled and the independent-development
-guard remains mandatory.
+Current status text in README, AGENTS, DESIGN, IMPLEMENTATION, the documentation
+index, compatibility, feasibility, Python SDK guidance, release notes and the
+release runbook now identifies PR #24 as the fresh Apache-2.0 alpha qualification.
+The runbook has a current PASS section and separates PR #22 historical results.
+Current docs link to the versioned validation record for exact qualified source
+identity and to current route/error/capability/artifact reports.
 
-The harness now fingerprints all source/license/config/ordinary documentation,
-excluding only `docs/release-evidence/**` and `docs/changelog.md`. Evidence-only
-Git descendants are allowed; source changes (including later-reverted changes)
-are rejected. Seven archive/Git regression tests cover the rule, including
-uncommitted changes, unrelated evidence paths and unrelated ancestry. Current
-matrix-validator defaults use this versioned evidence directory.
+The documentation gate rejects obsolete PR #22 active-qualification claims and
+pending PR #24 wording. Self-tests cover 84 negative qualification-language cases
+across all 14 current-facing documents, case/whitespace normalization, valid
+current PR #24 wording and accepted historical language. Existing license and
+archive/Git freshness regressions remain mandatory. No evidence freshness
+allowlist was broadened: ordinary Markdown still enters the source fingerprint.
 
-License/documentation checks are mandatory in the release gate. Java ZIP and
-TAR audits compare license/notice bytes; Python artifact audits check
-`License-Expression: Apache-2.0` and license/notice bytes. The harness emits
-stable-order SHA256SUMS outside the repository. Draft
-[release notes](../../releases/0.1.0-alpha.1.md) and the
-[publication checklist](../../alpha-publication-checklist.md) prepare a separate
-human-approved publication action.
+The original PR #24 licensing, package metadata, byte-exact artifact license and
+notice audits, independent-development guard and publication boundary remain
+intact. Root and Python LICENSE bytes remain canonical Apache-2.0. Java ZIP/TAR
+and Python wheel/sdist were rebuilt, audited and reproduced from this source.
 
 No endpoint, public model, generated transport, runtime behavior, dependency
-lock or capability status changed.
+lock or capability status changed. Draft
+[release notes](../../releases/0.1.0-alpha.1.md) and the
+[publication checklist](../../alpha-publication-checklist.md) remain preparation
+for a separate human-approved publication action.
 
 ## Toolchains and pinned engine
 
@@ -70,23 +74,43 @@ matching-GUI processes. Root LICENSE is the unmodified
 
 ## Commands and outcomes
 
-Before committing source, `git diff --check`, documentation validation and its
-self-tests, license validation, OpenAPI and all four contract validators passed.
-Frozen/offline generated drift showed 162 matching files; Ruff format/lint and
-mypy passed. The complete gate repeated these checks on the clean source commit:
+Before committing this source, `git diff --check`, documentation validation and
+its self-tests, license validation and the seven archive/Git evidence regressions
+passed. The complete gate also ran OpenAPI and all four contract validators,
+frozen/offline generated drift (162 matching files), Ruff format/lint and mypy
+on the clean source commit:
 
 ```bash
 JADX_GUI=<jadx-1.5.6>/bin/jadx-gui \
 JADX_GUI_ARCHIVE=<jadx-1.5.6.zip> \
 UV_BIN=<uv-0.8.22> \
   tests/release/validate-release-candidate.sh all \
-  --output /tmp/libjadx-alpha1-evidence
+  --output /tmp/libjadx-alpha1-review-fix-evidence
+```
+
+The original orchestration console detached after the completed Java check,
+preliminary gates, repeat builds and both installed-wheel suites; its next
+progress print raised `BrokenPipeError`. All completed exit-code records, XML
+counts, cleanup observations, artifact hashes and the unchanged source identity
+were reverified before resuming the remaining gates on the same clean HEAD.
+Matrix validators, TAR smoke, all GUI tasks and the final result then ran to
+completion. The resume driver source is retained in the validation record under
+`core.orchestration_resume`; its console output was redirected to an external
+file. No mandatory stage was omitted or counted as passing from historical PR #22
+or the earlier PR #24 source. The continuation command was:
+
+```bash
+JADX_GUI=<jadx-1.5.6>/bin/jadx-gui \
+JADX_GUI_ARCHIVE=<jadx-1.5.6.zip> \
+UV_BIN=<uv-0.8.22> \
+  python3 <resume-driver>/libjadx-pr24-resume-qualification.py \
+  > /tmp/libjadx-alpha1-review-fix-evidence/resume-orchestration.log 2>&1
 ```
 
 The result was `QUALIFIED locally; NOT PUBLISHED`. Exact normalized commands,
 elapsed times and machine-produced PASS results are in [validation](validation.json).
-Bootstrap downloaded the exact uv/GUI tools before qualification; the gate
-used cached/offline Gradle and frozen/offline uv with loopback-only services.
+The exact cached uv/GUI tools were reused. The gate used cached/offline Gradle
+and frozen/offline uv with loopback-only services.
 
 | Gate | Actual result |
 | --- | --- |
@@ -138,8 +162,8 @@ generated-tree fingerprints are recorded in [artifacts](artifacts.json).
 | --- | --- | --- | --- |
 | `libjadx-0.1.0-alpha.1.tar` | 59798016 | 70 | `4d9f9324d814d68292df4c0b15653cbd989082af0cc02587a2b2297126132d75` |
 | `libjadx-0.1.0-alpha.1.zip` | 51541985 | 70 | `88e7fc6750fcd49532dbb720148013dff407287bb96aef0a93e576d49a73aaeb` |
-| `libjadx-0.1.0a1-py3-none-any.whl` | 174583 | 181 | `4d62f0388ed65d99aaf661b140c2df505ea2b70d1b715fd82a8327da479a4840` |
-| `libjadx-0.1.0a1.tar.gz` | 169498 | 203 | `e1955612f8b9698bd80d73e784b7de9c6b0e0af2346fdb84dd725d83a6db8437` |
+| `libjadx-0.1.0a1-py3-none-any.whl` | 174597 | 181 | `a057ad01b5909353dfc2e96c36ed202f360ca711256661dd4e20e2da14d64c89` |
+| `libjadx-0.1.0a1.tar.gz` | 169519 | 203 | `ee6e2f28f670164e17dd7315a34ad8483a9949a938977f4026f5b182a9c51305` |
 
 ## State and next work
 

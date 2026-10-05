@@ -1,19 +1,19 @@
 {
-  "head": "186a43d561367384f720465df0dd9ffd48829d96",
-  "source_sha256": "c43f7b6a0e1bf6350c0994e348ba21bf83426d2bee9ed95842f182c65ad0466e",
+  "head": "ea2560abbbc237ffd48268899b68a5a6b0237e65",
+  "source_sha256": "20b93c16b32e52b711ef648a9e1eb320f63de4ee1bac756288edbaf529851e18",
   "result": {
-    "head": "186a43d561367384f720465df0dd9ffd48829d96",
-    "source_sha256": "c43f7b6a0e1bf6350c0994e348ba21bf83426d2bee9ed95842f182c65ad0466e",
+    "head": "ea2560abbbc237ffd48268899b68a5a6b0237e65",
+    "source_sha256": "20b93c16b32e52b711ef648a9e1eb320f63de4ee1bac756288edbaf529851e18",
     "status": "QUALIFIED",
     "qualification_heads": {
-      "core": "186a43d561367384f720465df0dd9ffd48829d96",
-      "gui": "186a43d561367384f720465df0dd9ffd48829d96"
+      "core": "ea2560abbbc237ffd48268899b68a5a6b0237e65",
+      "gui": "ea2560abbbc237ffd48268899b68a5a6b0237e65"
     },
     "publication": "NOT PUBLISHED"
   },
   "core": {
-    "head": "186a43d561367384f720465df0dd9ffd48829d96",
-    "source_sha256": "c43f7b6a0e1bf6350c0994e348ba21bf83426d2bee9ed95842f182c65ad0466e",
+    "head": "ea2560abbbc237ffd48268899b68a5a6b0237e65",
+    "source_sha256": "20b93c16b32e52b711ef648a9e1eb320f63de4ee1bac756288edbaf529851e18",
     "status": "NOT QUALIFIED",
     "commands": [
       {
@@ -24,7 +24,7 @@
           "--offline",
           "--rerun-tasks"
         ],
-        "seconds": 618.9,
+        "seconds": 696.89,
         "status": "PASS"
       },
       {
@@ -36,7 +36,7 @@
           "--offline",
           "--rerun-tasks"
         ],
-        "seconds": 8.44,
+        "seconds": 8.95,
         "status": "PASS"
       },
       {
@@ -55,7 +55,7 @@
           "<project-python>",
           "<repo>/tests/release/test_evidence.py"
         ],
-        "seconds": 1.15,
+        "seconds": 0.99,
         "status": "PASS"
       },
       {
@@ -71,7 +71,7 @@
           "<project-python>",
           "<repo>/tests/validate-documentation.py"
         ],
-        "seconds": 0.18,
+        "seconds": 0.21,
         "status": "PASS"
       },
       {
@@ -79,7 +79,7 @@
           "<project-python>",
           "<repo>/tests/validate-edit-contract.py"
         ],
-        "seconds": 1.89,
+        "seconds": 2.17,
         "status": "PASS"
       },
       {
@@ -87,7 +87,7 @@
           "<project-python>",
           "<repo>/tests/validate-mapping-export-contract.py"
         ],
-        "seconds": 1.76,
+        "seconds": 1.96,
         "status": "PASS"
       },
       {
@@ -95,7 +95,7 @@
           "<project-python>",
           "<repo>/tests/validate-mapping-import-contract.py"
         ],
-        "seconds": 1.8,
+        "seconds": 2.01,
         "status": "PASS"
       },
       {
@@ -103,7 +103,7 @@
           "<project-python>",
           "<repo>/tests/validate-search-contract.py"
         ],
-        "seconds": 1.69,
+        "seconds": 1.99,
         "status": "PASS"
       },
       {
@@ -111,7 +111,7 @@
           "<project-python>",
           "<repo>/tests/validate-openapi.py"
         ],
-        "seconds": 1.78,
+        "seconds": 2.05,
         "status": "PASS"
       },
       {
@@ -120,7 +120,7 @@
           "<repo>/tests/validate-documentation.py",
           "--self-test"
         ],
-        "seconds": 0.12,
+        "seconds": 0.13,
         "status": "PASS"
       },
       {
@@ -132,7 +132,7 @@
           "python",
           "scripts/check_generated.py"
         ],
-        "seconds": 2.14,
+        "seconds": 2.61,
         "status": "PASS"
       },
       {
@@ -146,7 +146,7 @@
           "--check",
           "."
         ],
-        "seconds": 0.07,
+        "seconds": 0.06,
         "status": "PASS"
       },
       {
@@ -159,7 +159,7 @@
           "check",
           "."
         ],
-        "seconds": 0.06,
+        "seconds": 0.04,
         "status": "PASS"
       },
       {
@@ -171,7 +171,7 @@
           "mypy",
           "src/libjadx"
         ],
-        "seconds": 0.5,
+        "seconds": 0.77,
         "status": "PASS"
       },
       {
@@ -180,7 +180,7 @@
           "build",
           "--offline"
         ],
-        "seconds": 1.4,
+        "seconds": 1.59,
         "status": "PASS"
       },
       {
@@ -188,7 +188,7 @@
           "<project-python>",
           "<repo>/python/scripts/artifact_manifest.py"
         ],
-        "seconds": 0.13,
+        "seconds": 0.11,
         "status": "PASS"
       },
       {
@@ -199,7 +199,7 @@
           "--offline",
           "--rerun-tasks"
         ],
-        "seconds": 9.17,
+        "seconds": 7.73,
         "status": "PASS"
       },
       {
@@ -208,7 +208,7 @@
           "build",
           "--offline"
         ],
-        "seconds": 1.71,
+        "seconds": 1.52,
         "status": "PASS"
       },
       {
@@ -251,7 +251,140 @@
           "<qualification-workdir>/requirements.txt",
           "<repo>/python/dist/libjadx-0.1.0a1-py3-none-any.whl"
         ],
-        "seconds": 1.95,
+        "seconds": 0.71,
+        "status": "PASS"
+      },
+      {
+        "command": [
+          "<uv>",
+          "venv",
+          "--python",
+          "3.14",
+          "<qualification-workdir>/python-3.14",
+          "--offline"
+        ],
+        "seconds": 0.03,
+        "status": "PASS"
+      },
+      {
+        "command": [
+          "<uv>",
+          "pip",
+          "install",
+          "--offline",
+          "--python",
+          "<installed-python-3.14>",
+          "-r",
+          "<qualification-workdir>/requirements.txt",
+          "<repo>/python/dist/libjadx-0.1.0a1-py3-none-any.whl"
+        ],
+        "seconds": 0.36,
+        "status": "PASS"
+      },
+      {
+        "command": [
+          "<installed-python-3.11>",
+          "-m",
+          "pytest",
+          "-q",
+          "<repo>/python/tests/unit",
+          "<repo>/python/tests/integration",
+          "<repo>/python/tests/release",
+          "--junitxml=<evidence-dir>/python-3.11.xml"
+        ],
+        "seconds": 1930.6,
+        "status": "PASS"
+      },
+      {
+        "command": [
+          "<installed-python-3.14>",
+          "-m",
+          "pytest",
+          "-q",
+          "<repo>/python/tests/unit",
+          "<repo>/python/tests/integration",
+          "<repo>/python/tests/release",
+          "--junitxml=<evidence-dir>/python-3.14.xml"
+        ],
+        "seconds": 1935.79,
+        "status": "PASS"
+      },
+      {
+        "command": [
+          "<project-python>",
+          "<repo>/tests/validate-release-route-matrix.py",
+          "<evidence-dir>/matrix-3.11/routes.json"
+        ],
+        "seconds": 0.53,
+        "status": "PASS"
+      },
+      {
+        "command": [
+          "<project-python>",
+          "<repo>/tests/validate-release-error-matrix.py",
+          "<evidence-dir>/matrix-3.11/errors.json"
+        ],
+        "seconds": 0.49,
+        "status": "PASS"
+      },
+      {
+        "command": [
+          "<project-python>",
+          "<repo>/tests/validate-release-capabilities.py",
+          "<evidence-dir>/matrix-3.11/capabilities.json"
+        ],
+        "seconds": 0.61,
+        "status": "PASS"
+      },
+      {
+        "command": [
+          "<project-python>",
+          "<repo>/tests/validate-release-route-matrix.py",
+          "<evidence-dir>/matrix-3.14/routes.json"
+        ],
+        "seconds": 0.46,
+        "status": "PASS"
+      },
+      {
+        "command": [
+          "<project-python>",
+          "<repo>/tests/validate-release-error-matrix.py",
+          "<evidence-dir>/matrix-3.14/errors.json"
+        ],
+        "seconds": 0.47,
+        "status": "PASS"
+      },
+      {
+        "command": [
+          "<project-python>",
+          "<repo>/tests/validate-release-capabilities.py",
+          "<evidence-dir>/matrix-3.14/capabilities.json"
+        ],
+        "seconds": 0.6,
+        "status": "PASS"
+      },
+      {
+        "command": [
+          "<project-python>",
+          "<repo>/python/scripts/artifact_manifest.py"
+        ],
+        "seconds": 0.12,
+        "status": "PASS"
+      },
+      {
+        "command": [
+          "<uv>",
+          "export",
+          "--project",
+          "<repo>/python",
+          "--frozen",
+          "--all-groups",
+          "--no-emit-project",
+          "--no-hashes",
+          "--output-file",
+          "<qualification-workdir>/requirements.txt"
+        ],
+        "seconds": 0.03,
         "status": "PASS"
       },
       {
@@ -278,89 +411,7 @@
           "<qualification-workdir>/requirements.txt",
           "<repo>/python/dist/libjadx-0.1.0a1-py3-none-any.whl"
         ],
-        "seconds": 1.39,
-        "status": "PASS"
-      },
-      {
-        "command": [
-          "<installed-python-3.14>",
-          "-m",
-          "pytest",
-          "-q",
-          "<repo>/python/tests/unit",
-          "<repo>/python/tests/integration",
-          "<repo>/python/tests/release",
-          "--junitxml=<evidence-dir>/python-3.14.xml"
-        ],
-        "seconds": 1979.54,
-        "status": "PASS"
-      },
-      {
-        "command": [
-          "<project-python>",
-          "<repo>/tests/validate-release-route-matrix.py",
-          "<evidence-dir>/matrix-3.14/routes.json"
-        ],
-        "seconds": 0.54,
-        "status": "PASS"
-      },
-      {
-        "command": [
-          "<project-python>",
-          "<repo>/tests/validate-release-error-matrix.py",
-          "<evidence-dir>/matrix-3.14/errors.json"
-        ],
-        "seconds": 0.45,
-        "status": "PASS"
-      },
-      {
-        "command": [
-          "<project-python>",
-          "<repo>/tests/validate-release-capabilities.py",
-          "<evidence-dir>/matrix-3.14/capabilities.json"
-        ],
-        "seconds": 0.59,
-        "status": "PASS"
-      },
-      {
-        "command": [
-          "<installed-python-3.11>",
-          "-m",
-          "pytest",
-          "-q",
-          "<repo>/python/tests/unit",
-          "<repo>/python/tests/integration",
-          "<repo>/python/tests/release",
-          "--junitxml=<evidence-dir>/python-3.11.xml"
-        ],
-        "seconds": 1982.99,
-        "status": "PASS"
-      },
-      {
-        "command": [
-          "<project-python>",
-          "<repo>/tests/validate-release-route-matrix.py",
-          "<evidence-dir>/matrix-3.11/routes.json"
-        ],
-        "seconds": 0.44,
-        "status": "PASS"
-      },
-      {
-        "command": [
-          "<project-python>",
-          "<repo>/tests/validate-release-error-matrix.py",
-          "<evidence-dir>/matrix-3.11/errors.json"
-        ],
-        "seconds": 0.5,
-        "status": "PASS"
-      },
-      {
-        "command": [
-          "<project-python>",
-          "<repo>/tests/validate-release-capabilities.py",
-          "<evidence-dir>/matrix-3.11/capabilities.json"
-        ],
-        "seconds": 0.56,
+        "seconds": 0.71,
         "status": "PASS"
       },
       {
@@ -374,7 +425,7 @@
           "raw_http or generated_async",
           "--junitxml=<evidence-dir>/tar-smoke.xml"
         ],
-        "seconds": 32.74,
+        "seconds": 33.46,
         "status": "PASS"
       },
       {
@@ -410,14 +461,14 @@
       },
       "libjadx-0.1.0a1-py3-none-any.whl": {
         "filename": "libjadx-0.1.0a1-py3-none-any.whl",
-        "bytes": 174583,
-        "sha256": "4d62f0388ed65d99aaf661b140c2df505ea2b70d1b715fd82a8327da479a4840",
+        "bytes": 174597,
+        "sha256": "a057ad01b5909353dfc2e96c36ed202f360ca711256661dd4e20e2da14d64c89",
         "file_count": 181
       },
       "libjadx-0.1.0a1.tar.gz": {
         "filename": "libjadx-0.1.0a1.tar.gz",
-        "bytes": 169498,
-        "sha256": "e1955612f8b9698bd80d73e784b7de9c6b0e0af2346fdb84dd725d83a6db8437",
+        "bytes": 169519,
+        "sha256": "ee6e2f28f670164e17dd7315a34ad8483a9949a938977f4026f5b182a9c51305",
         "file_count": 203
       }
     },
@@ -444,7 +495,7 @@
         "generated_tree_algorithm": "SHA256 sorted POSIX relative *.py path + NUL + bytes + NUL",
         "wheel": {
           "filename": "libjadx-0.1.0a1-py3-none-any.whl",
-          "sha256": "4d62f0388ed65d99aaf661b140c2df505ea2b70d1b715fd82a8327da479a4840",
+          "sha256": "a057ad01b5909353dfc2e96c36ed202f360ca711256661dd4e20e2da14d64c89",
           "files": [
             "libjadx-0.1.0a1.dist-info/METADATA",
             "libjadx-0.1.0a1.dist-info/RECORD",
@@ -636,7 +687,7 @@
         },
         "sdist": {
           "filename": "libjadx-0.1.0a1.tar.gz",
-          "sha256": "e1955612f8b9698bd80d73e784b7de9c6b0e0af2346fdb84dd725d83a6db8437",
+          "sha256": "ee6e2f28f670164e17dd7315a34ad8483a9949a938977f4026f5b182a9c51305",
           "files": [
             "libjadx-0.1.0a1/.gitignore",
             "libjadx-0.1.0a1/LICENSE",
@@ -849,29 +900,37 @@
         "3.14": "3.14.4"
       }
     },
-    "python_3.14": {
-      "tests": 307,
-      "failures": 0,
-      "errors": 0,
-      "skipped": 0,
-      "java_processes": 203,
-      "max_observed_rss_kib": 558500,
-      "max_ready_seconds": 12.941
-    },
     "python_3.11": {
       "tests": 307,
       "failures": 0,
       "errors": 0,
       "skipped": 0,
       "java_processes": 203,
-      "max_observed_rss_kib": 649480,
-      "max_ready_seconds": 13.15
+      "max_observed_rss_kib": 451828,
+      "max_ready_seconds": 11.238
     },
-    "core_status": "PASS"
+    "python_3.14": {
+      "tests": 307,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "java_processes": 203,
+      "max_observed_rss_kib": 510100,
+      "max_ready_seconds": 9.444
+    },
+    "core_status": "PASS",
+    "orchestration_resume": {
+      "reason": "Original stdout detached after the completed SDK suites; next RUN print raised BrokenPipeError.",
+      "unchanged_source_head": "ea2560abbbc237ffd48268899b68a5a6b0237e65",
+      "completed_command_count": 27,
+      "completed_results": "Original exit-code records, Java/Python XML, cleanup observations, artifact hashes and source identity reverified before finishing outstanding gates.",
+      "driver": "python3 <resume-driver>/libjadx-pr24-resume-qualification.py",
+      "driver_source": "\"\"\"Finish the interrupted, machine-recorded qualification at the unchanged source HEAD.\"\"\"\nimport importlib.util\nimport json\nimport os\nimport subprocess\nimport tempfile\nfrom pathlib import Path\nfrom xml.etree import ElementTree\n\nroot = Path('<repo>')\noutput = Path('<evidence-dir>')\nspec = importlib.util.spec_from_file_location('qualification', root/'tests/release/qualify.py')\nq = importlib.util.module_from_spec(spec)\nspec.loader.exec_module(q)\nrecord = json.loads((output/'core.json').read_text())\nassert record['head'] == q.head() == 'ea2560abbbc237ffd48268899b68a5a6b0237e65'\nassert record['source_sha256'] == q.source_hash()\nassert not subprocess.check_output(['git','status','--porcelain'],cwd=root,text=True).strip()\nassert record['core_status'] == 'FAIL' and record['blocker'] == '[Errno 32] Broken pipe'\nassert len(record['commands']) == 27 and all(c['status'] == 'PASS' for c in record['commands'])\n# The original orchestrator recorded every preliminary gate and both SDK exit codes.\nassert record['commands'][0]['command'] == ['./gradlew','clean','check','--offline','--rerun-tasks']\nassert record['java'] == q.xml_counts(root/'build/test-results/test')\nfor version in ('3.11','3.14'):\n    command = next(c for c in record['commands'] if c['command'][0].endswith(f'/python-{version}/bin/python') and '-m' in c['command'])\n    assert '--junitxml='+str(output/f'python-{version}.xml') in command['command']\n    counts = {k:int(ElementTree.parse(output/f'python-{version}.xml').getroot()[0].attrib[k]) for k in ('tests','failures','errors','skipped')}\n    assert all(record['python_'+version][k] == v for k,v in counts.items())\n    assert counts['tests'] == 307 and not any(counts[k] for k in ('failures','errors','skipped'))\n    observations = json.loads((output/f'matrix-{version}/observations.json').read_text())['records']\n    assert len(observations) == record['python_'+version]['java_processes'] == 203\n    assert all(r['exit_code'] in (0,143) for r in observations)\narchives = [root/f'build/distributions/libjadx-{q.VERSION}.{ext}' for ext in ('zip','tar')]\narchives += [root/f'python/dist/libjadx-{q.PY_VERSION}-py3-none-any.whl',root/f'python/dist/libjadx-{q.PY_VERSION}.tar.gz']\nassert record['reproducible'] and record['artifacts'] == {p.name:q.artifact(p) for p in archives}\nfor path in archives[:2]: q.audit_java(path)\nassert not (output/'core-interrupted.json').exists()\n(output/'core-interrupted.json').write_text(json.dumps(record,indent=2)+'\\n')\nrecord['orchestration_resume'] = {\n    'reason': 'Original stdout detached after the completed SDK suites; next RUN print raised BrokenPipeError.',\n    'unchanged_source_head': q.head(),\n    'completed_command_count': len(record['commands']),\n    'completed_results': 'Original exit-code records, Java/Python XML, cleanup observations, artifact hashes and source identity reverified before finishing outstanding gates.',\n    'driver': 'python3 <resume-driver>/libjadx-pr24-resume-qualification.py',\n    'driver_source': Path(__file__).read_text(),\n}\n\ndef gate(command,name,**kwargs):\n    result = q.run(command,output/f'{name}.log',**kwargs)\n    record['commands'].append(result)\n\ntry:\n    py = root/'python/.venv/bin/python'\n    for version in ('3.11','3.14'):\n        for family,filename in (('route','routes.json'),('error','errors.json'),('capabilities','capabilities.json')):\n            validator='validate-release-capabilities.py' if family=='capabilities' else f'validate-release-{family}-matrix.py'\n            gate([py,root/'tests'/validator,output/f'matrix-{version}'/filename],family+'-'+version)\n    gate([py,root/'python/scripts/artifact_manifest.py'],'resume-python-audit')\n    uv=os.environ['UV_BIN']\n    with tempfile.TemporaryDirectory(prefix='libjadx-release-') as temp:\n        temp_root=Path(temp)\n        requirements=temp_root/'requirements.txt'\n        gate([uv,'export','--project',root/'python','--frozen','--all-groups','--no-emit-project','--no-hashes','--output-file',requirements],'resume-requirements')\n        env_root=temp_root/'python-3.14'\n        gate([uv,'venv','--python','3.14',env_root,'--offline'],'resume-venv-3.14')\n        interpreter=env_root/'bin/python'\n        gate([uv,'pip','install','--offline','--python',interpreter,'-r',requirements,archives[2]],'resume-install-3.14')\n        launcher=q.extract(archives[1],temp_root/'tar')\n        gate([interpreter,'-m','pytest','-q',root/'python/tests/release/test_routes.py','-k','raw_http or generated_async','--junitxml='+str(output/'tar-smoke.xml')],'tar-smoke',cwd=temp_root,env={'LIBJADX_EXPECT_INSTALLED':'1','LIBJADX_DISTRIBUTION':str(launcher)})\n        counts=ElementTree.parse(output/'tar-smoke.xml').getroot()[0].attrib\n        assert int(counts['tests'])==2 and not any(int(counts[k]) for k in ('failures','errors','skipped'))\n    gate(['git','diff','--check'],'whitespace')\n    assert record['head']==q.head() and record['source_sha256']==q.source_hash()\n    assert record['artifacts']=={p.name:q.artifact(p) for p in archives}\n    record['core_status']='PASS'\n    del record['blocker']\nexcept Exception as error:\n    record['core_status']='FAIL'\n    record['blocker']=str(error)\n    raise\nfinally:\n    (output/'core.json').write_text(json.dumps(record,indent=2)+'\\n')\nq.gui(output)\nq.result(output)\n"
+    }
   },
   "gui": {
-    "head": "186a43d561367384f720465df0dd9ffd48829d96",
-    "source_sha256": "c43f7b6a0e1bf6350c0994e348ba21bf83426d2bee9ed95842f182c65ad0466e",
+    "head": "ea2560abbbc237ffd48268899b68a5a6b0237e65",
+    "source_sha256": "20b93c16b32e52b711ef648a9e1eb320f63de4ee1bac756288edbaf529851e18",
     "status": "PASS",
     "version": "1.5.6",
     "display": "xvfb-run -a -screen 0 1280x1024x24",
@@ -887,7 +946,7 @@
         "-x",
         "test"
       ],
-      "seconds": 416.81,
+      "seconds": 412.36,
       "status": "PASS"
     },
     "tasks": {
@@ -991,33 +1050,33 @@
     "save_as_count": 27,
     "actual_gui_process_count": 27,
     "save_as_log": [
-      "RELEASE_GUI_SAVE_AS pid=13646 output=<repo>/build/native-roundtrip-fixture/gui-resaved.jadx",
-      "RELEASE_GUI_SAVE_AS pid=13838 output=<repo>/build/raw-roundtrip-fixture/gui-resaved.jadx",
-      "RELEASE_GUI_SAVE_AS pid=13985 output=<repo>/build/edit-gui-fixture/gui-resaved.jadx",
-      "RELEASE_GUI_SAVE_AS pid=14126 output=<repo>/build/mapping-export-gui-fixture/gui-resaved.jadx",
-      "RELEASE_GUI_SAVE_AS pid=14260 output=<repo>/build/mapping-import-gui-fixture/gui-resaved.jadx",
-      "RELEASE_GUI_SAVE_AS pid=14395 output=<repo>/build/scoped-edit-gui-fixture/gui-resaved.jadx",
-      "RELEASE_GUI_SAVE_AS pid=14531 output=<repo>/build/related-gui-fixture/seed/gui-resaved.jadx",
-      "RELEASE_GUI_SAVE_AS pid=14675 output=<repo>/build/related-gui-fixture/members/gui-resaved.jadx",
-      "RELEASE_GUI_SAVE_AS pid=14813 output=<repo>/build/propagated-replay-gui-fixture/cold0/gui-resaved.jadx",
-      "RELEASE_GUI_SAVE_AS pid=14946 output=<repo>/build/propagated-replay-gui-fixture/cold1/gui-resaved.jadx",
-      "RELEASE_GUI_SAVE_AS pid=15081 output=<repo>/build/propagated-replay-gui-fixture/cold2/gui-resaved.jadx",
-      "RELEASE_GUI_SAVE_AS pid=15213 output=<repo>/build/propagated-replay-gui-fixture/cold3/gui-resaved.jadx",
-      "RELEASE_GUI_SAVE_AS pid=15349 output=<repo>/build/propagated-replay-gui-fixture/hot0/gui-resaved.jadx",
-      "RELEASE_GUI_SAVE_AS pid=15486 output=<repo>/build/propagated-replay-gui-fixture/hot1/gui-resaved.jadx",
-      "RELEASE_GUI_SAVE_AS pid=15630 output=<repo>/build/propagated-replay-gui-fixture/hot2/gui-resaved.jadx",
-      "RELEASE_GUI_SAVE_AS pid=15770 output=<repo>/build/propagated-replay-gui-fixture/hot3/gui-resaved.jadx",
-      "RELEASE_GUI_SAVE_AS pid=15913 output=<repo>/build/safe-replay-gui-diagnostic/gui-resaved.jadx",
-      "RELEASE_GUI_SAVE_AS pid=16066 output=<repo>/build/replacement-edit-gui-fixture/gui-resaved.jadx",
-      "RELEASE_GUI_SAVE_AS pid=16207 output=<repo>/build/propagated-edit-gui-fixture/ExtendedLeft/gui-resaved.jadx",
-      "RELEASE_GUI_SAVE_AS pid=16349 output=<repo>/build/propagated-edit-gui-fixture/Joined/gui-resaved.jadx",
-      "RELEASE_GUI_SAVE_AS pid=409 output=<repo>/build/propagated-edit-gui-fixture/SeparateLeft/gui-resaved.jadx",
-      "RELEASE_GUI_SAVE_AS pid=559 output=<repo>/build/propagated-edit-gui-fixture/SeparateRight/gui-resaved.jadx",
-      "RELEASE_GUI_SAVE_AS pid=735 output=<repo>/build/local-rename-gui-diagnostic/AUTO/gui-resaved.jadx",
-      "RELEASE_GUI_SAVE_AS pid=935 output=<repo>/build/local-rename-gui-diagnostic/RESTRUCTURE/gui-resaved.jadx",
-      "RELEASE_GUI_SAVE_AS pid=1133 output=<repo>/build/local-rename-gui-diagnostic/SIMPLE/gui-resaved.jadx",
-      "RELEASE_GUI_SAVE_AS pid=1339 output=<repo>/build/local-rename-gui-diagnostic/FALLBACK/gui-resaved.jadx",
-      "RELEASE_GUI_SAVE_AS pid=1541 output=<repo>/build/local-rename-gui-diagnostic/AUTO_DX/gui-resaved.jadx"
+      "RELEASE_GUI_SAVE_AS pid=11203 output=<repo>/build/native-roundtrip-fixture/gui-resaved.jadx",
+      "RELEASE_GUI_SAVE_AS pid=11399 output=<repo>/build/raw-roundtrip-fixture/gui-resaved.jadx",
+      "RELEASE_GUI_SAVE_AS pid=11541 output=<repo>/build/edit-gui-fixture/gui-resaved.jadx",
+      "RELEASE_GUI_SAVE_AS pid=11686 output=<repo>/build/mapping-export-gui-fixture/gui-resaved.jadx",
+      "RELEASE_GUI_SAVE_AS pid=11822 output=<repo>/build/mapping-import-gui-fixture/gui-resaved.jadx",
+      "RELEASE_GUI_SAVE_AS pid=11965 output=<repo>/build/scoped-edit-gui-fixture/gui-resaved.jadx",
+      "RELEASE_GUI_SAVE_AS pid=12110 output=<repo>/build/related-gui-fixture/seed/gui-resaved.jadx",
+      "RELEASE_GUI_SAVE_AS pid=12245 output=<repo>/build/related-gui-fixture/members/gui-resaved.jadx",
+      "RELEASE_GUI_SAVE_AS pid=12382 output=<repo>/build/propagated-replay-gui-fixture/cold0/gui-resaved.jadx",
+      "RELEASE_GUI_SAVE_AS pid=12520 output=<repo>/build/propagated-replay-gui-fixture/cold1/gui-resaved.jadx",
+      "RELEASE_GUI_SAVE_AS pid=12663 output=<repo>/build/propagated-replay-gui-fixture/cold2/gui-resaved.jadx",
+      "RELEASE_GUI_SAVE_AS pid=12806 output=<repo>/build/propagated-replay-gui-fixture/cold3/gui-resaved.jadx",
+      "RELEASE_GUI_SAVE_AS pid=12941 output=<repo>/build/propagated-replay-gui-fixture/hot0/gui-resaved.jadx",
+      "RELEASE_GUI_SAVE_AS pid=13076 output=<repo>/build/propagated-replay-gui-fixture/hot1/gui-resaved.jadx",
+      "RELEASE_GUI_SAVE_AS pid=13212 output=<repo>/build/propagated-replay-gui-fixture/hot2/gui-resaved.jadx",
+      "RELEASE_GUI_SAVE_AS pid=13350 output=<repo>/build/propagated-replay-gui-fixture/hot3/gui-resaved.jadx",
+      "RELEASE_GUI_SAVE_AS pid=13487 output=<repo>/build/safe-replay-gui-diagnostic/gui-resaved.jadx",
+      "RELEASE_GUI_SAVE_AS pid=13626 output=<repo>/build/replacement-edit-gui-fixture/gui-resaved.jadx",
+      "RELEASE_GUI_SAVE_AS pid=13766 output=<repo>/build/propagated-edit-gui-fixture/ExtendedLeft/gui-resaved.jadx",
+      "RELEASE_GUI_SAVE_AS pid=13898 output=<repo>/build/propagated-edit-gui-fixture/Joined/gui-resaved.jadx",
+      "RELEASE_GUI_SAVE_AS pid=14034 output=<repo>/build/propagated-edit-gui-fixture/SeparateLeft/gui-resaved.jadx",
+      "RELEASE_GUI_SAVE_AS pid=14175 output=<repo>/build/propagated-edit-gui-fixture/SeparateRight/gui-resaved.jadx",
+      "RELEASE_GUI_SAVE_AS pid=14344 output=<repo>/build/local-rename-gui-diagnostic/AUTO/gui-resaved.jadx",
+      "RELEASE_GUI_SAVE_AS pid=14554 output=<repo>/build/local-rename-gui-diagnostic/RESTRUCTURE/gui-resaved.jadx",
+      "RELEASE_GUI_SAVE_AS pid=14756 output=<repo>/build/local-rename-gui-diagnostic/SIMPLE/gui-resaved.jadx",
+      "RELEASE_GUI_SAVE_AS pid=14953 output=<repo>/build/local-rename-gui-diagnostic/FALLBACK/gui-resaved.jadx",
+      "RELEASE_GUI_SAVE_AS pid=15148 output=<repo>/build/local-rename-gui-diagnostic/AUTO_DX/gui-resaved.jadx"
     ],
     "projects": {
       "build/edit-gui-fixture/gui-resaved.jadx": "12382327ed8d48d6001ea11c6912c0cbfaeaa121895f1feda9fe6a45145848f0",

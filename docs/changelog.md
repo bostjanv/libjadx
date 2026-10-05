@@ -1,5 +1,24 @@
 # Experimental API changelog
 
+## PR #24 review fix — Current alpha qualification status (2026-10-05)
+
+Addressed review #5418946904: current docs now identify PR #24 qualification
+and link to its versioned source identity and reports. The documentation gate
+rejects stale active PR #22/pending PR #24 wording with 84 negative cases across
+14 current-facing documents; historical language and PR #22 evidence remain
+unchanged. Current source `ea2560abbbc237ffd48268899b68a5a6b0237e65` was freshly
+qualified locally: 487 Java tests (471 passed, 16
+opt-in GUI skips), 307 installed-wheel tests on each of CPython
+3.11/3.14 with zero mandatory skips, 12 GUI tasks with zero skips and
+27 actual Save As projects. All four archives are byte-reproducible
+with new hashes in the [artifact manifest](release-evidence/0.1.0-alpha.1/artifacts.json).
+[Full report](release-evidence/0.1.0-alpha.1/review.md) records the source digest,
+22-operation/19-error/37-capability matrices and publication preparation.
+Outcome A: freshly qualified under Apache-2.0; **NOT PUBLISHED**. No tag, release,
+registry upload or Maven publication occurred. Publication requires separate
+explicit human authorization.
+
+
 ## PR #24 — Apache-2.0 and fresh alpha qualification (2026-10-05)
 
 LibJadx first-party source/docs and Java/Python artifacts now use Apache-2.0,

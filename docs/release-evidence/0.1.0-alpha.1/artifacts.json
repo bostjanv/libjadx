@@ -1,6 +1,6 @@
 {
-  "head": "186a43d561367384f720465df0dd9ffd48829d96",
-  "source_sha256": "c43f7b6a0e1bf6350c0994e348ba21bf83426d2bee9ed95842f182c65ad0466e",
+  "head": "ea2560abbbc237ffd48268899b68a5a6b0237e65",
+  "source_sha256": "20b93c16b32e52b711ef648a9e1eb320f63de4ee1bac756288edbaf529851e18",
   "artifacts": {
     "libjadx-0.1.0-alpha.1.zip": {
       "filename": "libjadx-0.1.0-alpha.1.zip",
@@ -16,14 +16,14 @@
     },
     "libjadx-0.1.0a1-py3-none-any.whl": {
       "filename": "libjadx-0.1.0a1-py3-none-any.whl",
-      "bytes": 174583,
-      "sha256": "4d62f0388ed65d99aaf661b140c2df505ea2b70d1b715fd82a8327da479a4840",
+      "bytes": 174597,
+      "sha256": "a057ad01b5909353dfc2e96c36ed202f360ca711256661dd4e20e2da14d64c89",
       "file_count": 181
     },
     "libjadx-0.1.0a1.tar.gz": {
       "filename": "libjadx-0.1.0a1.tar.gz",
-      "bytes": 169498,
-      "sha256": "e1955612f8b9698bd80d73e784b7de9c6b0e0af2346fdb84dd725d83a6db8437",
+      "bytes": 169519,
+      "sha256": "ee6e2f28f670164e17dd7315a34ad8483a9949a938977f4026f5b182a9c51305",
       "file_count": 203
     }
   },
@@ -49,7 +49,7 @@
       "generated_tree_algorithm": "SHA256 sorted POSIX relative *.py path + NUL + bytes + NUL",
       "wheel": {
         "filename": "libjadx-0.1.0a1-py3-none-any.whl",
-        "sha256": "4d62f0388ed65d99aaf661b140c2df505ea2b70d1b715fd82a8327da479a4840",
+        "sha256": "a057ad01b5909353dfc2e96c36ed202f360ca711256661dd4e20e2da14d64c89",
         "files": [
           "libjadx-0.1.0a1.dist-info/METADATA",
           "libjadx-0.1.0a1.dist-info/RECORD",
@@ -241,7 +241,7 @@
       },
       "sdist": {
         "filename": "libjadx-0.1.0a1.tar.gz",
-        "sha256": "e1955612f8b9698bd80d73e784b7de9c6b0e0af2346fdb84dd725d83a6db8437",
+        "sha256": "ee6e2f28f670164e17dd7315a34ad8483a9949a938977f4026f5b182a9c51305",
         "files": [
           "libjadx-0.1.0a1/.gitignore",
           "libjadx-0.1.0a1/LICENSE",
