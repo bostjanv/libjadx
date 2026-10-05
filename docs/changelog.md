@@ -1,5 +1,23 @@
 # Experimental API changelog
 
+## PR #24 — Apache-2.0 and fresh alpha qualification (2026-10-05)
+
+LibJadx first-party source/docs and Java/Python artifacts now use Apache-2.0,
+with exact canonical license bytes and separate dependency notices. Release
+evidence is versioned under `docs/release-evidence/0.1.0-alpha.1/`; historical
+PR #22 files remain unchanged. Current source `186a43d561367384f720465df0dd9ffd48829d96` was freshly
+qualified locally: 487 Java tests (471 passed, 16
+opt-in GUI skips), 307 installed-wheel tests on each of CPython
+3.11/3.14 with zero mandatory skips, 12 GUI tasks with zero skips and
+27 actual Save As projects. All four archives are byte-reproducible
+with new hashes in the [artifact manifest](release-evidence/0.1.0-alpha.1/artifacts.json).
+[Full report](release-evidence/0.1.0-alpha.1/review.md) records the source digest,
+22-operation/19-error/37-capability matrices and publication preparation.
+Outcome A: freshly qualified under Apache-2.0; **NOT PUBLISHED**. No tag, release,
+registry upload or Maven publication occurred. Publication requires separate
+explicit human authorization.
+
+
 Changelog entries describe repository state at the time of each entry. Historical
 “pending,” “next,” and “unsupported” statements are not the current support matrix;
 see [compatibility](compatibility.md), [public capabilities](../openapi/examples/capabilities.json)
