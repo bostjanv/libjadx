@@ -1,18 +1,21 @@
 # AGENTS.md — LibJadx Coding-Agent Instructions
 
-PR #24 adopts Apache-2.0 before public alpha publication. Fresh qualification
-uses `docs/release-evidence/0.1.0-alpha.1/`; PR #22 reports are immutable historical
-evidence. Publication remains a separate explicit action.
+PR #24 freshly qualified the Apache-2.0 alpha locally. The
+[current validation record](docs/release-evidence/0.1.0-alpha.1/validation.json)
+identifies the exact qualified source HEAD and source SHA-256; the
+[qualification report](docs/release-evidence/0.1.0-alpha.1/review.md) records
+commands, results and limits. PR #22 reports are immutable historical evidence.
+Publication remains a separate explicit action.
 
 > **Read this file first.** Then read [DESIGN.md](DESIGN.md) and [IMPLEMENTATION.md](IMPLEMENTATION.md) before changing code. If the three documents appear inconsistent, apply the priority rules below and record the issue; do not silently change architecture.
 >
-> Status: v0.1 experimental feature baseline implemented and locally release-qualified by PR #22; not externally published or tagged. Phases 0–6 are completed history. New feature work starts from Phase 7 or an explicitly approved maintenance/release task.
+> Status: v0.1 experimental feature baseline implemented and freshly release-qualified locally by PR #24 under Apache-2.0; not externally published or tagged. Phases 0–6 are completed history. New feature work starts from Phase 7 or an explicitly approved maintenance/release task.
 
 ## Mission
 
 Build **LibJadx**, an independently designed, standalone, headless Java service exposing Jadx decompilation and analysis via a versioned REST/JSON API, plus a Python SDK. LibJadx is inspired by and modeled in spirit after [libghidra](https://github.com/0xeb/libghidra)'s goal of typed programmatic access to a reverse-engineering engine. It is independently designed around Jadx **where Jadx can actually support it**, without API/protocol compatibility or endorsement from either project.
 
-The human-approved architectural decisions in [DESIGN.md](DESIGN.md) are fixed unless an implementation blocker requires an explicit design change. Preserve the qualified v0.1 baseline. Phases 0–6 in [IMPLEMENTATION.md](IMPLEMENTATION.md) record completed acceptance criteria; Phase 7 features require proof-first capability probes. Contract changes update OpenAPI, generated SDK, fixtures and release matrices together. Persistence changes require matching-GUI qualification. Source/runtime changes invalidate PR #22 evidence under its [freshness rules](docs/phase-6-release-qualification.md#documentation-cleanup-and-evidence-freshness); ordinary documentation also enters its strict fingerprint.
+The human-approved architectural decisions in [DESIGN.md](DESIGN.md) are fixed unless an implementation blocker requires an explicit design change. Preserve the qualified v0.1 baseline. Phases 0–6 in [IMPLEMENTATION.md](IMPLEMENTATION.md) record completed acceptance criteria; Phase 7 features require proof-first capability probes. Contract changes update OpenAPI, generated SDK, fixtures and release matrices together. Persistence changes require matching-GUI qualification. Source/runtime changes invalidate the current versioned release evidence under its [freshness rules](docs/phase-6-release-qualification.md#documentation-cleanup-and-evidence-freshness); ordinary documentation also enters its strict fingerprint.
 
 ## Instruction precedence
 

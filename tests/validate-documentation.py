@@ -53,6 +53,14 @@ STALE_PHRASES = (
     "current Gradle application is the initial implementation slice",
     "Other analysis and edit routes remain planned",
 )
+STALE_QUALIFICATION_PHRASES = (
+    "locally release-qualified by PR #22",
+    "locally release-qualified after PR #22",
+    "PR #22 locally qualified the candidate",
+    "requires fresh candidate qualification",
+    "PR #24 requires a fresh run",
+    "PR #22 is the final v0.1 qualification report",
+)
 
 
 def prose(text):
@@ -185,7 +193,7 @@ def audit(root, files):
         relative = path.relative_to(root).as_posix()
         if relative in CURRENT_DOCS:
             normalized = " ".join(text.lower().split())
-            for phrase in STALE_PHRASES:
+            for phrase in (*STALE_PHRASES, *STALE_QUALIFICATION_PHRASES):
                 if phrase.lower() in normalized:
                     errors.append(
                         f"{relative}: stale current-document phrase: {phrase}"
@@ -264,8 +272,35 @@ def self_test():
             doc.write_text("# Current\n" + phrase + "\n")
             _, errors = audit(root, [doc, historical])
             assert len(errors) == 1 and "stale current-document" in errors[0], errors
+        # Historical reviews may preserve old qualification language. Each active
+        # status document must reject it, including when split across lines.
+        historical.write_text(
+            "# Historical PR #22 review\n"
+            + "\n".join(STALE_QUALIFICATION_PHRASES)
+            + "\n"
+        )
+        status_docs = sorted(CURRENT_DOCS)
+        for name in status_docs:
+            status_doc = root / name
+            status_doc.parent.mkdir(parents=True, exist_ok=True)
+            status_doc.write_text(
+                "# Current\nPR #24 freshly qualified the Apache-2.0 alpha locally.\n"
+                "Historical PR #22 passed its original qualification.\n"
+            )
+            _, errors = audit(root, [status_doc, historical])
+            assert not errors, errors
+            for phrase in STALE_QUALIFICATION_PHRASES:
+                status_doc.write_text(
+                    "# Current\n" + phrase.upper().replace(" ", "\n") + "\n"
+                )
+                _, errors = audit(root, [status_doc, historical])
+                assert len(errors) == 1 and "stale current-document" in errors[0], (
+                    errors
+                )
     print(
-        "Documentation checker self-test passed (valid links, four link/language negatives and eight stale-license negatives)"
+        "Documentation checker self-test passed (valid links, four link/language negatives, "
+        f"eight stale-license negatives and {len(CURRENT_DOCS) * len(STALE_QUALIFICATION_PHRASES)} "
+        f"stale-qualification negatives across {len(CURRENT_DOCS)} current docs; historical language accepted)"
     )
 
 

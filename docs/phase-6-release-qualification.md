@@ -1,14 +1,30 @@
 # Cross-language release qualification
 
-PR #24 adopts Apache-2.0 before public alpha publication. Fresh qualification
-uses `release-evidence/0.1.0-alpha.1/`; PR #22 reports are immutable historical
-evidence. Publication remains a separate explicit action.
+PR #24 freshly qualified the Apache-2.0 alpha locally. The
+[current validation record](release-evidence/0.1.0-alpha.1/validation.json)
+identifies the exact qualified source HEAD and source SHA-256; the
+[qualification report](release-evidence/0.1.0-alpha.1/review.md) records
+commands, results and limits. PR #22 reports are immutable historical evidence.
+Publication remains a separate explicit action.
 
-**Historical PR #22 status: PASSED** for source head `55e46eb707d095abdb067424db77f51a31558e17`,
-as recorded by PR #22 and merged to main. Candidate remains **NOT PUBLISHED**
-and not tagged. See the [qualification report](pr-22-review.md),
-[validation record](pr-22-validation.json) and [artifact manifest](pr-22-artifacts.json).
-The main merge SHA is not the tested source SHA.
+## Current PR #24 qualification
+
+**Status: PASSED locally under Apache-2.0; NOT PUBLISHED.** The
+[current validation record](release-evidence/0.1.0-alpha.1/validation.json)
+records the exact qualified source HEAD in `head` / `qualification_heads` and
+its `source_sha256`. The [report](release-evidence/0.1.0-alpha.1/review.md),
+[artifact manifest](release-evidence/0.1.0-alpha.1/artifacts.json),
+[route matrix](release-evidence/0.1.0-alpha.1/route-matrix.json),
+[error matrix](release-evidence/0.1.0-alpha.1/error-matrix.json) and
+[capabilities](release-evidence/0.1.0-alpha.1/capabilities.json) are current
+PR #24 evidence. This is author-run local qualification, with no remote CI or
+independent reviewer rerun claimed.
+
+Only that recorded source, or an evidence-only descendant that passes freshness
+validation, is qualified. Ordinary documentation changes require a new source
+commit and the full gate. Current status documents link to the validation record
+for the source HEAD; it is recorded after the source commit has been tested,
+without embedding a self-referential commit hash in the hashed documentation.
 
 Product candidate: `0.1.0-alpha.1`
 Python package: `0.1.0a1`
@@ -168,3 +184,11 @@ commit identifies tested artifact inputs; an evidence-only descendant contains
 reports and may become the final PR head after freshness validation. No report
 can include its own commit hash. All ordinary documentation, license, packaging
 and release-note draft changes must be committed before running the full gate.
+
+## Historical PR #22 qualification
+
+**Historical PR #22 status: PASSED** for source head `55e46eb707d095abdb067424db77f51a31558e17`,
+as recorded by PR #22 and merged to main. Candidate remains **NOT PUBLISHED**
+and not tagged. See the [qualification report](pr-22-review.md),
+[validation record](pr-22-validation.json) and [artifact manifest](pr-22-artifacts.json).
+The main merge SHA is not the tested source SHA.

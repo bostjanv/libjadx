@@ -1,9 +1,9 @@
 # Phase 6.1 — Python SDK foundation
 
 Phase 6.1 completed in PR #21. Phase 6.2 subsequently completed in PR #22;
-the Java/Python candidate is locally release-qualified but not published or
-tagged. This document records the SDK architecture established by Phase 6.1.
-See the [release runbook](phase-6-release-qualification.md), [PR #22 report](pr-22-review.md)
+PR #24 freshly requalified the Apache-2.0 Java/Python candidate locally. It is
+not published or tagged. This document records the SDK architecture established by Phase 6.1.
+See the [release runbook](phase-6-release-qualification.md), [current PR #24 report](release-evidence/0.1.0-alpha.1/review.md)
 and [documentation index](README.md).
 
 LibJadx 0.1.0a1 is one typed distribution containing stock generated transport

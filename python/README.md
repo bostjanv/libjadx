@@ -4,8 +4,8 @@
 standalone LibJadx Java service. It does not embed Jadx or use JPype. Minimum
 Python is 3.11; the release gate covers Linux wheels on 3.11 and 3.14.
 The matching Java candidate is `0.1.0-alpha.1`, with API `0.1.0-experimental`.
-See [the qualification report](../docs/pr-22-review.md) for the validated source
-revision and outcome. Phase 6.2 is complete and locally qualified; this package
+See [the current PR #24 qualification report](../docs/release-evidence/0.1.0-alpha.1/review.md) for the validated source
+revision and outcome. PR #24 freshly qualified the Apache-2.0 candidate locally; this package
 is not tagged or published on PyPI. See the [project status](../README.md) and
 [documentation index](../docs/README.md).
 
