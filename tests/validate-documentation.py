@@ -26,8 +26,19 @@ CURRENT_DOCS = {
     "docs/phase-6-release-qualification.md",
     "docs/README.md",
     "python/README.md",
+    "python/THIRD_PARTY.md",
+    "docs/releases/0.1.0-alpha.1.md",
+    "docs/alpha-publication-checklist.md",
 }
 STALE_PHRASES = (
+    "LibJadx has no root open-source license grant",
+    "no root license",
+    "LicenseRef-Proprietary",
+    "all rights reserved for now",
+    "no chosen source license",
+    "no source license has been chosen",
+    "license policy still undecided",
+    "human-selected interim policy",
     "Project status — early development",
     "repository described here is a proposed structure",
     "Phase 6 Python SDK work is next",
@@ -41,6 +52,14 @@ STALE_PHRASES = (
     "generated Python transport remains a Phase 6 deliverable",
     "current Gradle application is the initial implementation slice",
     "Other analysis and edit routes remain planned",
+)
+STALE_QUALIFICATION_PHRASES = (
+    "locally release-qualified by PR #22",
+    "locally release-qualified after PR #22",
+    "PR #22 locally qualified the candidate",
+    "requires fresh candidate qualification",
+    "PR #24 requires a fresh run",
+    "PR #22 is the final v0.1 qualification report",
 )
 
 
@@ -174,7 +193,7 @@ def audit(root, files):
         relative = path.relative_to(root).as_posix()
         if relative in CURRENT_DOCS:
             normalized = " ".join(text.lower().split())
-            for phrase in STALE_PHRASES:
+            for phrase in (*STALE_PHRASES, *STALE_QUALIFICATION_PHRASES):
                 if phrase.lower() in normalized:
                     errors.append(
                         f"{relative}: stale current-document phrase: {phrase}"
@@ -229,7 +248,9 @@ def self_test():
 ```
 `[inline example](missing.md)`
 """)
-        historical.write_text("# Old\nPhase 6 Python SDK work is next\n")
+        historical.write_text(
+            "# Old\nPhase 6 Python SDK work is next\nLicenseRef-Proprietary\n"
+        )
         (root / "file with spaces.txt").touch()
         (root / "file(1).txt").touch()
         _, errors = audit(root, [doc, historical])
@@ -244,8 +265,42 @@ def self_test():
         assert any("missing anchor" in error for error in errors)
         assert any("undefined reference" in error for error in errors)
         assert any("stale current-document" in error for error in errors)
+        doc.write_text("# Current\nLibJadx is licensed under Apache-2.0.\n")
+        _, errors = audit(root, [doc, historical])
+        assert not errors, errors
+        for phrase in STALE_PHRASES[:8]:
+            doc.write_text("# Current\n" + phrase + "\n")
+            _, errors = audit(root, [doc, historical])
+            assert len(errors) == 1 and "stale current-document" in errors[0], errors
+        # Historical reviews may preserve old qualification language. Each active
+        # status document must reject it, including when split across lines.
+        historical.write_text(
+            "# Historical PR #22 review\n"
+            + "\n".join(STALE_QUALIFICATION_PHRASES)
+            + "\n"
+        )
+        status_docs = sorted(CURRENT_DOCS)
+        for name in status_docs:
+            status_doc = root / name
+            status_doc.parent.mkdir(parents=True, exist_ok=True)
+            status_doc.write_text(
+                "# Current\nPR #24 freshly qualified the Apache-2.0 alpha locally.\n"
+                "Historical PR #22 passed its original qualification.\n"
+            )
+            _, errors = audit(root, [status_doc, historical])
+            assert not errors, errors
+            for phrase in STALE_QUALIFICATION_PHRASES:
+                status_doc.write_text(
+                    "# Current\n" + phrase.upper().replace(" ", "\n") + "\n"
+                )
+                _, errors = audit(root, [status_doc, historical])
+                assert len(errors) == 1 and "stale current-document" in errors[0], (
+                    errors
+                )
     print(
-        "Documentation checker self-test passed (valid links and four negative cases)"
+        "Documentation checker self-test passed (valid links, four link/language negatives, "
+        f"eight stale-license negatives and {len(CURRENT_DOCS) * len(STALE_QUALIFICATION_PHRASES)} "
+        f"stale-qualification negatives across {len(CURRENT_DOCS)} current docs; historical language accepted)"
     )
 
 

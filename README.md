@@ -2,7 +2,14 @@
 
 LibJadx is a standalone, headless Java service that exposes [Jadx](https://github.com/skylot/jadx) through a versioned REST/JSON API and a typed Python SDK for local reverse-engineering workflows.
 
-> **Project status — experimental v0.1 candidate.** The defined first-release scope is feature-complete and locally release-qualified by PR #22 as Java `0.1.0-alpha.1` / Python `0.1.0a1` against Jadx 1.5.6. The candidate is not tagged or externally published on GitHub Releases, PyPI or Maven. Phase 7 is the extended-capability roadmap.
+> **Project status — experimental v0.1 candidate.** The defined first-release scope is feature-complete and freshly release-qualified locally by PR #24 under Apache-2.0 as Java `0.1.0-alpha.1` / Python `0.1.0a1` against Jadx 1.5.6. The candidate is not tagged or externally published on GitHub Releases, PyPI or Maven. Phase 7 is the extended-capability roadmap.
+
+PR #24 freshly qualified the Apache-2.0 alpha locally. The
+[current validation record](docs/release-evidence/0.1.0-alpha.1/validation.json)
+identifies the exact qualified source HEAD and source SHA-256; the
+[qualification report](docs/release-evidence/0.1.0-alpha.1/review.md) records
+commands, results and limits. PR #22 reports are immutable historical evidence.
+Publication remains a separate explicit action.
 
 ## Inspiration
 
@@ -63,7 +70,7 @@ To build a local distribution with Unix/Windows launch scripts:
 ./build/install/libjadx/bin/libjadx --input /absolute/path/to/sample.jar
 ```
 
-The distribution is a locally built artifact from the qualified experimental candidate, not an externally published release. A JDK is not bundled. Phase 7 capabilities remain outside v0.1 scope. PR #22 qualification applies to its [recorded source revision and artifact hashes](docs/pr-22-review.md), not every later build.
+The distribution is a locally built artifact from the qualified experimental candidate, not an externally published release. A JDK is not bundled. Phase 7 capabilities remain outside v0.1 scope. Current PR #24 qualification applies to the [recorded source revision and artifact hashes](docs/release-evidence/0.1.0-alpha.1/review.md), including validated evidence-only descendants. Other changes require fresh qualification.
 
 ## Python SDK
 
@@ -138,7 +145,7 @@ JADX_GUI=/path/to/jadx-1.5.6/bin/jadx-gui \
   tests/release/validate-release-candidate.sh all --output /tmp/libjadx-release-evidence
 ```
 
-See the [release runbook](docs/phase-6-release-qualification.md) for cached tools, interpreters and evidence rules. The matching GUI is qualification infrastructure only, absent from production runtime. Documentation cleanup preserves PR #22's evidence; its strict fingerprint validator also hashes documentation, so later documentation edits do not pass that evidence's freshness check. See the [documented finding](docs/phase-6-release-qualification.md#documentation-cleanup-and-evidence-freshness).
+See the [release runbook](docs/phase-6-release-qualification.md) for cached tools, interpreters and evidence rules. The matching GUI is qualification infrastructure only, absent from production runtime. The freshness validator includes ordinary documentation in the source fingerprint and allows only evidence/changelog descendants. Current status documents identify PR #24 and link to its versioned validation record for the exact tested source HEAD. See the [freshness rules](docs/phase-6-release-qualification.md#documentation-cleanup-and-evidence-freshness).
 
 ## Roadmap
 
@@ -154,11 +161,11 @@ The [documentation index](docs/README.md) separates current guidance from histor
 - Architecture: [design](DESIGN.md), [implementation history and roadmap](IMPLEMENTATION.md), [domain terms](CONTEXT.md).
 - SDK/API: [OpenAPI](openapi/openapi.yaml) and [SDK architecture](docs/phase-6-python-sdk.md).
 - Compatibility and limitations: [pins](docs/compatibility.md) and [feasibility matrix](docs/feasibility-matrix.md).
-- Release evidence: [runbook](docs/phase-6-release-qualification.md) and [PR #22 report](docs/pr-22-review.md).
+- Release evidence: [runbook](docs/phase-6-release-qualification.md) and [current PR #24 report](docs/release-evidence/0.1.0-alpha.1/review.md).
 - Historical milestone and PR records: [index](docs/README.md#historical-milestone-evidence).
 
 ## License and attribution
 
-Jadx is the implementation dependency; upstream and bundled dependency notices are included under [licenses](licenses/JADX-NOTICE). LibJadx has no root open-source license grant; the Python package uses the interim reserved-rights policy documented in [python/LICENSE](python/LICENSE) and [python/THIRD_PARTY.md](python/THIRD_PARTY.md).
+LibJadx is licensed under the [Apache License 2.0](LICENSE). Jadx and other dependencies retain their own upstream licenses and notices under [licenses](licenses/JADX-NOTICE). The Python package carries the same Apache-2.0 LibJadx license and preserves its generated-template/runtime dependency notices in [python/THIRD_PARTY.md](python/THIRD_PARTY.md).
 
 libghidra is product inspiration only, not a dependency or bundled component. Its [license](https://github.com/0xeb/libghidra/blob/main/LICENSE) requires human review before any proposed reuse; implementation mining/copying is prohibited by the agent rules.

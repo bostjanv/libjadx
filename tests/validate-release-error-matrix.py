@@ -13,7 +13,9 @@ spec = yaml.safe_load((ROOT / "openapi/openapi.yaml").read_text())
 codes = set(spec["components"]["schemas"]["ApiError"]["properties"]["code"]["enum"])
 data = json.loads(
     Path(
-        sys.argv[1] if len(sys.argv) > 1 else ROOT / "docs/pr-22-error-matrix.json"
+        sys.argv[1]
+        if len(sys.argv) > 1
+        else ROOT / "docs/release-evidence/0.1.0-alpha.1/error-matrix.json"
     ).read_text()
 )
 validate_evidence_identity(data)

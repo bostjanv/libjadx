@@ -1,0 +1,4713 @@
+{
+  "head": "ea2560abbbc237ffd48268899b68a5a6b0237e65",
+  "records": {
+    "CANCELLATION_PENDING": {
+      "detailsVerified": true,
+      "httpStatuses": [
+        409
+      ],
+      "requestIdsVerified": true,
+      "scenarios": [
+        {
+          "decoder_operation": null,
+          "exception": null,
+          "java_test_faults": [
+            "cancel-pending"
+          ],
+          "operation": "getProject",
+          "surface": "raw_http",
+          "wire": {
+            "error": {
+              "code": "CANCELLATION_PENDING",
+              "details": {
+                "jobId": "be932557-2bb2-4f07-b9c2-0a5b3e848e56",
+                "state": "CANCELLING"
+              },
+              "message": "Owned release-test cancellation is pending",
+              "requestId": "5a25cfea-9705-43a6-a0a4-da469af5c1fa",
+              "retryable": true
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "cancelJob",
+          "wire_path": "/jobs/be932557-2bb2-4f07-b9c2-0a5b3e848e56/cancel"
+        },
+        {
+          "decoder_operation": "getProject",
+          "exception": null,
+          "java_test_faults": [
+            "cancel-pending"
+          ],
+          "operation": "getProject",
+          "surface": "generated_sync",
+          "wire": {
+            "error": {
+              "code": "CANCELLATION_PENDING",
+              "details": {
+                "jobId": "1e8012cb-9b3e-4111-9129-09c07aef8200",
+                "state": "CANCELLING"
+              },
+              "message": "Owned release-test cancellation is pending",
+              "requestId": "cb601d0f-a213-4bbb-8de5-9997c85f1ba7",
+              "retryable": true
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "cancelJob",
+          "wire_path": "/jobs/1e8012cb-9b3e-4111-9129-09c07aef8200/cancel"
+        },
+        {
+          "decoder_operation": "getProject",
+          "exception": null,
+          "java_test_faults": [
+            "cancel-pending"
+          ],
+          "operation": "getProject",
+          "surface": "generated_async",
+          "wire": {
+            "error": {
+              "code": "CANCELLATION_PENDING",
+              "details": {
+                "jobId": "d0cfbb41-afd2-4ec5-9f26-0861bd7c082c",
+                "state": "CANCELLING"
+              },
+              "message": "Owned release-test cancellation is pending",
+              "requestId": "ba1aa091-ecf1-456c-aa51-9a6fac97cc38",
+              "retryable": true
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "cancelJob",
+          "wire_path": "/jobs/d0cfbb41-afd2-4ec5-9f26-0861bd7c082c/cancel"
+        },
+        {
+          "decoder_operation": "getProject",
+          "exception": "CancellationPendingError",
+          "java_test_faults": [
+            "cancel-pending"
+          ],
+          "operation": "getProject",
+          "surface": "high_level_sync",
+          "wire": {
+            "error": {
+              "code": "CANCELLATION_PENDING",
+              "details": {
+                "jobId": "778ecfe0-0395-4989-9763-c7cdd730c9a5",
+                "state": "CANCELLING"
+              },
+              "message": "Owned release-test cancellation is pending",
+              "requestId": "57c6e7f3-00bc-4b49-a97f-8a8cd825acdf",
+              "retryable": true
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "cancelJob",
+          "wire_path": "/jobs/778ecfe0-0395-4989-9763-c7cdd730c9a5/cancel"
+        },
+        {
+          "decoder_operation": "getProject",
+          "exception": "CancellationPendingError",
+          "java_test_faults": [
+            "cancel-pending"
+          ],
+          "operation": "getProject",
+          "surface": "high_level_async",
+          "wire": {
+            "error": {
+              "code": "CANCELLATION_PENDING",
+              "details": {
+                "jobId": "6595bd7a-7a34-4dd4-9c4c-86b3ff2a02ce",
+                "state": "CANCELLING"
+              },
+              "message": "Owned release-test cancellation is pending",
+              "requestId": "ab1b5e89-69f9-4cd4-ba8b-e20f427055ea",
+              "retryable": true
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "cancelJob",
+          "wire_path": "/jobs/6595bd7a-7a34-4dd4-9c4c-86b3ff2a02ce/cancel"
+        }
+      ],
+      "surfaces": {
+        "generated_async": true,
+        "generated_sync": true,
+        "high_level_async": true,
+        "high_level_sync": true,
+        "raw_http": true
+      }
+    },
+    "EVENT_HISTORY_EXPIRED": {
+      "detailsVerified": true,
+      "httpStatuses": [
+        409
+      ],
+      "requestIdsVerified": true,
+      "scenarios": [
+        {
+          "decoder_operation": null,
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "getJobEvents",
+          "surface": "raw_http",
+          "wire": {
+            "error": {
+              "code": "EVENT_HISTORY_EXPIRED",
+              "details": null,
+              "message": "Requested job event history has expired; poll and reconnect without Last-Event-ID",
+              "requestId": "eaccd471-3e62-46b9-a912-8d8be9f58bdf",
+              "retryable": false
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "getJobEvents",
+          "wire_path": "/jobs/d4a8aa06-9db3-4027-846f-19314c768724/events"
+        },
+        {
+          "decoder_operation": "getJobEvents",
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "getJobEvents",
+          "surface": "generated_sync",
+          "wire": {
+            "error": {
+              "code": "EVENT_HISTORY_EXPIRED",
+              "details": null,
+              "message": "Requested job event history has expired; poll and reconnect without Last-Event-ID",
+              "requestId": "3014cf64-17ea-486a-9951-0b0e3467e317",
+              "retryable": false
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "getJobEvents",
+          "wire_path": "/jobs/6b02c6ad-f01d-48c8-8a61-5f2d064319f4/events"
+        },
+        {
+          "decoder_operation": "getJobEvents",
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "getJobEvents",
+          "surface": "generated_async",
+          "wire": {
+            "error": {
+              "code": "EVENT_HISTORY_EXPIRED",
+              "details": null,
+              "message": "Requested job event history has expired; poll and reconnect without Last-Event-ID",
+              "requestId": "b094dc1f-9f2c-4e88-ae97-72a978bb4f53",
+              "retryable": false
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "getJobEvents",
+          "wire_path": "/jobs/98e5d593-6dc9-45f7-ba17-83958c879e9d/events"
+        },
+        {
+          "decoder_operation": "getJobEvents",
+          "exception": "EventHistoryExpiredError",
+          "java_test_faults": [],
+          "operation": "getJobEvents",
+          "surface": "high_level_sync",
+          "wire": {
+            "error": {
+              "code": "EVENT_HISTORY_EXPIRED",
+              "details": null,
+              "message": "Requested job event history has expired; poll and reconnect without Last-Event-ID",
+              "requestId": "79ed9163-6adc-4163-8059-6f71e7e4a8c2",
+              "retryable": false
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "getJobEvents",
+          "wire_path": "/jobs/f17c200a-187a-4e8a-b5a5-f532f968fcef/events"
+        },
+        {
+          "decoder_operation": "getJobEvents",
+          "exception": "EventHistoryExpiredError",
+          "java_test_faults": [],
+          "operation": "getJobEvents",
+          "surface": "high_level_async",
+          "wire": {
+            "error": {
+              "code": "EVENT_HISTORY_EXPIRED",
+              "details": null,
+              "message": "Requested job event history has expired; poll and reconnect without Last-Event-ID",
+              "requestId": "0ab1f67d-58f1-4a91-afbf-c0c61350f982",
+              "retryable": false
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "getJobEvents",
+          "wire_path": "/jobs/6283a9dd-2339-4a3b-bd68-6261eab5a37e/events"
+        }
+      ],
+      "surfaces": {
+        "generated_async": true,
+        "generated_sync": true,
+        "high_level_async": true,
+        "high_level_sync": true,
+        "raw_http": true
+      }
+    },
+    "EXTERNAL_MODIFICATION_CONFLICT": {
+      "detailsVerified": true,
+      "httpStatuses": [
+        409
+      ],
+      "requestIdsVerified": true,
+      "scenarios": [
+        {
+          "decoder_operation": null,
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "saveProject",
+          "surface": "raw_http",
+          "wire": {
+            "error": {
+              "code": "EXTERNAL_MODIFICATION_CONFLICT",
+              "details": null,
+              "message": "Native project or mappings changed on disk; pending edits remain in memory",
+              "requestId": "559e68d0-2339-4490-8c20-3a93290cc842",
+              "retryable": false
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "saveProject",
+          "wire_path": "/project/save"
+        },
+        {
+          "decoder_operation": "saveProject",
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "saveProject",
+          "surface": "generated_sync",
+          "wire": {
+            "error": {
+              "code": "EXTERNAL_MODIFICATION_CONFLICT",
+              "details": null,
+              "message": "Native project or mappings changed on disk; pending edits remain in memory",
+              "requestId": "2601fa39-29d2-46bc-b2c9-c878fb6a6dbf",
+              "retryable": false
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "saveProject",
+          "wire_path": "/project/save"
+        },
+        {
+          "decoder_operation": "saveProject",
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "saveProject",
+          "surface": "generated_async",
+          "wire": {
+            "error": {
+              "code": "EXTERNAL_MODIFICATION_CONFLICT",
+              "details": null,
+              "message": "Native project or mappings changed on disk; pending edits remain in memory",
+              "requestId": "4c71d0cc-3675-41f1-968a-4d101bcb3ed7",
+              "retryable": false
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "saveProject",
+          "wire_path": "/project/save"
+        },
+        {
+          "decoder_operation": "saveProject",
+          "exception": "ExternalModificationConflictError",
+          "java_test_faults": [],
+          "operation": "saveProject",
+          "surface": "high_level_sync",
+          "wire": {
+            "error": {
+              "code": "EXTERNAL_MODIFICATION_CONFLICT",
+              "details": null,
+              "message": "Native project or mappings changed on disk; pending edits remain in memory",
+              "requestId": "1eb9d3ab-a5bc-48c6-94e6-6e6290bb9750",
+              "retryable": false
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "saveProject",
+          "wire_path": "/project/save"
+        },
+        {
+          "decoder_operation": "saveProject",
+          "exception": "ExternalModificationConflictError",
+          "java_test_faults": [],
+          "operation": "saveProject",
+          "surface": "high_level_async",
+          "wire": {
+            "error": {
+              "code": "EXTERNAL_MODIFICATION_CONFLICT",
+              "details": null,
+              "message": "Native project or mappings changed on disk; pending edits remain in memory",
+              "requestId": "3bd10fcb-d1eb-4c0e-a96c-216f94e3bb9e",
+              "retryable": false
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "saveProject",
+          "wire_path": "/project/save"
+        }
+      ],
+      "surfaces": {
+        "generated_async": true,
+        "generated_sync": true,
+        "high_level_async": true,
+        "high_level_sync": true,
+        "raw_http": true
+      }
+    },
+    "INCOMPLETE_ANALYSIS": {
+      "detailsVerified": true,
+      "httpStatuses": [
+        409
+      ],
+      "requestIdsVerified": true,
+      "scenarios": [
+        {
+          "decoder_operation": null,
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "queryReferences",
+          "surface": "raw_http",
+          "wire": {
+            "error": {
+              "code": "INCOMPLETE_ANALYSIS",
+              "details": {
+                "diagnostics": [
+                  "CALL is a distinct Jadx-reported method pair, not an invoke count or dynamic dispatch closure",
+                  "Usage graph may omit recursive, optimized, unresolved or discarded input relationships; coverage is not exhaustive",
+                  "FIELD_USE access direction, original bytecode offsets and per-input provenance are unavailable",
+                  "Source sites require matching original target, exact P4.2 token/range and enclosing caller metadata; absent sites are unavailable",
+                  "Only current primary settings are used; no native edits or save are performed"
+                ]
+              },
+              "message": "Requested reference coverage is not proved complete",
+              "requestId": "6fe25b2a-e072-4916-aa21-d4bcd66e9678",
+              "retryable": false
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "queryReferences",
+          "wire_path": "/references/query"
+        },
+        {
+          "decoder_operation": "queryReferences",
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "queryReferences",
+          "surface": "generated_sync",
+          "wire": {
+            "error": {
+              "code": "INCOMPLETE_ANALYSIS",
+              "details": {
+                "diagnostics": [
+                  "CALL is a distinct Jadx-reported method pair, not an invoke count or dynamic dispatch closure",
+                  "Usage graph may omit recursive, optimized, unresolved or discarded input relationships; coverage is not exhaustive",
+                  "FIELD_USE access direction, original bytecode offsets and per-input provenance are unavailable",
+                  "Source sites require matching original target, exact P4.2 token/range and enclosing caller metadata; absent sites are unavailable",
+                  "Only current primary settings are used; no native edits or save are performed"
+                ]
+              },
+              "message": "Requested reference coverage is not proved complete",
+              "requestId": "7bc77d1f-1646-48a3-bf0a-2be7cc4e025f",
+              "retryable": false
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "queryReferences",
+          "wire_path": "/references/query"
+        },
+        {
+          "decoder_operation": "queryReferences",
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "queryReferences",
+          "surface": "generated_async",
+          "wire": {
+            "error": {
+              "code": "INCOMPLETE_ANALYSIS",
+              "details": {
+                "diagnostics": [
+                  "CALL is a distinct Jadx-reported method pair, not an invoke count or dynamic dispatch closure",
+                  "Usage graph may omit recursive, optimized, unresolved or discarded input relationships; coverage is not exhaustive",
+                  "FIELD_USE access direction, original bytecode offsets and per-input provenance are unavailable",
+                  "Source sites require matching original target, exact P4.2 token/range and enclosing caller metadata; absent sites are unavailable",
+                  "Only current primary settings are used; no native edits or save are performed"
+                ]
+              },
+              "message": "Requested reference coverage is not proved complete",
+              "requestId": "d9b85e4c-2ef0-457f-9712-b87e59e8d47f",
+              "retryable": false
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "queryReferences",
+          "wire_path": "/references/query"
+        },
+        {
+          "decoder_operation": "queryReferences",
+          "exception": "IncompleteAnalysisError",
+          "java_test_faults": [],
+          "operation": "queryReferences",
+          "surface": "high_level_sync",
+          "wire": {
+            "error": {
+              "code": "INCOMPLETE_ANALYSIS",
+              "details": {
+                "diagnostics": [
+                  "CALL is a distinct Jadx-reported method pair, not an invoke count or dynamic dispatch closure",
+                  "Usage graph may omit recursive, optimized, unresolved or discarded input relationships; coverage is not exhaustive",
+                  "FIELD_USE access direction, original bytecode offsets and per-input provenance are unavailable",
+                  "Source sites require matching original target, exact P4.2 token/range and enclosing caller metadata; absent sites are unavailable",
+                  "Only current primary settings are used; no native edits or save are performed"
+                ]
+              },
+              "message": "Requested reference coverage is not proved complete",
+              "requestId": "c3792fe5-0b04-4a94-8ad5-0f56bcb815a0",
+              "retryable": false
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "queryReferences",
+          "wire_path": "/references/query"
+        },
+        {
+          "decoder_operation": "queryReferences",
+          "exception": "IncompleteAnalysisError",
+          "java_test_faults": [],
+          "operation": "queryReferences",
+          "surface": "high_level_async",
+          "wire": {
+            "error": {
+              "code": "INCOMPLETE_ANALYSIS",
+              "details": {
+                "diagnostics": [
+                  "CALL is a distinct Jadx-reported method pair, not an invoke count or dynamic dispatch closure",
+                  "Usage graph may omit recursive, optimized, unresolved or discarded input relationships; coverage is not exhaustive",
+                  "FIELD_USE access direction, original bytecode offsets and per-input provenance are unavailable",
+                  "Source sites require matching original target, exact P4.2 token/range and enclosing caller metadata; absent sites are unavailable",
+                  "Only current primary settings are used; no native edits or save are performed"
+                ]
+              },
+              "message": "Requested reference coverage is not proved complete",
+              "requestId": "b2d5342d-296a-474f-9b50-69001f542904",
+              "retryable": false
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "queryReferences",
+          "wire_path": "/references/query"
+        }
+      ],
+      "surfaces": {
+        "generated_async": true,
+        "generated_sync": true,
+        "high_level_async": true,
+        "high_level_sync": true,
+        "raw_http": true
+      }
+    },
+    "INPUT_SECURITY_REJECTION": {
+      "detailsVerified": true,
+      "httpStatuses": [
+        403
+      ],
+      "requestIdsVerified": true,
+      "scenarios": [
+        {
+          "decoder_operation": null,
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "importMappings",
+          "surface": "raw_http",
+          "wire": {
+            "error": {
+              "code": "INPUT_SECURITY_REJECTION",
+              "details": null,
+              "message": "Mapping source is outside configured allowed roots",
+              "requestId": "8eb56a79-cfc3-48cb-9714-2553c3404578",
+              "retryable": false
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "importMappings",
+          "wire_path": "/project/mappings/import"
+        },
+        {
+          "decoder_operation": "importMappings",
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "importMappings",
+          "surface": "generated_sync",
+          "wire": {
+            "error": {
+              "code": "INPUT_SECURITY_REJECTION",
+              "details": null,
+              "message": "Mapping source is outside configured allowed roots",
+              "requestId": "103724d6-dd4c-45d5-9abe-9a4859b20745",
+              "retryable": false
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "importMappings",
+          "wire_path": "/project/mappings/import"
+        },
+        {
+          "decoder_operation": "importMappings",
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "importMappings",
+          "surface": "generated_async",
+          "wire": {
+            "error": {
+              "code": "INPUT_SECURITY_REJECTION",
+              "details": null,
+              "message": "Mapping source is outside configured allowed roots",
+              "requestId": "5f244a66-46aa-40dc-b9fd-c4f7e5f0bea2",
+              "retryable": false
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "importMappings",
+          "wire_path": "/project/mappings/import"
+        },
+        {
+          "decoder_operation": "importMappings",
+          "exception": "InputSecurityRejectionError",
+          "java_test_faults": [],
+          "operation": "importMappings",
+          "surface": "high_level_sync",
+          "wire": {
+            "error": {
+              "code": "INPUT_SECURITY_REJECTION",
+              "details": null,
+              "message": "Mapping source is outside configured allowed roots",
+              "requestId": "99ca1e92-f9c0-46fb-aabd-29cde024d853",
+              "retryable": false
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "importMappings",
+          "wire_path": "/project/mappings/import"
+        },
+        {
+          "decoder_operation": "importMappings",
+          "exception": "InputSecurityRejectionError",
+          "java_test_faults": [],
+          "operation": "importMappings",
+          "surface": "high_level_async",
+          "wire": {
+            "error": {
+              "code": "INPUT_SECURITY_REJECTION",
+              "details": null,
+              "message": "Mapping source is outside configured allowed roots",
+              "requestId": "177821c9-d6ea-4243-92fb-e729bceb6d2b",
+              "retryable": false
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "importMappings",
+          "wire_path": "/project/mappings/import"
+        }
+      ],
+      "surfaces": {
+        "generated_async": true,
+        "generated_sync": true,
+        "high_level_async": true,
+        "high_level_sync": true,
+        "raw_http": true
+      }
+    },
+    "INTERNAL_ERROR": {
+      "detailsVerified": true,
+      "httpStatuses": [
+        500
+      ],
+      "requestIdsVerified": true,
+      "scenarios": [
+        {
+          "decoder_operation": null,
+          "exception": null,
+          "java_test_faults": [
+            "http-project",
+            "job"
+          ],
+          "operation": "getProject",
+          "surface": "raw_http",
+          "wire": {
+            "error": {
+              "code": "INTERNAL_ERROR",
+              "details": null,
+              "message": "Owned release-test request failure",
+              "requestId": "f76ac861-a0c9-4bd1-b2f1-5388e17a3b4f",
+              "retryable": false
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "getProject",
+          "wire_path": "/project"
+        },
+        {
+          "decoder_operation": "getProject",
+          "exception": null,
+          "java_test_faults": [
+            "http-project",
+            "job"
+          ],
+          "operation": "getProject",
+          "surface": "generated_sync",
+          "wire": {
+            "error": {
+              "code": "INTERNAL_ERROR",
+              "details": null,
+              "message": "Owned release-test request failure",
+              "requestId": "1e6b6549-5155-41f9-89e8-c0f319c11857",
+              "retryable": false
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "getProject",
+          "wire_path": "/project"
+        },
+        {
+          "decoder_operation": "getProject",
+          "exception": null,
+          "java_test_faults": [
+            "http-project",
+            "job"
+          ],
+          "operation": "getProject",
+          "surface": "generated_async",
+          "wire": {
+            "error": {
+              "code": "INTERNAL_ERROR",
+              "details": null,
+              "message": "Owned release-test request failure",
+              "requestId": "cecab71d-772a-47dd-8ae0-dfc8b8ed5336",
+              "retryable": false
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "getProject",
+          "wire_path": "/project"
+        },
+        {
+          "decoder_operation": "getProject",
+          "exception": "InternalServerError",
+          "java_test_faults": [
+            "http-project",
+            "job"
+          ],
+          "operation": "getProject",
+          "surface": "high_level_sync",
+          "wire": {
+            "error": {
+              "code": "INTERNAL_ERROR",
+              "details": null,
+              "message": "Owned release-test request failure",
+              "requestId": "5fb9369d-8ed8-4af2-963d-1a61a233d6ce",
+              "retryable": false
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "getProject",
+          "wire_path": "/project"
+        },
+        {
+          "decoder_operation": "getProject",
+          "exception": "InternalServerError",
+          "java_test_faults": [
+            "http-project",
+            "job"
+          ],
+          "operation": "getProject",
+          "surface": "high_level_async",
+          "wire": {
+            "error": {
+              "code": "INTERNAL_ERROR",
+              "details": null,
+              "message": "Owned release-test request failure",
+              "requestId": "6c1b8eef-a544-4b8e-a438-5b960c3cc682",
+              "retryable": false
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "getProject",
+          "wire_path": "/project"
+        }
+      ],
+      "surfaces": {
+        "generated_async": true,
+        "generated_sync": true,
+        "high_level_async": true,
+        "high_level_sync": true,
+        "raw_http": true
+      }
+    },
+    "INVALID_ENTITY_ID": {
+      "detailsVerified": true,
+      "httpStatuses": [
+        422
+      ],
+      "requestIdsVerified": true,
+      "scenarios": [
+        {
+          "decoder_operation": null,
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "applyEditBatch",
+          "surface": "raw_http",
+          "wire": {
+            "error": {
+              "code": "INVALID_ENTITY_ID",
+              "details": {
+                "itemErrors": [
+                  {
+                    "code": "INVALID_ENTITY_ID",
+                    "index": 0,
+                    "message": "Native scoped rename identity is ambiguous"
+                  }
+                ]
+              },
+              "message": "Native scoped rename identity is ambiguous",
+              "requestId": "897bbe96-7bc3-49f5-afd4-7afe06a12064",
+              "retryable": false
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "applyEditBatch",
+          "wire_path": "/edits/batch"
+        },
+        {
+          "decoder_operation": "applyEditBatch",
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "applyEditBatch",
+          "surface": "generated_sync",
+          "wire": {
+            "error": {
+              "code": "INVALID_ENTITY_ID",
+              "details": {
+                "itemErrors": [
+                  {
+                    "code": "INVALID_ENTITY_ID",
+                    "index": 0,
+                    "message": "Native scoped rename identity is ambiguous"
+                  }
+                ]
+              },
+              "message": "Native scoped rename identity is ambiguous",
+              "requestId": "8420bd20-8bf3-403a-a634-3f3665604925",
+              "retryable": false
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "applyEditBatch",
+          "wire_path": "/edits/batch"
+        },
+        {
+          "decoder_operation": "applyEditBatch",
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "applyEditBatch",
+          "surface": "generated_async",
+          "wire": {
+            "error": {
+              "code": "INVALID_ENTITY_ID",
+              "details": {
+                "itemErrors": [
+                  {
+                    "code": "INVALID_ENTITY_ID",
+                    "index": 0,
+                    "message": "Native scoped rename identity is ambiguous"
+                  }
+                ]
+              },
+              "message": "Native scoped rename identity is ambiguous",
+              "requestId": "75461369-26ea-4541-98ea-de904bfe4e83",
+              "retryable": false
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "applyEditBatch",
+          "wire_path": "/edits/batch"
+        },
+        {
+          "decoder_operation": "applyEditBatch",
+          "exception": "InvalidEntityIdError",
+          "java_test_faults": [],
+          "operation": "applyEditBatch",
+          "surface": "high_level_sync",
+          "wire": {
+            "error": {
+              "code": "INVALID_ENTITY_ID",
+              "details": {
+                "itemErrors": [
+                  {
+                    "code": "INVALID_ENTITY_ID",
+                    "index": 0,
+                    "message": "Native scoped rename identity is ambiguous"
+                  }
+                ]
+              },
+              "message": "Native scoped rename identity is ambiguous",
+              "requestId": "c3376ee4-55de-4bb0-975d-7b3f79bc8601",
+              "retryable": false
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "applyEditBatch",
+          "wire_path": "/edits/batch"
+        },
+        {
+          "decoder_operation": "applyEditBatch",
+          "exception": "InvalidEntityIdError",
+          "java_test_faults": [],
+          "operation": "applyEditBatch",
+          "surface": "high_level_async",
+          "wire": {
+            "error": {
+              "code": "INVALID_ENTITY_ID",
+              "details": {
+                "itemErrors": [
+                  {
+                    "code": "INVALID_ENTITY_ID",
+                    "index": 0,
+                    "message": "Native scoped rename identity is ambiguous"
+                  }
+                ]
+              },
+              "message": "Native scoped rename identity is ambiguous",
+              "requestId": "3ac42b08-3e44-4571-b7b2-6a162b5f098a",
+              "retryable": false
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "applyEditBatch",
+          "wire_path": "/edits/batch"
+        }
+      ],
+      "surfaces": {
+        "generated_async": true,
+        "generated_sync": true,
+        "high_level_async": true,
+        "high_level_sync": true,
+        "raw_http": true
+      }
+    },
+    "INVALID_REQUEST": {
+      "detailsVerified": true,
+      "httpStatuses": [
+        400
+      ],
+      "requestIdsVerified": true,
+      "scenarios": [
+        {
+          "decoder_operation": null,
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "listClasses",
+          "surface": "raw_http",
+          "wire": {
+            "error": {
+              "code": "INVALID_REQUEST",
+              "details": null,
+              "message": "pageSize must be 1..100",
+              "requestId": "d10a88d0-26db-4202-97ea-d1d59d94690f",
+              "retryable": false
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "listClasses",
+          "wire_path": "/classes"
+        },
+        {
+          "decoder_operation": "listClasses",
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "listClasses",
+          "surface": "generated_sync",
+          "wire": {
+            "error": {
+              "code": "INVALID_REQUEST",
+              "details": null,
+              "message": "pageSize must be 1..100",
+              "requestId": "426cbf99-6106-4ea1-a862-c75f919eea4b",
+              "retryable": false
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "listClasses",
+          "wire_path": "/classes"
+        },
+        {
+          "decoder_operation": "listClasses",
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "listClasses",
+          "surface": "generated_async",
+          "wire": {
+            "error": {
+              "code": "INVALID_REQUEST",
+              "details": null,
+              "message": "pageSize must be 1..100",
+              "requestId": "8be97dfe-d475-49bc-8b86-763c62866264",
+              "retryable": false
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "listClasses",
+          "wire_path": "/classes"
+        },
+        {
+          "decoder_operation": "listClasses",
+          "exception": "InvalidRequestError",
+          "java_test_faults": [],
+          "operation": "listClasses",
+          "surface": "high_level_sync",
+          "wire": {
+            "error": {
+              "code": "INVALID_REQUEST",
+              "details": null,
+              "message": "pageSize must be 1..100",
+              "requestId": "417092b5-9db6-4b26-90b1-5b6fb7528057",
+              "retryable": false
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "listClasses",
+          "wire_path": "/classes"
+        },
+        {
+          "decoder_operation": "listClasses",
+          "exception": "InvalidRequestError",
+          "java_test_faults": [],
+          "operation": "listClasses",
+          "surface": "high_level_async",
+          "wire": {
+            "error": {
+              "code": "INVALID_REQUEST",
+              "details": null,
+              "message": "pageSize must be 1..100",
+              "requestId": "fcc94082-e3da-4cac-ac07-50606d7c1d0d",
+              "retryable": false
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "listClasses",
+          "wire_path": "/classes"
+        }
+      ],
+      "surfaces": {
+        "generated_async": true,
+        "generated_sync": true,
+        "high_level_async": true,
+        "high_level_sync": true,
+        "raw_http": true
+      }
+    },
+    "MAPPING_MERGE_CONFLICT": {
+      "detailsVerified": true,
+      "httpStatuses": [
+        409
+      ],
+      "requestIdsVerified": true,
+      "scenarios": [
+        {
+          "decoder_operation": null,
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "importMappings",
+          "surface": "raw_http",
+          "wire": {
+            "error": {
+              "code": "MAPPING_MERGE_CONFLICT",
+              "details": {
+                "category": "EXISTING_ALIAS",
+                "originalKey": "Lprobe/Variables;"
+              },
+              "message": "Incoming mapping conflicts with current logical state",
+              "requestId": "8ab1b2b5-e783-49f1-a971-8a78d084979b",
+              "retryable": false
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "importMappings",
+          "wire_path": "/project/mappings/import"
+        },
+        {
+          "decoder_operation": "importMappings",
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "importMappings",
+          "surface": "generated_sync",
+          "wire": {
+            "error": {
+              "code": "MAPPING_MERGE_CONFLICT",
+              "details": {
+                "category": "EXISTING_ALIAS",
+                "originalKey": "Lprobe/Variables;"
+              },
+              "message": "Incoming mapping conflicts with current logical state",
+              "requestId": "ecbf309a-8006-4b9b-9db1-2007086b5e7f",
+              "retryable": false
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "importMappings",
+          "wire_path": "/project/mappings/import"
+        },
+        {
+          "decoder_operation": "importMappings",
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "importMappings",
+          "surface": "generated_async",
+          "wire": {
+            "error": {
+              "code": "MAPPING_MERGE_CONFLICT",
+              "details": {
+                "category": "EXISTING_ALIAS",
+                "originalKey": "Lprobe/Variables;"
+              },
+              "message": "Incoming mapping conflicts with current logical state",
+              "requestId": "12935b7c-a36a-4efb-803a-cffa430276cc",
+              "retryable": false
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "importMappings",
+          "wire_path": "/project/mappings/import"
+        },
+        {
+          "decoder_operation": "importMappings",
+          "exception": "MappingMergeConflictError",
+          "java_test_faults": [],
+          "operation": "importMappings",
+          "surface": "high_level_sync",
+          "wire": {
+            "error": {
+              "code": "MAPPING_MERGE_CONFLICT",
+              "details": {
+                "category": "EXISTING_ALIAS",
+                "originalKey": "Lprobe/Variables;"
+              },
+              "message": "Incoming mapping conflicts with current logical state",
+              "requestId": "4184daaf-dd5c-47af-bf4f-5651b8d4b9fb",
+              "retryable": false
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "importMappings",
+          "wire_path": "/project/mappings/import"
+        },
+        {
+          "decoder_operation": "importMappings",
+          "exception": "MappingMergeConflictError",
+          "java_test_faults": [],
+          "operation": "importMappings",
+          "surface": "high_level_async",
+          "wire": {
+            "error": {
+              "code": "MAPPING_MERGE_CONFLICT",
+              "details": {
+                "category": "EXISTING_ALIAS",
+                "originalKey": "Lprobe/Variables;"
+              },
+              "message": "Incoming mapping conflicts with current logical state",
+              "requestId": "7541f37c-6582-4d2f-b82a-802ee9cd6b60",
+              "retryable": false
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "importMappings",
+          "wire_path": "/project/mappings/import"
+        }
+      ],
+      "surfaces": {
+        "generated_async": true,
+        "generated_sync": true,
+        "high_level_async": true,
+        "high_level_sync": true,
+        "raw_http": true
+      }
+    },
+    "METHOD_NOT_ALLOWED": {
+      "detailsVerified": true,
+      "httpStatuses": [
+        405
+      ],
+      "requestIdsVerified": true,
+      "scenarios": [
+        {
+          "decoder_operation": null,
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "getProject",
+          "surface": "raw_http",
+          "wire": {
+            "error": {
+              "code": "METHOD_NOT_ALLOWED",
+              "details": null,
+              "message": "The HTTP method is not allowed for this path",
+              "requestId": "b727d1e7-1fab-4432-bf62-e923c5bc08be",
+              "retryable": false
+            }
+          },
+          "wire_method": "DELETE",
+          "wire_operation": null,
+          "wire_path": "/project"
+        },
+        {
+          "decoder_operation": "getProject",
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "getProject",
+          "surface": "generated_sync",
+          "wire": {
+            "error": {
+              "code": "METHOD_NOT_ALLOWED",
+              "details": null,
+              "message": "The HTTP method is not allowed for this path",
+              "requestId": "2e3c0df5-7b71-4fb5-8355-d77854b3b322",
+              "retryable": false
+            }
+          },
+          "wire_method": "DELETE",
+          "wire_operation": null,
+          "wire_path": "/project"
+        },
+        {
+          "decoder_operation": "getProject",
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "getProject",
+          "surface": "generated_async",
+          "wire": {
+            "error": {
+              "code": "METHOD_NOT_ALLOWED",
+              "details": null,
+              "message": "The HTTP method is not allowed for this path",
+              "requestId": "1140f93c-80b7-4822-ad5f-41d83ca3f387",
+              "retryable": false
+            }
+          },
+          "wire_method": "DELETE",
+          "wire_operation": null,
+          "wire_path": "/project"
+        },
+        {
+          "decoder_operation": "getProject",
+          "exception": "MethodNotAllowedError",
+          "java_test_faults": [],
+          "operation": "getProject",
+          "surface": "high_level_sync",
+          "wire": {
+            "error": {
+              "code": "METHOD_NOT_ALLOWED",
+              "details": null,
+              "message": "The HTTP method is not allowed for this path",
+              "requestId": "7f47d148-65e4-4a9c-a43b-149082c3b345",
+              "retryable": false
+            }
+          },
+          "wire_method": "DELETE",
+          "wire_operation": null,
+          "wire_path": "/project"
+        },
+        {
+          "decoder_operation": "getProject",
+          "exception": "MethodNotAllowedError",
+          "java_test_faults": [],
+          "operation": "getProject",
+          "surface": "high_level_async",
+          "wire": {
+            "error": {
+              "code": "METHOD_NOT_ALLOWED",
+              "details": null,
+              "message": "The HTTP method is not allowed for this path",
+              "requestId": "f56affae-0b96-4764-be4b-2fc1d87ec849",
+              "retryable": false
+            }
+          },
+          "wire_method": "DELETE",
+          "wire_operation": null,
+          "wire_path": "/project"
+        }
+      ],
+      "surfaces": {
+        "generated_async": true,
+        "generated_sync": true,
+        "high_level_async": true,
+        "high_level_sync": true,
+        "raw_http": true
+      }
+    },
+    "NOT_FOUND": {
+      "detailsVerified": true,
+      "httpStatuses": [
+        404
+      ],
+      "requestIdsVerified": true,
+      "scenarios": [
+        {
+          "decoder_operation": null,
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "getJob",
+          "surface": "raw_http",
+          "wire": {
+            "error": {
+              "code": "NOT_FOUND",
+              "details": null,
+              "message": "Job not found or expired",
+              "requestId": "9d81b090-c4af-4f24-bd69-798dc2ab4146",
+              "retryable": false
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "getJob",
+          "wire_path": "/jobs/19c9d9f4-37e2-44ac-94e7-c6846c3511d3"
+        },
+        {
+          "decoder_operation": "getJob",
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "getJob",
+          "surface": "generated_sync",
+          "wire": {
+            "error": {
+              "code": "NOT_FOUND",
+              "details": null,
+              "message": "Job not found or expired",
+              "requestId": "7bf2fccf-9fcb-4a10-9166-a7806f2aedca",
+              "retryable": false
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "getJob",
+          "wire_path": "/jobs/ccd1fc30-362d-4e4d-b56f-c8ea0126b719"
+        },
+        {
+          "decoder_operation": "getJob",
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "getJob",
+          "surface": "generated_async",
+          "wire": {
+            "error": {
+              "code": "NOT_FOUND",
+              "details": null,
+              "message": "Job not found or expired",
+              "requestId": "7b1a59c2-6272-45ad-ba98-6ab57ba1c985",
+              "retryable": false
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "getJob",
+          "wire_path": "/jobs/4ea6c1ea-a236-4271-b2b4-f948d813d255"
+        },
+        {
+          "decoder_operation": "getJob",
+          "exception": "NotFoundError",
+          "java_test_faults": [],
+          "operation": "getJob",
+          "surface": "high_level_sync",
+          "wire": {
+            "error": {
+              "code": "NOT_FOUND",
+              "details": null,
+              "message": "Job not found or expired",
+              "requestId": "4033867c-fea7-43e4-b36e-a7e140c061db",
+              "retryable": false
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "getJob",
+          "wire_path": "/jobs/aa4b2a0f-ad3d-4fe5-8c06-d6a1580b4521"
+        },
+        {
+          "decoder_operation": "getJob",
+          "exception": "NotFoundError",
+          "java_test_faults": [],
+          "operation": "getJob",
+          "surface": "high_level_async",
+          "wire": {
+            "error": {
+              "code": "NOT_FOUND",
+              "details": null,
+              "message": "Job not found or expired",
+              "requestId": "93d62ada-8374-4b42-b9f6-97e5f915f896",
+              "retryable": false
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "getJob",
+          "wire_path": "/jobs/9399fee8-9ffe-445d-804b-4145d7abe125"
+        }
+      ],
+      "surfaces": {
+        "generated_async": true,
+        "generated_sync": true,
+        "high_level_async": true,
+        "high_level_sync": true,
+        "raw_http": true
+      }
+    },
+    "OPERATION_NOT_IMPLEMENTED": {
+      "detailsVerified": true,
+      "httpStatuses": [
+        501
+      ],
+      "requestIdsVerified": true,
+      "scenarios": [
+        {
+          "decoder_operation": null,
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "getProject",
+          "surface": "raw_http",
+          "wire": {
+            "error": {
+              "code": "OPERATION_NOT_IMPLEMENTED",
+              "details": null,
+              "message": "This API operation is not implemented yet",
+              "requestId": "a64e2abd-a36f-4e10-8c8b-2419e590dd3f",
+              "retryable": false
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": null,
+          "wire_path": "/project/export"
+        },
+        {
+          "decoder_operation": "getProject",
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "getProject",
+          "surface": "generated_sync",
+          "wire": {
+            "error": {
+              "code": "OPERATION_NOT_IMPLEMENTED",
+              "details": null,
+              "message": "This API operation is not implemented yet",
+              "requestId": "6f5882a0-0c98-4d83-bfcb-2c692c7aa114",
+              "retryable": false
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": null,
+          "wire_path": "/project/export"
+        },
+        {
+          "decoder_operation": "getProject",
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "getProject",
+          "surface": "generated_async",
+          "wire": {
+            "error": {
+              "code": "OPERATION_NOT_IMPLEMENTED",
+              "details": null,
+              "message": "This API operation is not implemented yet",
+              "requestId": "eb9be66c-d34a-4f36-9ccd-3fc62c3d8509",
+              "retryable": false
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": null,
+          "wire_path": "/project/export"
+        },
+        {
+          "decoder_operation": "getProject",
+          "exception": "OperationNotImplementedError",
+          "java_test_faults": [],
+          "operation": "getProject",
+          "surface": "high_level_sync",
+          "wire": {
+            "error": {
+              "code": "OPERATION_NOT_IMPLEMENTED",
+              "details": null,
+              "message": "This API operation is not implemented yet",
+              "requestId": "8c150e2a-5e78-4b35-9886-53c9a11f9d57",
+              "retryable": false
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": null,
+          "wire_path": "/project/export"
+        },
+        {
+          "decoder_operation": "getProject",
+          "exception": "OperationNotImplementedError",
+          "java_test_faults": [],
+          "operation": "getProject",
+          "surface": "high_level_async",
+          "wire": {
+            "error": {
+              "code": "OPERATION_NOT_IMPLEMENTED",
+              "details": null,
+              "message": "This API operation is not implemented yet",
+              "requestId": "83792a14-4a2d-4f25-9099-8d45a67f841d",
+              "retryable": false
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": null,
+          "wire_path": "/project/export"
+        }
+      ],
+      "surfaces": {
+        "generated_async": true,
+        "generated_sync": true,
+        "high_level_async": true,
+        "high_level_sync": true,
+        "raw_http": true
+      }
+    },
+    "PROJECT_BUSY": {
+      "detailsVerified": true,
+      "httpStatuses": [
+        409
+      ],
+      "requestIdsVerified": true,
+      "scenarios": [
+        {
+          "decoder_operation": null,
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "shutdownService",
+          "surface": "raw_http",
+          "wire": {
+            "error": {
+              "code": "PROJECT_BUSY",
+              "details": {
+                "activeJobCount": 1,
+                "activeOperationCount": 0,
+                "jobs": [
+                  {
+                    "jobId": "8f51941f-7502-4a6f-bf20-fb96c95f4062",
+                    "state": "QUEUED",
+                    "type": "search-build-index"
+                  }
+                ],
+                "operations": []
+              },
+              "message": "Wait for or cancel active work before shutting down",
+              "requestId": "b36b6855-551b-4fbe-8774-8397e267ae19",
+              "retryable": true
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "shutdownService",
+          "wire_path": "/shutdown"
+        },
+        {
+          "decoder_operation": "shutdownService",
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "shutdownService",
+          "surface": "generated_sync",
+          "wire": {
+            "error": {
+              "code": "PROJECT_BUSY",
+              "details": {
+                "activeJobCount": 1,
+                "activeOperationCount": 0,
+                "jobs": [
+                  {
+                    "jobId": "318fa5c4-cfe7-4757-9390-217c3b7f428a",
+                    "state": "QUEUED",
+                    "type": "search-build-index"
+                  }
+                ],
+                "operations": []
+              },
+              "message": "Wait for or cancel active work before shutting down",
+              "requestId": "d1e594b0-f563-43c8-bbc3-cc1b5b439f79",
+              "retryable": true
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "shutdownService",
+          "wire_path": "/shutdown"
+        },
+        {
+          "decoder_operation": "shutdownService",
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "shutdownService",
+          "surface": "generated_async",
+          "wire": {
+            "error": {
+              "code": "PROJECT_BUSY",
+              "details": {
+                "activeJobCount": 1,
+                "activeOperationCount": 0,
+                "jobs": [
+                  {
+                    "jobId": "c63dccbc-cb9a-4781-aadc-2a7538915f67",
+                    "state": "QUEUED",
+                    "type": "search-build-index"
+                  }
+                ],
+                "operations": []
+              },
+              "message": "Wait for or cancel active work before shutting down",
+              "requestId": "7fb721bf-6ea8-4c9b-aee1-709883276fa9",
+              "retryable": true
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "shutdownService",
+          "wire_path": "/shutdown"
+        },
+        {
+          "decoder_operation": "shutdownService",
+          "exception": "ProjectBusyError",
+          "java_test_faults": [],
+          "operation": "shutdownService",
+          "surface": "high_level_sync",
+          "wire": {
+            "error": {
+              "code": "PROJECT_BUSY",
+              "details": {
+                "activeJobCount": 1,
+                "activeOperationCount": 0,
+                "jobs": [
+                  {
+                    "jobId": "bed5e711-74fc-46b6-a3ba-f969189e46c3",
+                    "state": "QUEUED",
+                    "type": "search-build-index"
+                  }
+                ],
+                "operations": []
+              },
+              "message": "Wait for or cancel active work before shutting down",
+              "requestId": "e594bc51-080a-416a-aa2c-2d1c6d73773f",
+              "retryable": true
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "shutdownService",
+          "wire_path": "/shutdown"
+        },
+        {
+          "decoder_operation": "shutdownService",
+          "exception": "ProjectBusyError",
+          "java_test_faults": [],
+          "operation": "shutdownService",
+          "surface": "high_level_async",
+          "wire": {
+            "error": {
+              "code": "PROJECT_BUSY",
+              "details": {
+                "activeJobCount": 1,
+                "activeOperationCount": 0,
+                "jobs": [
+                  {
+                    "jobId": "301115f7-e781-460e-bcf5-ff0dd5598b1b",
+                    "state": "QUEUED",
+                    "type": "search-build-index"
+                  }
+                ],
+                "operations": []
+              },
+              "message": "Wait for or cancel active work before shutting down",
+              "requestId": "a23fb9cc-83b9-4b3f-a521-d2e0b6e5b078",
+              "retryable": true
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "shutdownService",
+          "wire_path": "/shutdown"
+        }
+      ],
+      "surfaces": {
+        "generated_async": true,
+        "generated_sync": true,
+        "high_level_async": true,
+        "high_level_sync": true,
+        "raw_http": true
+      }
+    },
+    "PROJECT_LOAD_FAILED": {
+      "detailsVerified": true,
+      "httpStatuses": [
+        503
+      ],
+      "requestIdsVerified": true,
+      "scenarios": [
+        {
+          "decoder_operation": null,
+          "exception": null,
+          "java_test_faults": [
+            "startup"
+          ],
+          "operation": "getProject",
+          "surface": "raw_http",
+          "wire": {
+            "error": {
+              "code": "PROJECT_LOAD_FAILED",
+              "details": null,
+              "message": "Project initialization failed (IllegalStateException); check the configured project and input files",
+              "requestId": "efdf8191-cd90-4bec-acf5-0be3ad315a3b",
+              "retryable": false
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "getProject",
+          "wire_path": "/project"
+        },
+        {
+          "decoder_operation": "getProject",
+          "exception": null,
+          "java_test_faults": [
+            "startup"
+          ],
+          "operation": "getProject",
+          "surface": "generated_sync",
+          "wire": {
+            "error": {
+              "code": "PROJECT_LOAD_FAILED",
+              "details": null,
+              "message": "Project initialization failed (IllegalStateException); check the configured project and input files",
+              "requestId": "0d0142a0-7f19-4721-94b6-250ddbe750a4",
+              "retryable": false
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "getProject",
+          "wire_path": "/project"
+        },
+        {
+          "decoder_operation": "getProject",
+          "exception": null,
+          "java_test_faults": [
+            "startup"
+          ],
+          "operation": "getProject",
+          "surface": "generated_async",
+          "wire": {
+            "error": {
+              "code": "PROJECT_LOAD_FAILED",
+              "details": null,
+              "message": "Project initialization failed (IllegalStateException); check the configured project and input files",
+              "requestId": "c6789701-1a9b-4c7e-817d-94946fb3003d",
+              "retryable": false
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "getProject",
+          "wire_path": "/project"
+        },
+        {
+          "decoder_operation": "getProject",
+          "exception": "ProjectLoadFailedError",
+          "java_test_faults": [
+            "startup"
+          ],
+          "operation": "getProject",
+          "surface": "high_level_sync",
+          "wire": {
+            "error": {
+              "code": "PROJECT_LOAD_FAILED",
+              "details": null,
+              "message": "Project initialization failed (IllegalStateException); check the configured project and input files",
+              "requestId": "c9a59a81-9b83-4cc9-9cdd-883de4ede844",
+              "retryable": false
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "getProject",
+          "wire_path": "/project"
+        },
+        {
+          "decoder_operation": "getProject",
+          "exception": "ProjectLoadFailedError",
+          "java_test_faults": [
+            "startup"
+          ],
+          "operation": "getProject",
+          "surface": "high_level_async",
+          "wire": {
+            "error": {
+              "code": "PROJECT_LOAD_FAILED",
+              "details": null,
+              "message": "Project initialization failed (IllegalStateException); check the configured project and input files",
+              "requestId": "16a164ea-9829-490b-b2da-4ecce7019564",
+              "retryable": false
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "getProject",
+          "wire_path": "/project"
+        }
+      ],
+      "surfaces": {
+        "generated_async": true,
+        "generated_sync": true,
+        "high_level_async": true,
+        "high_level_sync": true,
+        "raw_http": true
+      }
+    },
+    "PROJECT_NOT_READY": {
+      "detailsVerified": true,
+      "httpStatuses": [
+        503
+      ],
+      "requestIdsVerified": true,
+      "scenarios": [
+        {
+          "decoder_operation": null,
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "getProject",
+          "surface": "raw_http",
+          "wire": {
+            "error": {
+              "code": "PROJECT_NOT_READY",
+              "details": null,
+              "message": "The fixed project is still loading; inspect GET /api/v1/status for lifecycle details",
+              "requestId": "fbffeac7-52ae-4a48-bd41-cf7bd74cbeff",
+              "retryable": true
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "getProject",
+          "wire_path": "/project"
+        },
+        {
+          "decoder_operation": "getProject",
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "getProject",
+          "surface": "generated_sync",
+          "wire": {
+            "error": {
+              "code": "PROJECT_NOT_READY",
+              "details": null,
+              "message": "The fixed project is still loading; inspect GET /api/v1/status for lifecycle details",
+              "requestId": "88f4c516-32d1-4d62-9979-0fbd86b3e0fa",
+              "retryable": true
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "getProject",
+          "wire_path": "/project"
+        },
+        {
+          "decoder_operation": "getProject",
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "getProject",
+          "surface": "generated_async",
+          "wire": {
+            "error": {
+              "code": "PROJECT_NOT_READY",
+              "details": null,
+              "message": "The fixed project is still loading; inspect GET /api/v1/status for lifecycle details",
+              "requestId": "9112f442-949e-445d-af16-cb2cc11b20d9",
+              "retryable": true
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "getProject",
+          "wire_path": "/project"
+        },
+        {
+          "decoder_operation": "getProject",
+          "exception": "ProjectNotReadyError",
+          "java_test_faults": [],
+          "operation": "getProject",
+          "surface": "high_level_sync",
+          "wire": {
+            "error": {
+              "code": "PROJECT_NOT_READY",
+              "details": null,
+              "message": "The fixed project is still loading; inspect GET /api/v1/status for lifecycle details",
+              "requestId": "54c3b788-c1cb-4377-b7bc-6d4ba232ddb7",
+              "retryable": true
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "getProject",
+          "wire_path": "/project"
+        },
+        {
+          "decoder_operation": "getProject",
+          "exception": "ProjectNotReadyError",
+          "java_test_faults": [],
+          "operation": "getProject",
+          "surface": "high_level_async",
+          "wire": {
+            "error": {
+              "code": "PROJECT_NOT_READY",
+              "details": null,
+              "message": "The fixed project is still loading; inspect GET /api/v1/status for lifecycle details",
+              "requestId": "ea6ab95f-cfc8-467a-ae12-d9c66700f9f3",
+              "retryable": true
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "getProject",
+          "wire_path": "/project"
+        }
+      ],
+      "surfaces": {
+        "generated_async": true,
+        "generated_sync": true,
+        "high_level_async": true,
+        "high_level_sync": true,
+        "raw_http": true
+      }
+    },
+    "RESOURCE_LIMIT": {
+      "detailsVerified": true,
+      "httpStatuses": [
+        429
+      ],
+      "requestIdsVerified": true,
+      "scenarios": [
+        {
+          "decoder_operation": null,
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "search",
+          "surface": "raw_http",
+          "wire": {
+            "error": {
+              "code": "RESOURCE_LIMIT",
+              "details": null,
+              "message": "REGEX expression exceeds 256 characters",
+              "requestId": "4cd04b62-d37c-4e9c-9f31-67378c9be8ec",
+              "retryable": true
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "search",
+          "wire_path": "/search"
+        },
+        {
+          "decoder_operation": "search",
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "search",
+          "surface": "generated_sync",
+          "wire": {
+            "error": {
+              "code": "RESOURCE_LIMIT",
+              "details": null,
+              "message": "REGEX expression exceeds 256 characters",
+              "requestId": "62f6b126-71b5-41e9-a68f-4a96541a7be6",
+              "retryable": true
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "search",
+          "wire_path": "/search"
+        },
+        {
+          "decoder_operation": "search",
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "search",
+          "surface": "generated_async",
+          "wire": {
+            "error": {
+              "code": "RESOURCE_LIMIT",
+              "details": null,
+              "message": "REGEX expression exceeds 256 characters",
+              "requestId": "c78a1cb3-ff40-4737-8322-11350ac3c2f2",
+              "retryable": true
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "search",
+          "wire_path": "/search"
+        },
+        {
+          "decoder_operation": "search",
+          "exception": "ResourceLimitError",
+          "java_test_faults": [],
+          "operation": "search",
+          "surface": "high_level_sync",
+          "wire": {
+            "error": {
+              "code": "RESOURCE_LIMIT",
+              "details": null,
+              "message": "REGEX expression exceeds 256 characters",
+              "requestId": "306dab89-d334-45da-b8b5-d0a6902b17cd",
+              "retryable": true
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "search",
+          "wire_path": "/search"
+        },
+        {
+          "decoder_operation": "search",
+          "exception": "ResourceLimitError",
+          "java_test_faults": [],
+          "operation": "search",
+          "surface": "high_level_async",
+          "wire": {
+            "error": {
+              "code": "RESOURCE_LIMIT",
+              "details": null,
+              "message": "REGEX expression exceeds 256 characters",
+              "requestId": "e48aafa7-0a2d-4619-b198-8043b9c2ff57",
+              "retryable": true
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "search",
+          "wire_path": "/search"
+        }
+      ],
+      "surfaces": {
+        "generated_async": true,
+        "generated_sync": true,
+        "high_level_async": true,
+        "high_level_sync": true,
+        "raw_http": true
+      }
+    },
+    "SERVICE_SHUTTING_DOWN": {
+      "detailsVerified": true,
+      "httpStatuses": [
+        503
+      ],
+      "requestIdsVerified": true,
+      "scenarios": [
+        {
+          "decoder_operation": null,
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "getProject",
+          "surface": "raw_http",
+          "wire": {
+            "error": {
+              "code": "SERVICE_SHUTTING_DOWN",
+              "details": null,
+              "message": "The service is shutting down",
+              "requestId": "e6bb0ed6-6ef2-4ff7-97b3-bd20503f9840",
+              "retryable": false
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "getProject",
+          "wire_path": "/project"
+        },
+        {
+          "decoder_operation": "getProject",
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "getProject",
+          "surface": "generated_sync",
+          "wire": {
+            "error": {
+              "code": "SERVICE_SHUTTING_DOWN",
+              "details": null,
+              "message": "The service is shutting down",
+              "requestId": "95de1a39-b38d-423a-bc56-4d64c6386439",
+              "retryable": false
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "getProject",
+          "wire_path": "/project"
+        },
+        {
+          "decoder_operation": "getProject",
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "getProject",
+          "surface": "generated_async",
+          "wire": {
+            "error": {
+              "code": "SERVICE_SHUTTING_DOWN",
+              "details": null,
+              "message": "The service is shutting down",
+              "requestId": "c8bbfa82-e34e-49f6-ac62-8a8ea6fac0da",
+              "retryable": false
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "getProject",
+          "wire_path": "/project"
+        },
+        {
+          "decoder_operation": "getProject",
+          "exception": "ServiceShuttingDownError",
+          "java_test_faults": [],
+          "operation": "getProject",
+          "surface": "high_level_sync",
+          "wire": {
+            "error": {
+              "code": "SERVICE_SHUTTING_DOWN",
+              "details": null,
+              "message": "The service is shutting down",
+              "requestId": "64b931a4-8eb5-46fb-a78d-30ea730305d7",
+              "retryable": false
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "getProject",
+          "wire_path": "/project"
+        },
+        {
+          "decoder_operation": "getProject",
+          "exception": "ServiceShuttingDownError",
+          "java_test_faults": [],
+          "operation": "getProject",
+          "surface": "high_level_async",
+          "wire": {
+            "error": {
+              "code": "SERVICE_SHUTTING_DOWN",
+              "details": null,
+              "message": "The service is shutting down",
+              "requestId": "dbfbb289-4281-44f4-b414-0a5256bb5d6c",
+              "retryable": false
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "getProject",
+          "wire_path": "/project"
+        }
+      ],
+      "surfaces": {
+        "generated_async": true,
+        "generated_sync": true,
+        "high_level_async": true,
+        "high_level_sync": true,
+        "raw_http": true
+      }
+    },
+    "STALE_REVISION": {
+      "detailsVerified": true,
+      "httpStatuses": [
+        409
+      ],
+      "requestIdsVerified": true,
+      "scenarios": [
+        {
+          "decoder_operation": null,
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "listClasses",
+          "surface": "raw_http",
+          "wire": {
+            "error": {
+              "code": "STALE_REVISION",
+              "details": null,
+              "message": "Class cursor belongs to a previous project snapshot",
+              "requestId": "1e7bb1db-7cca-450d-9643-520f05ac53a6",
+              "retryable": false
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "listClasses",
+          "wire_path": "/classes"
+        },
+        {
+          "decoder_operation": "listClasses",
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "listClasses",
+          "surface": "generated_sync",
+          "wire": {
+            "error": {
+              "code": "STALE_REVISION",
+              "details": null,
+              "message": "Class cursor belongs to a previous project snapshot",
+              "requestId": "feb803a3-8f80-475d-989f-779fb1d297b4",
+              "retryable": false
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "listClasses",
+          "wire_path": "/classes"
+        },
+        {
+          "decoder_operation": "listClasses",
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "listClasses",
+          "surface": "generated_async",
+          "wire": {
+            "error": {
+              "code": "STALE_REVISION",
+              "details": null,
+              "message": "Class cursor belongs to a previous project snapshot",
+              "requestId": "a32f0f1a-9f1a-4b06-b134-db4b5b392bba",
+              "retryable": false
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "listClasses",
+          "wire_path": "/classes"
+        },
+        {
+          "decoder_operation": "listClasses",
+          "exception": "StaleRevisionError",
+          "java_test_faults": [],
+          "operation": "listClasses",
+          "surface": "high_level_sync",
+          "wire": {
+            "error": {
+              "code": "STALE_REVISION",
+              "details": null,
+              "message": "Class cursor belongs to a previous project snapshot",
+              "requestId": "76cd54bb-5a41-4fe8-b101-84ae8d39864a",
+              "retryable": false
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "listClasses",
+          "wire_path": "/classes"
+        },
+        {
+          "decoder_operation": "listClasses",
+          "exception": "StaleRevisionError",
+          "java_test_faults": [],
+          "operation": "listClasses",
+          "surface": "high_level_async",
+          "wire": {
+            "error": {
+              "code": "STALE_REVISION",
+              "details": null,
+              "message": "Class cursor belongs to a previous project snapshot",
+              "requestId": "fc98fa18-5f66-490d-8fa3-9462c5a73b41",
+              "retryable": false
+            }
+          },
+          "wire_method": "GET",
+          "wire_operation": "listClasses",
+          "wire_path": "/classes"
+        }
+      ],
+      "surfaces": {
+        "generated_async": true,
+        "generated_sync": true,
+        "high_level_async": true,
+        "high_level_sync": true,
+        "raw_http": true
+      }
+    },
+    "UNSUPPORTED_CAPABILITY": {
+      "detailsVerified": true,
+      "httpStatuses": [
+        422
+      ],
+      "requestIdsVerified": true,
+      "scenarios": [
+        {
+          "decoder_operation": null,
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "applyEditBatch",
+          "surface": "raw_http",
+          "wire": {
+            "error": {
+              "code": "UNSUPPORTED_CAPABILITY",
+              "details": {
+                "itemErrors": [
+                  {
+                    "code": "UNSUPPORTED_CAPABILITY",
+                    "index": 0,
+                    "message": "Parameter has no unique persistable declaration in this snapshot"
+                  }
+                ]
+              },
+              "message": "Parameter has no unique persistable declaration in this snapshot",
+              "requestId": "7f40f7e2-f44c-465e-9bb2-5ade47663188",
+              "retryable": false
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "applyEditBatch",
+          "wire_path": "/edits/batch"
+        },
+        {
+          "decoder_operation": "applyEditBatch",
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "applyEditBatch",
+          "surface": "generated_sync",
+          "wire": {
+            "error": {
+              "code": "UNSUPPORTED_CAPABILITY",
+              "details": {
+                "itemErrors": [
+                  {
+                    "code": "UNSUPPORTED_CAPABILITY",
+                    "index": 0,
+                    "message": "Parameter has no unique persistable declaration in this snapshot"
+                  }
+                ]
+              },
+              "message": "Parameter has no unique persistable declaration in this snapshot",
+              "requestId": "0e504542-b141-4f13-8d59-55441d6b77f8",
+              "retryable": false
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "applyEditBatch",
+          "wire_path": "/edits/batch"
+        },
+        {
+          "decoder_operation": "applyEditBatch",
+          "exception": null,
+          "java_test_faults": [],
+          "operation": "applyEditBatch",
+          "surface": "generated_async",
+          "wire": {
+            "error": {
+              "code": "UNSUPPORTED_CAPABILITY",
+              "details": {
+                "itemErrors": [
+                  {
+                    "code": "UNSUPPORTED_CAPABILITY",
+                    "index": 0,
+                    "message": "Parameter has no unique persistable declaration in this snapshot"
+                  }
+                ]
+              },
+              "message": "Parameter has no unique persistable declaration in this snapshot",
+              "requestId": "ca6b8104-b80c-493e-9551-5197482ad2b5",
+              "retryable": false
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "applyEditBatch",
+          "wire_path": "/edits/batch"
+        },
+        {
+          "decoder_operation": "applyEditBatch",
+          "exception": "UnsupportedCapabilityError",
+          "java_test_faults": [],
+          "operation": "applyEditBatch",
+          "surface": "high_level_sync",
+          "wire": {
+            "error": {
+              "code": "UNSUPPORTED_CAPABILITY",
+              "details": {
+                "itemErrors": [
+                  {
+                    "code": "UNSUPPORTED_CAPABILITY",
+                    "index": 0,
+                    "message": "Parameter has no unique persistable declaration in this snapshot"
+                  }
+                ]
+              },
+              "message": "Parameter has no unique persistable declaration in this snapshot",
+              "requestId": "50d473d7-ad12-46a5-94ad-7421b6664c90",
+              "retryable": false
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "applyEditBatch",
+          "wire_path": "/edits/batch"
+        },
+        {
+          "decoder_operation": "applyEditBatch",
+          "exception": "UnsupportedCapabilityError",
+          "java_test_faults": [],
+          "operation": "applyEditBatch",
+          "surface": "high_level_async",
+          "wire": {
+            "error": {
+              "code": "UNSUPPORTED_CAPABILITY",
+              "details": {
+                "itemErrors": [
+                  {
+                    "code": "UNSUPPORTED_CAPABILITY",
+                    "index": 0,
+                    "message": "Parameter has no unique persistable declaration in this snapshot"
+                  }
+                ]
+              },
+              "message": "Parameter has no unique persistable declaration in this snapshot",
+              "requestId": "1999f654-2999-4682-aa9e-754c6ebbdb8f",
+              "retryable": false
+            }
+          },
+          "wire_method": "POST",
+          "wire_operation": "applyEditBatch",
+          "wire_path": "/edits/batch"
+        }
+      ],
+      "surfaces": {
+        "generated_async": true,
+        "generated_sync": true,
+        "high_level_async": true,
+        "high_level_sync": true,
+        "raw_http": true
+      }
+    }
+  },
+  "source_sha256": "20b93c16b32e52b711ef648a9e1eb320f63de4ee1bac756288edbaf529851e18",
+  "primary_interpreter": "3.11",
+  "additional_interpreter_evidence": {
+    "3.14": {
+      "head": "ea2560abbbc237ffd48268899b68a5a6b0237e65",
+      "records": {
+        "CANCELLATION_PENDING": {
+          "detailsVerified": true,
+          "httpStatuses": [
+            409
+          ],
+          "requestIdsVerified": true,
+          "scenarios": [
+            {
+              "decoder_operation": null,
+              "exception": null,
+              "java_test_faults": [
+                "cancel-pending"
+              ],
+              "operation": "getProject",
+              "surface": "raw_http",
+              "wire": {
+                "error": {
+                  "code": "CANCELLATION_PENDING",
+                  "details": {
+                    "jobId": "9722f75b-54fa-4b9b-9306-7d617e65b9ed",
+                    "state": "CANCELLING"
+                  },
+                  "message": "Owned release-test cancellation is pending",
+                  "requestId": "b1ebf8e0-8c32-441a-bfa2-a7b36ccc10d8",
+                  "retryable": true
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "cancelJob",
+              "wire_path": "/jobs/9722f75b-54fa-4b9b-9306-7d617e65b9ed/cancel"
+            },
+            {
+              "decoder_operation": "getProject",
+              "exception": null,
+              "java_test_faults": [
+                "cancel-pending"
+              ],
+              "operation": "getProject",
+              "surface": "generated_sync",
+              "wire": {
+                "error": {
+                  "code": "CANCELLATION_PENDING",
+                  "details": {
+                    "jobId": "91445be5-e88d-4357-9d4f-34f679b79394",
+                    "state": "CANCELLING"
+                  },
+                  "message": "Owned release-test cancellation is pending",
+                  "requestId": "84349710-631c-4c9c-a6b7-d9b58b2f4f84",
+                  "retryable": true
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "cancelJob",
+              "wire_path": "/jobs/91445be5-e88d-4357-9d4f-34f679b79394/cancel"
+            },
+            {
+              "decoder_operation": "getProject",
+              "exception": null,
+              "java_test_faults": [
+                "cancel-pending"
+              ],
+              "operation": "getProject",
+              "surface": "generated_async",
+              "wire": {
+                "error": {
+                  "code": "CANCELLATION_PENDING",
+                  "details": {
+                    "jobId": "aba45575-31d6-45a8-8feb-ba54c0f726f2",
+                    "state": "CANCELLING"
+                  },
+                  "message": "Owned release-test cancellation is pending",
+                  "requestId": "62f09188-01de-4ac3-b0ee-560a820cfdaf",
+                  "retryable": true
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "cancelJob",
+              "wire_path": "/jobs/aba45575-31d6-45a8-8feb-ba54c0f726f2/cancel"
+            },
+            {
+              "decoder_operation": "getProject",
+              "exception": "CancellationPendingError",
+              "java_test_faults": [
+                "cancel-pending"
+              ],
+              "operation": "getProject",
+              "surface": "high_level_sync",
+              "wire": {
+                "error": {
+                  "code": "CANCELLATION_PENDING",
+                  "details": {
+                    "jobId": "5b11a194-5379-4675-8786-4be37374e034",
+                    "state": "CANCELLING"
+                  },
+                  "message": "Owned release-test cancellation is pending",
+                  "requestId": "9f406d9d-991b-4f55-bdae-3f78e00022a8",
+                  "retryable": true
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "cancelJob",
+              "wire_path": "/jobs/5b11a194-5379-4675-8786-4be37374e034/cancel"
+            },
+            {
+              "decoder_operation": "getProject",
+              "exception": "CancellationPendingError",
+              "java_test_faults": [
+                "cancel-pending"
+              ],
+              "operation": "getProject",
+              "surface": "high_level_async",
+              "wire": {
+                "error": {
+                  "code": "CANCELLATION_PENDING",
+                  "details": {
+                    "jobId": "8da0aafa-d4e5-4ebd-8311-31a47fabeda3",
+                    "state": "CANCELLING"
+                  },
+                  "message": "Owned release-test cancellation is pending",
+                  "requestId": "2f4b87af-46dd-4b06-b16f-058ccfe36087",
+                  "retryable": true
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "cancelJob",
+              "wire_path": "/jobs/8da0aafa-d4e5-4ebd-8311-31a47fabeda3/cancel"
+            }
+          ],
+          "surfaces": {
+            "generated_async": true,
+            "generated_sync": true,
+            "high_level_async": true,
+            "high_level_sync": true,
+            "raw_http": true
+          }
+        },
+        "EVENT_HISTORY_EXPIRED": {
+          "detailsVerified": true,
+          "httpStatuses": [
+            409
+          ],
+          "requestIdsVerified": true,
+          "scenarios": [
+            {
+              "decoder_operation": null,
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "getJobEvents",
+              "surface": "raw_http",
+              "wire": {
+                "error": {
+                  "code": "EVENT_HISTORY_EXPIRED",
+                  "details": null,
+                  "message": "Requested job event history has expired; poll and reconnect without Last-Event-ID",
+                  "requestId": "22aa548e-f85f-49e2-84c4-2d9e9f305c8e",
+                  "retryable": false
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "getJobEvents",
+              "wire_path": "/jobs/37a605c8-3863-4b19-9f9d-a36591c8aa1a/events"
+            },
+            {
+              "decoder_operation": "getJobEvents",
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "getJobEvents",
+              "surface": "generated_sync",
+              "wire": {
+                "error": {
+                  "code": "EVENT_HISTORY_EXPIRED",
+                  "details": null,
+                  "message": "Requested job event history has expired; poll and reconnect without Last-Event-ID",
+                  "requestId": "752b123b-5539-4bf8-ae63-13ac7e80c00d",
+                  "retryable": false
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "getJobEvents",
+              "wire_path": "/jobs/29a86b98-4da9-49e1-bee9-6aa8f2882e69/events"
+            },
+            {
+              "decoder_operation": "getJobEvents",
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "getJobEvents",
+              "surface": "generated_async",
+              "wire": {
+                "error": {
+                  "code": "EVENT_HISTORY_EXPIRED",
+                  "details": null,
+                  "message": "Requested job event history has expired; poll and reconnect without Last-Event-ID",
+                  "requestId": "8f4a293f-2cc1-427f-bbed-d3352dc932d3",
+                  "retryable": false
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "getJobEvents",
+              "wire_path": "/jobs/69613e30-7901-4e0d-a0b9-98716518902f/events"
+            },
+            {
+              "decoder_operation": "getJobEvents",
+              "exception": "EventHistoryExpiredError",
+              "java_test_faults": [],
+              "operation": "getJobEvents",
+              "surface": "high_level_sync",
+              "wire": {
+                "error": {
+                  "code": "EVENT_HISTORY_EXPIRED",
+                  "details": null,
+                  "message": "Requested job event history has expired; poll and reconnect without Last-Event-ID",
+                  "requestId": "7392660c-4101-4abf-aa43-8126d78f85f3",
+                  "retryable": false
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "getJobEvents",
+              "wire_path": "/jobs/ab187e78-e953-480d-bbb5-f443bf7a3795/events"
+            },
+            {
+              "decoder_operation": "getJobEvents",
+              "exception": "EventHistoryExpiredError",
+              "java_test_faults": [],
+              "operation": "getJobEvents",
+              "surface": "high_level_async",
+              "wire": {
+                "error": {
+                  "code": "EVENT_HISTORY_EXPIRED",
+                  "details": null,
+                  "message": "Requested job event history has expired; poll and reconnect without Last-Event-ID",
+                  "requestId": "607be94f-7c6f-4050-94e3-835f29543076",
+                  "retryable": false
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "getJobEvents",
+              "wire_path": "/jobs/246e20bc-3329-4552-8b9c-1d5a6daceb56/events"
+            }
+          ],
+          "surfaces": {
+            "generated_async": true,
+            "generated_sync": true,
+            "high_level_async": true,
+            "high_level_sync": true,
+            "raw_http": true
+          }
+        },
+        "EXTERNAL_MODIFICATION_CONFLICT": {
+          "detailsVerified": true,
+          "httpStatuses": [
+            409
+          ],
+          "requestIdsVerified": true,
+          "scenarios": [
+            {
+              "decoder_operation": null,
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "saveProject",
+              "surface": "raw_http",
+              "wire": {
+                "error": {
+                  "code": "EXTERNAL_MODIFICATION_CONFLICT",
+                  "details": null,
+                  "message": "Native project or mappings changed on disk; pending edits remain in memory",
+                  "requestId": "19abb4d2-4cb6-4c87-bc9f-4fefec242da1",
+                  "retryable": false
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "saveProject",
+              "wire_path": "/project/save"
+            },
+            {
+              "decoder_operation": "saveProject",
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "saveProject",
+              "surface": "generated_sync",
+              "wire": {
+                "error": {
+                  "code": "EXTERNAL_MODIFICATION_CONFLICT",
+                  "details": null,
+                  "message": "Native project or mappings changed on disk; pending edits remain in memory",
+                  "requestId": "4cfa7cc4-3ef5-4632-b94b-550d774f1622",
+                  "retryable": false
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "saveProject",
+              "wire_path": "/project/save"
+            },
+            {
+              "decoder_operation": "saveProject",
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "saveProject",
+              "surface": "generated_async",
+              "wire": {
+                "error": {
+                  "code": "EXTERNAL_MODIFICATION_CONFLICT",
+                  "details": null,
+                  "message": "Native project or mappings changed on disk; pending edits remain in memory",
+                  "requestId": "b17263a4-168a-4800-972e-f4fc254daa70",
+                  "retryable": false
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "saveProject",
+              "wire_path": "/project/save"
+            },
+            {
+              "decoder_operation": "saveProject",
+              "exception": "ExternalModificationConflictError",
+              "java_test_faults": [],
+              "operation": "saveProject",
+              "surface": "high_level_sync",
+              "wire": {
+                "error": {
+                  "code": "EXTERNAL_MODIFICATION_CONFLICT",
+                  "details": null,
+                  "message": "Native project or mappings changed on disk; pending edits remain in memory",
+                  "requestId": "25f7dbf2-abd9-41ce-99bb-1c230052f9ae",
+                  "retryable": false
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "saveProject",
+              "wire_path": "/project/save"
+            },
+            {
+              "decoder_operation": "saveProject",
+              "exception": "ExternalModificationConflictError",
+              "java_test_faults": [],
+              "operation": "saveProject",
+              "surface": "high_level_async",
+              "wire": {
+                "error": {
+                  "code": "EXTERNAL_MODIFICATION_CONFLICT",
+                  "details": null,
+                  "message": "Native project or mappings changed on disk; pending edits remain in memory",
+                  "requestId": "ad1e3214-ce40-44e3-959c-907f6150348a",
+                  "retryable": false
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "saveProject",
+              "wire_path": "/project/save"
+            }
+          ],
+          "surfaces": {
+            "generated_async": true,
+            "generated_sync": true,
+            "high_level_async": true,
+            "high_level_sync": true,
+            "raw_http": true
+          }
+        },
+        "INCOMPLETE_ANALYSIS": {
+          "detailsVerified": true,
+          "httpStatuses": [
+            409
+          ],
+          "requestIdsVerified": true,
+          "scenarios": [
+            {
+              "decoder_operation": null,
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "queryReferences",
+              "surface": "raw_http",
+              "wire": {
+                "error": {
+                  "code": "INCOMPLETE_ANALYSIS",
+                  "details": {
+                    "diagnostics": [
+                      "CALL is a distinct Jadx-reported method pair, not an invoke count or dynamic dispatch closure",
+                      "Usage graph may omit recursive, optimized, unresolved or discarded input relationships; coverage is not exhaustive",
+                      "FIELD_USE access direction, original bytecode offsets and per-input provenance are unavailable",
+                      "Source sites require matching original target, exact P4.2 token/range and enclosing caller metadata; absent sites are unavailable",
+                      "Only current primary settings are used; no native edits or save are performed"
+                    ]
+                  },
+                  "message": "Requested reference coverage is not proved complete",
+                  "requestId": "e3e13fda-55e3-4a85-ba79-18be60482edc",
+                  "retryable": false
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "queryReferences",
+              "wire_path": "/references/query"
+            },
+            {
+              "decoder_operation": "queryReferences",
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "queryReferences",
+              "surface": "generated_sync",
+              "wire": {
+                "error": {
+                  "code": "INCOMPLETE_ANALYSIS",
+                  "details": {
+                    "diagnostics": [
+                      "CALL is a distinct Jadx-reported method pair, not an invoke count or dynamic dispatch closure",
+                      "Usage graph may omit recursive, optimized, unresolved or discarded input relationships; coverage is not exhaustive",
+                      "FIELD_USE access direction, original bytecode offsets and per-input provenance are unavailable",
+                      "Source sites require matching original target, exact P4.2 token/range and enclosing caller metadata; absent sites are unavailable",
+                      "Only current primary settings are used; no native edits or save are performed"
+                    ]
+                  },
+                  "message": "Requested reference coverage is not proved complete",
+                  "requestId": "9ccd0ecc-478e-447b-b917-8884fb311938",
+                  "retryable": false
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "queryReferences",
+              "wire_path": "/references/query"
+            },
+            {
+              "decoder_operation": "queryReferences",
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "queryReferences",
+              "surface": "generated_async",
+              "wire": {
+                "error": {
+                  "code": "INCOMPLETE_ANALYSIS",
+                  "details": {
+                    "diagnostics": [
+                      "CALL is a distinct Jadx-reported method pair, not an invoke count or dynamic dispatch closure",
+                      "Usage graph may omit recursive, optimized, unresolved or discarded input relationships; coverage is not exhaustive",
+                      "FIELD_USE access direction, original bytecode offsets and per-input provenance are unavailable",
+                      "Source sites require matching original target, exact P4.2 token/range and enclosing caller metadata; absent sites are unavailable",
+                      "Only current primary settings are used; no native edits or save are performed"
+                    ]
+                  },
+                  "message": "Requested reference coverage is not proved complete",
+                  "requestId": "a79845af-21b9-4df8-a7fd-3e2ec07a42b2",
+                  "retryable": false
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "queryReferences",
+              "wire_path": "/references/query"
+            },
+            {
+              "decoder_operation": "queryReferences",
+              "exception": "IncompleteAnalysisError",
+              "java_test_faults": [],
+              "operation": "queryReferences",
+              "surface": "high_level_sync",
+              "wire": {
+                "error": {
+                  "code": "INCOMPLETE_ANALYSIS",
+                  "details": {
+                    "diagnostics": [
+                      "CALL is a distinct Jadx-reported method pair, not an invoke count or dynamic dispatch closure",
+                      "Usage graph may omit recursive, optimized, unresolved or discarded input relationships; coverage is not exhaustive",
+                      "FIELD_USE access direction, original bytecode offsets and per-input provenance are unavailable",
+                      "Source sites require matching original target, exact P4.2 token/range and enclosing caller metadata; absent sites are unavailable",
+                      "Only current primary settings are used; no native edits or save are performed"
+                    ]
+                  },
+                  "message": "Requested reference coverage is not proved complete",
+                  "requestId": "324533e3-03d6-4541-a075-164ac72259e8",
+                  "retryable": false
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "queryReferences",
+              "wire_path": "/references/query"
+            },
+            {
+              "decoder_operation": "queryReferences",
+              "exception": "IncompleteAnalysisError",
+              "java_test_faults": [],
+              "operation": "queryReferences",
+              "surface": "high_level_async",
+              "wire": {
+                "error": {
+                  "code": "INCOMPLETE_ANALYSIS",
+                  "details": {
+                    "diagnostics": [
+                      "CALL is a distinct Jadx-reported method pair, not an invoke count or dynamic dispatch closure",
+                      "Usage graph may omit recursive, optimized, unresolved or discarded input relationships; coverage is not exhaustive",
+                      "FIELD_USE access direction, original bytecode offsets and per-input provenance are unavailable",
+                      "Source sites require matching original target, exact P4.2 token/range and enclosing caller metadata; absent sites are unavailable",
+                      "Only current primary settings are used; no native edits or save are performed"
+                    ]
+                  },
+                  "message": "Requested reference coverage is not proved complete",
+                  "requestId": "4ad2a1c9-8ad7-4d6c-bee0-5a977f110895",
+                  "retryable": false
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "queryReferences",
+              "wire_path": "/references/query"
+            }
+          ],
+          "surfaces": {
+            "generated_async": true,
+            "generated_sync": true,
+            "high_level_async": true,
+            "high_level_sync": true,
+            "raw_http": true
+          }
+        },
+        "INPUT_SECURITY_REJECTION": {
+          "detailsVerified": true,
+          "httpStatuses": [
+            403
+          ],
+          "requestIdsVerified": true,
+          "scenarios": [
+            {
+              "decoder_operation": null,
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "importMappings",
+              "surface": "raw_http",
+              "wire": {
+                "error": {
+                  "code": "INPUT_SECURITY_REJECTION",
+                  "details": null,
+                  "message": "Mapping source is outside configured allowed roots",
+                  "requestId": "47c75a54-d2e7-4983-8412-110b757e9410",
+                  "retryable": false
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "importMappings",
+              "wire_path": "/project/mappings/import"
+            },
+            {
+              "decoder_operation": "importMappings",
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "importMappings",
+              "surface": "generated_sync",
+              "wire": {
+                "error": {
+                  "code": "INPUT_SECURITY_REJECTION",
+                  "details": null,
+                  "message": "Mapping source is outside configured allowed roots",
+                  "requestId": "1d0139bb-38ed-4cb1-b4b0-692e8604eb75",
+                  "retryable": false
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "importMappings",
+              "wire_path": "/project/mappings/import"
+            },
+            {
+              "decoder_operation": "importMappings",
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "importMappings",
+              "surface": "generated_async",
+              "wire": {
+                "error": {
+                  "code": "INPUT_SECURITY_REJECTION",
+                  "details": null,
+                  "message": "Mapping source is outside configured allowed roots",
+                  "requestId": "0500e7ac-b76a-4adc-ae17-0b0f558f94c1",
+                  "retryable": false
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "importMappings",
+              "wire_path": "/project/mappings/import"
+            },
+            {
+              "decoder_operation": "importMappings",
+              "exception": "InputSecurityRejectionError",
+              "java_test_faults": [],
+              "operation": "importMappings",
+              "surface": "high_level_sync",
+              "wire": {
+                "error": {
+                  "code": "INPUT_SECURITY_REJECTION",
+                  "details": null,
+                  "message": "Mapping source is outside configured allowed roots",
+                  "requestId": "59954bb3-5ec2-44d0-b268-07bb9c22fe99",
+                  "retryable": false
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "importMappings",
+              "wire_path": "/project/mappings/import"
+            },
+            {
+              "decoder_operation": "importMappings",
+              "exception": "InputSecurityRejectionError",
+              "java_test_faults": [],
+              "operation": "importMappings",
+              "surface": "high_level_async",
+              "wire": {
+                "error": {
+                  "code": "INPUT_SECURITY_REJECTION",
+                  "details": null,
+                  "message": "Mapping source is outside configured allowed roots",
+                  "requestId": "cd61647a-70f7-4e5f-8aad-727b5324c8e1",
+                  "retryable": false
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "importMappings",
+              "wire_path": "/project/mappings/import"
+            }
+          ],
+          "surfaces": {
+            "generated_async": true,
+            "generated_sync": true,
+            "high_level_async": true,
+            "high_level_sync": true,
+            "raw_http": true
+          }
+        },
+        "INTERNAL_ERROR": {
+          "detailsVerified": true,
+          "httpStatuses": [
+            500
+          ],
+          "requestIdsVerified": true,
+          "scenarios": [
+            {
+              "decoder_operation": null,
+              "exception": null,
+              "java_test_faults": [
+                "http-project",
+                "job"
+              ],
+              "operation": "getProject",
+              "surface": "raw_http",
+              "wire": {
+                "error": {
+                  "code": "INTERNAL_ERROR",
+                  "details": null,
+                  "message": "Owned release-test request failure",
+                  "requestId": "f65eddc2-559c-47e8-9e4d-e3c0b30da820",
+                  "retryable": false
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "getProject",
+              "wire_path": "/project"
+            },
+            {
+              "decoder_operation": "getProject",
+              "exception": null,
+              "java_test_faults": [
+                "http-project",
+                "job"
+              ],
+              "operation": "getProject",
+              "surface": "generated_sync",
+              "wire": {
+                "error": {
+                  "code": "INTERNAL_ERROR",
+                  "details": null,
+                  "message": "Owned release-test request failure",
+                  "requestId": "73c8495e-d46f-4c45-95ad-8eea6c021f4e",
+                  "retryable": false
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "getProject",
+              "wire_path": "/project"
+            },
+            {
+              "decoder_operation": "getProject",
+              "exception": null,
+              "java_test_faults": [
+                "http-project",
+                "job"
+              ],
+              "operation": "getProject",
+              "surface": "generated_async",
+              "wire": {
+                "error": {
+                  "code": "INTERNAL_ERROR",
+                  "details": null,
+                  "message": "Owned release-test request failure",
+                  "requestId": "c2ce23ec-3f1e-41df-af27-b3427d4e09ff",
+                  "retryable": false
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "getProject",
+              "wire_path": "/project"
+            },
+            {
+              "decoder_operation": "getProject",
+              "exception": "InternalServerError",
+              "java_test_faults": [
+                "http-project",
+                "job"
+              ],
+              "operation": "getProject",
+              "surface": "high_level_sync",
+              "wire": {
+                "error": {
+                  "code": "INTERNAL_ERROR",
+                  "details": null,
+                  "message": "Owned release-test request failure",
+                  "requestId": "6ebc5f12-2013-4144-b6d7-da5269b98f72",
+                  "retryable": false
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "getProject",
+              "wire_path": "/project"
+            },
+            {
+              "decoder_operation": "getProject",
+              "exception": "InternalServerError",
+              "java_test_faults": [
+                "http-project",
+                "job"
+              ],
+              "operation": "getProject",
+              "surface": "high_level_async",
+              "wire": {
+                "error": {
+                  "code": "INTERNAL_ERROR",
+                  "details": null,
+                  "message": "Owned release-test request failure",
+                  "requestId": "8ae50f01-7bb8-4adb-be3c-3a0712334d50",
+                  "retryable": false
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "getProject",
+              "wire_path": "/project"
+            }
+          ],
+          "surfaces": {
+            "generated_async": true,
+            "generated_sync": true,
+            "high_level_async": true,
+            "high_level_sync": true,
+            "raw_http": true
+          }
+        },
+        "INVALID_ENTITY_ID": {
+          "detailsVerified": true,
+          "httpStatuses": [
+            422
+          ],
+          "requestIdsVerified": true,
+          "scenarios": [
+            {
+              "decoder_operation": null,
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "applyEditBatch",
+              "surface": "raw_http",
+              "wire": {
+                "error": {
+                  "code": "INVALID_ENTITY_ID",
+                  "details": {
+                    "itemErrors": [
+                      {
+                        "code": "INVALID_ENTITY_ID",
+                        "index": 0,
+                        "message": "Native scoped rename identity is ambiguous"
+                      }
+                    ]
+                  },
+                  "message": "Native scoped rename identity is ambiguous",
+                  "requestId": "86c1dad3-b19c-4b57-9c98-caf985a8dccd",
+                  "retryable": false
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "applyEditBatch",
+              "wire_path": "/edits/batch"
+            },
+            {
+              "decoder_operation": "applyEditBatch",
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "applyEditBatch",
+              "surface": "generated_sync",
+              "wire": {
+                "error": {
+                  "code": "INVALID_ENTITY_ID",
+                  "details": {
+                    "itemErrors": [
+                      {
+                        "code": "INVALID_ENTITY_ID",
+                        "index": 0,
+                        "message": "Native scoped rename identity is ambiguous"
+                      }
+                    ]
+                  },
+                  "message": "Native scoped rename identity is ambiguous",
+                  "requestId": "ef848ac6-8936-440d-bc56-8377e911e010",
+                  "retryable": false
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "applyEditBatch",
+              "wire_path": "/edits/batch"
+            },
+            {
+              "decoder_operation": "applyEditBatch",
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "applyEditBatch",
+              "surface": "generated_async",
+              "wire": {
+                "error": {
+                  "code": "INVALID_ENTITY_ID",
+                  "details": {
+                    "itemErrors": [
+                      {
+                        "code": "INVALID_ENTITY_ID",
+                        "index": 0,
+                        "message": "Native scoped rename identity is ambiguous"
+                      }
+                    ]
+                  },
+                  "message": "Native scoped rename identity is ambiguous",
+                  "requestId": "d7f68e3a-295a-47e1-9cf7-88c4238f1765",
+                  "retryable": false
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "applyEditBatch",
+              "wire_path": "/edits/batch"
+            },
+            {
+              "decoder_operation": "applyEditBatch",
+              "exception": "InvalidEntityIdError",
+              "java_test_faults": [],
+              "operation": "applyEditBatch",
+              "surface": "high_level_sync",
+              "wire": {
+                "error": {
+                  "code": "INVALID_ENTITY_ID",
+                  "details": {
+                    "itemErrors": [
+                      {
+                        "code": "INVALID_ENTITY_ID",
+                        "index": 0,
+                        "message": "Native scoped rename identity is ambiguous"
+                      }
+                    ]
+                  },
+                  "message": "Native scoped rename identity is ambiguous",
+                  "requestId": "43c93651-fc1e-47ff-b79a-86540e8f63c6",
+                  "retryable": false
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "applyEditBatch",
+              "wire_path": "/edits/batch"
+            },
+            {
+              "decoder_operation": "applyEditBatch",
+              "exception": "InvalidEntityIdError",
+              "java_test_faults": [],
+              "operation": "applyEditBatch",
+              "surface": "high_level_async",
+              "wire": {
+                "error": {
+                  "code": "INVALID_ENTITY_ID",
+                  "details": {
+                    "itemErrors": [
+                      {
+                        "code": "INVALID_ENTITY_ID",
+                        "index": 0,
+                        "message": "Native scoped rename identity is ambiguous"
+                      }
+                    ]
+                  },
+                  "message": "Native scoped rename identity is ambiguous",
+                  "requestId": "ca008c04-f3f0-48fd-b334-7fbebc1a59a9",
+                  "retryable": false
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "applyEditBatch",
+              "wire_path": "/edits/batch"
+            }
+          ],
+          "surfaces": {
+            "generated_async": true,
+            "generated_sync": true,
+            "high_level_async": true,
+            "high_level_sync": true,
+            "raw_http": true
+          }
+        },
+        "INVALID_REQUEST": {
+          "detailsVerified": true,
+          "httpStatuses": [
+            400
+          ],
+          "requestIdsVerified": true,
+          "scenarios": [
+            {
+              "decoder_operation": null,
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "listClasses",
+              "surface": "raw_http",
+              "wire": {
+                "error": {
+                  "code": "INVALID_REQUEST",
+                  "details": null,
+                  "message": "pageSize must be 1..100",
+                  "requestId": "4d7adf8c-0698-486c-8357-21519ec4a426",
+                  "retryable": false
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "listClasses",
+              "wire_path": "/classes"
+            },
+            {
+              "decoder_operation": "listClasses",
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "listClasses",
+              "surface": "generated_sync",
+              "wire": {
+                "error": {
+                  "code": "INVALID_REQUEST",
+                  "details": null,
+                  "message": "pageSize must be 1..100",
+                  "requestId": "97cff46a-7350-4c12-a553-85ace34495dd",
+                  "retryable": false
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "listClasses",
+              "wire_path": "/classes"
+            },
+            {
+              "decoder_operation": "listClasses",
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "listClasses",
+              "surface": "generated_async",
+              "wire": {
+                "error": {
+                  "code": "INVALID_REQUEST",
+                  "details": null,
+                  "message": "pageSize must be 1..100",
+                  "requestId": "b04b5dd5-76b6-41d2-8bc0-87950157f6fa",
+                  "retryable": false
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "listClasses",
+              "wire_path": "/classes"
+            },
+            {
+              "decoder_operation": "listClasses",
+              "exception": "InvalidRequestError",
+              "java_test_faults": [],
+              "operation": "listClasses",
+              "surface": "high_level_sync",
+              "wire": {
+                "error": {
+                  "code": "INVALID_REQUEST",
+                  "details": null,
+                  "message": "pageSize must be 1..100",
+                  "requestId": "6464eb92-5a3e-4168-aae5-e7287e27cece",
+                  "retryable": false
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "listClasses",
+              "wire_path": "/classes"
+            },
+            {
+              "decoder_operation": "listClasses",
+              "exception": "InvalidRequestError",
+              "java_test_faults": [],
+              "operation": "listClasses",
+              "surface": "high_level_async",
+              "wire": {
+                "error": {
+                  "code": "INVALID_REQUEST",
+                  "details": null,
+                  "message": "pageSize must be 1..100",
+                  "requestId": "90a33801-2a4f-4dfc-ad60-2bb3a687fb63",
+                  "retryable": false
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "listClasses",
+              "wire_path": "/classes"
+            }
+          ],
+          "surfaces": {
+            "generated_async": true,
+            "generated_sync": true,
+            "high_level_async": true,
+            "high_level_sync": true,
+            "raw_http": true
+          }
+        },
+        "MAPPING_MERGE_CONFLICT": {
+          "detailsVerified": true,
+          "httpStatuses": [
+            409
+          ],
+          "requestIdsVerified": true,
+          "scenarios": [
+            {
+              "decoder_operation": null,
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "importMappings",
+              "surface": "raw_http",
+              "wire": {
+                "error": {
+                  "code": "MAPPING_MERGE_CONFLICT",
+                  "details": {
+                    "category": "EXISTING_ALIAS",
+                    "originalKey": "Lprobe/Variables;"
+                  },
+                  "message": "Incoming mapping conflicts with current logical state",
+                  "requestId": "f07ba588-fd1a-464e-bbf8-6969ac6e05fe",
+                  "retryable": false
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "importMappings",
+              "wire_path": "/project/mappings/import"
+            },
+            {
+              "decoder_operation": "importMappings",
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "importMappings",
+              "surface": "generated_sync",
+              "wire": {
+                "error": {
+                  "code": "MAPPING_MERGE_CONFLICT",
+                  "details": {
+                    "category": "EXISTING_ALIAS",
+                    "originalKey": "Lprobe/Variables;"
+                  },
+                  "message": "Incoming mapping conflicts with current logical state",
+                  "requestId": "21a61b1d-26d0-46d9-9463-c0aa1f805b90",
+                  "retryable": false
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "importMappings",
+              "wire_path": "/project/mappings/import"
+            },
+            {
+              "decoder_operation": "importMappings",
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "importMappings",
+              "surface": "generated_async",
+              "wire": {
+                "error": {
+                  "code": "MAPPING_MERGE_CONFLICT",
+                  "details": {
+                    "category": "EXISTING_ALIAS",
+                    "originalKey": "Lprobe/Variables;"
+                  },
+                  "message": "Incoming mapping conflicts with current logical state",
+                  "requestId": "c1f21c72-14e6-483c-a5ee-840958943274",
+                  "retryable": false
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "importMappings",
+              "wire_path": "/project/mappings/import"
+            },
+            {
+              "decoder_operation": "importMappings",
+              "exception": "MappingMergeConflictError",
+              "java_test_faults": [],
+              "operation": "importMappings",
+              "surface": "high_level_sync",
+              "wire": {
+                "error": {
+                  "code": "MAPPING_MERGE_CONFLICT",
+                  "details": {
+                    "category": "EXISTING_ALIAS",
+                    "originalKey": "Lprobe/Variables;"
+                  },
+                  "message": "Incoming mapping conflicts with current logical state",
+                  "requestId": "5a6d6e2e-a8bc-4570-b0a0-3923a8ec7cd7",
+                  "retryable": false
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "importMappings",
+              "wire_path": "/project/mappings/import"
+            },
+            {
+              "decoder_operation": "importMappings",
+              "exception": "MappingMergeConflictError",
+              "java_test_faults": [],
+              "operation": "importMappings",
+              "surface": "high_level_async",
+              "wire": {
+                "error": {
+                  "code": "MAPPING_MERGE_CONFLICT",
+                  "details": {
+                    "category": "EXISTING_ALIAS",
+                    "originalKey": "Lprobe/Variables;"
+                  },
+                  "message": "Incoming mapping conflicts with current logical state",
+                  "requestId": "b81032ce-4f96-4644-b90d-d8e79f4aaf80",
+                  "retryable": false
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "importMappings",
+              "wire_path": "/project/mappings/import"
+            }
+          ],
+          "surfaces": {
+            "generated_async": true,
+            "generated_sync": true,
+            "high_level_async": true,
+            "high_level_sync": true,
+            "raw_http": true
+          }
+        },
+        "METHOD_NOT_ALLOWED": {
+          "detailsVerified": true,
+          "httpStatuses": [
+            405
+          ],
+          "requestIdsVerified": true,
+          "scenarios": [
+            {
+              "decoder_operation": null,
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "getProject",
+              "surface": "raw_http",
+              "wire": {
+                "error": {
+                  "code": "METHOD_NOT_ALLOWED",
+                  "details": null,
+                  "message": "The HTTP method is not allowed for this path",
+                  "requestId": "5c090708-f072-4e5e-9785-bbf9a3438f67",
+                  "retryable": false
+                }
+              },
+              "wire_method": "DELETE",
+              "wire_operation": null,
+              "wire_path": "/project"
+            },
+            {
+              "decoder_operation": "getProject",
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "getProject",
+              "surface": "generated_sync",
+              "wire": {
+                "error": {
+                  "code": "METHOD_NOT_ALLOWED",
+                  "details": null,
+                  "message": "The HTTP method is not allowed for this path",
+                  "requestId": "b9357125-bb1b-4d5e-bab0-1cc98c175a6a",
+                  "retryable": false
+                }
+              },
+              "wire_method": "DELETE",
+              "wire_operation": null,
+              "wire_path": "/project"
+            },
+            {
+              "decoder_operation": "getProject",
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "getProject",
+              "surface": "generated_async",
+              "wire": {
+                "error": {
+                  "code": "METHOD_NOT_ALLOWED",
+                  "details": null,
+                  "message": "The HTTP method is not allowed for this path",
+                  "requestId": "59ef9a56-c15c-4e2a-9058-299e4291990c",
+                  "retryable": false
+                }
+              },
+              "wire_method": "DELETE",
+              "wire_operation": null,
+              "wire_path": "/project"
+            },
+            {
+              "decoder_operation": "getProject",
+              "exception": "MethodNotAllowedError",
+              "java_test_faults": [],
+              "operation": "getProject",
+              "surface": "high_level_sync",
+              "wire": {
+                "error": {
+                  "code": "METHOD_NOT_ALLOWED",
+                  "details": null,
+                  "message": "The HTTP method is not allowed for this path",
+                  "requestId": "c5a683ae-96d2-47e6-9d65-7f68649869b6",
+                  "retryable": false
+                }
+              },
+              "wire_method": "DELETE",
+              "wire_operation": null,
+              "wire_path": "/project"
+            },
+            {
+              "decoder_operation": "getProject",
+              "exception": "MethodNotAllowedError",
+              "java_test_faults": [],
+              "operation": "getProject",
+              "surface": "high_level_async",
+              "wire": {
+                "error": {
+                  "code": "METHOD_NOT_ALLOWED",
+                  "details": null,
+                  "message": "The HTTP method is not allowed for this path",
+                  "requestId": "426afe32-91c8-4a97-9477-b9ef310b8c9b",
+                  "retryable": false
+                }
+              },
+              "wire_method": "DELETE",
+              "wire_operation": null,
+              "wire_path": "/project"
+            }
+          ],
+          "surfaces": {
+            "generated_async": true,
+            "generated_sync": true,
+            "high_level_async": true,
+            "high_level_sync": true,
+            "raw_http": true
+          }
+        },
+        "NOT_FOUND": {
+          "detailsVerified": true,
+          "httpStatuses": [
+            404
+          ],
+          "requestIdsVerified": true,
+          "scenarios": [
+            {
+              "decoder_operation": null,
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "getJob",
+              "surface": "raw_http",
+              "wire": {
+                "error": {
+                  "code": "NOT_FOUND",
+                  "details": null,
+                  "message": "Job not found or expired",
+                  "requestId": "f7efdaee-bef2-471f-9b50-f129a3fae280",
+                  "retryable": false
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "getJob",
+              "wire_path": "/jobs/4eb8b9fe-edb2-460a-b163-8254053a0ce9"
+            },
+            {
+              "decoder_operation": "getJob",
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "getJob",
+              "surface": "generated_sync",
+              "wire": {
+                "error": {
+                  "code": "NOT_FOUND",
+                  "details": null,
+                  "message": "Job not found or expired",
+                  "requestId": "923a9ef8-e54d-4c1f-95f3-c5bbcb48eb15",
+                  "retryable": false
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "getJob",
+              "wire_path": "/jobs/68e69d7c-e579-427a-ad06-27cede7f0051"
+            },
+            {
+              "decoder_operation": "getJob",
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "getJob",
+              "surface": "generated_async",
+              "wire": {
+                "error": {
+                  "code": "NOT_FOUND",
+                  "details": null,
+                  "message": "Job not found or expired",
+                  "requestId": "fe5086f8-b589-4963-8314-e72ef805649a",
+                  "retryable": false
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "getJob",
+              "wire_path": "/jobs/c1688ed2-d426-4da2-a266-5acab28ba162"
+            },
+            {
+              "decoder_operation": "getJob",
+              "exception": "NotFoundError",
+              "java_test_faults": [],
+              "operation": "getJob",
+              "surface": "high_level_sync",
+              "wire": {
+                "error": {
+                  "code": "NOT_FOUND",
+                  "details": null,
+                  "message": "Job not found or expired",
+                  "requestId": "ba284552-493f-4baf-a392-e294f701e082",
+                  "retryable": false
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "getJob",
+              "wire_path": "/jobs/48cebc0b-b057-4853-ae6a-e1313910c92b"
+            },
+            {
+              "decoder_operation": "getJob",
+              "exception": "NotFoundError",
+              "java_test_faults": [],
+              "operation": "getJob",
+              "surface": "high_level_async",
+              "wire": {
+                "error": {
+                  "code": "NOT_FOUND",
+                  "details": null,
+                  "message": "Job not found or expired",
+                  "requestId": "028e7bd4-edd5-415a-a3d6-02291a9fd8ff",
+                  "retryable": false
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "getJob",
+              "wire_path": "/jobs/2b4895ed-2f7a-4e1b-b63b-5abe904d9b97"
+            }
+          ],
+          "surfaces": {
+            "generated_async": true,
+            "generated_sync": true,
+            "high_level_async": true,
+            "high_level_sync": true,
+            "raw_http": true
+          }
+        },
+        "OPERATION_NOT_IMPLEMENTED": {
+          "detailsVerified": true,
+          "httpStatuses": [
+            501
+          ],
+          "requestIdsVerified": true,
+          "scenarios": [
+            {
+              "decoder_operation": null,
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "getProject",
+              "surface": "raw_http",
+              "wire": {
+                "error": {
+                  "code": "OPERATION_NOT_IMPLEMENTED",
+                  "details": null,
+                  "message": "This API operation is not implemented yet",
+                  "requestId": "8bf4a055-374b-41f3-baba-e4bca4045e39",
+                  "retryable": false
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": null,
+              "wire_path": "/project/export"
+            },
+            {
+              "decoder_operation": "getProject",
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "getProject",
+              "surface": "generated_sync",
+              "wire": {
+                "error": {
+                  "code": "OPERATION_NOT_IMPLEMENTED",
+                  "details": null,
+                  "message": "This API operation is not implemented yet",
+                  "requestId": "b8c0bae8-f77c-455f-8cf3-4450adfcc3e9",
+                  "retryable": false
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": null,
+              "wire_path": "/project/export"
+            },
+            {
+              "decoder_operation": "getProject",
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "getProject",
+              "surface": "generated_async",
+              "wire": {
+                "error": {
+                  "code": "OPERATION_NOT_IMPLEMENTED",
+                  "details": null,
+                  "message": "This API operation is not implemented yet",
+                  "requestId": "c1d3c029-c1cf-45a5-b6c6-8722afd418ab",
+                  "retryable": false
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": null,
+              "wire_path": "/project/export"
+            },
+            {
+              "decoder_operation": "getProject",
+              "exception": "OperationNotImplementedError",
+              "java_test_faults": [],
+              "operation": "getProject",
+              "surface": "high_level_sync",
+              "wire": {
+                "error": {
+                  "code": "OPERATION_NOT_IMPLEMENTED",
+                  "details": null,
+                  "message": "This API operation is not implemented yet",
+                  "requestId": "83b869a0-6bcc-4142-bc70-1aa0c07dbfeb",
+                  "retryable": false
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": null,
+              "wire_path": "/project/export"
+            },
+            {
+              "decoder_operation": "getProject",
+              "exception": "OperationNotImplementedError",
+              "java_test_faults": [],
+              "operation": "getProject",
+              "surface": "high_level_async",
+              "wire": {
+                "error": {
+                  "code": "OPERATION_NOT_IMPLEMENTED",
+                  "details": null,
+                  "message": "This API operation is not implemented yet",
+                  "requestId": "2e607eaa-ca32-4750-97cc-4f6565b7a204",
+                  "retryable": false
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": null,
+              "wire_path": "/project/export"
+            }
+          ],
+          "surfaces": {
+            "generated_async": true,
+            "generated_sync": true,
+            "high_level_async": true,
+            "high_level_sync": true,
+            "raw_http": true
+          }
+        },
+        "PROJECT_BUSY": {
+          "detailsVerified": true,
+          "httpStatuses": [
+            409
+          ],
+          "requestIdsVerified": true,
+          "scenarios": [
+            {
+              "decoder_operation": null,
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "shutdownService",
+              "surface": "raw_http",
+              "wire": {
+                "error": {
+                  "code": "PROJECT_BUSY",
+                  "details": {
+                    "activeJobCount": 1,
+                    "activeOperationCount": 0,
+                    "jobs": [
+                      {
+                        "jobId": "126f26b9-669e-4ece-b6f7-9d4ce940929a",
+                        "state": "QUEUED",
+                        "type": "search-build-index"
+                      }
+                    ],
+                    "operations": []
+                  },
+                  "message": "Wait for or cancel active work before shutting down",
+                  "requestId": "590aa19d-0d17-47b6-bab0-97a0a5be016c",
+                  "retryable": true
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "shutdownService",
+              "wire_path": "/shutdown"
+            },
+            {
+              "decoder_operation": "shutdownService",
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "shutdownService",
+              "surface": "generated_sync",
+              "wire": {
+                "error": {
+                  "code": "PROJECT_BUSY",
+                  "details": {
+                    "activeJobCount": 1,
+                    "activeOperationCount": 0,
+                    "jobs": [
+                      {
+                        "jobId": "a52a0290-474a-45f6-9ad4-b80486878bc3",
+                        "state": "QUEUED",
+                        "type": "search-build-index"
+                      }
+                    ],
+                    "operations": []
+                  },
+                  "message": "Wait for or cancel active work before shutting down",
+                  "requestId": "20b2b40a-be72-4655-a65a-49367ed81843",
+                  "retryable": true
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "shutdownService",
+              "wire_path": "/shutdown"
+            },
+            {
+              "decoder_operation": "shutdownService",
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "shutdownService",
+              "surface": "generated_async",
+              "wire": {
+                "error": {
+                  "code": "PROJECT_BUSY",
+                  "details": {
+                    "activeJobCount": 1,
+                    "activeOperationCount": 0,
+                    "jobs": [
+                      {
+                        "jobId": "a4989b2e-34c6-479c-b6b0-fe8b80789f08",
+                        "state": "QUEUED",
+                        "type": "search-build-index"
+                      }
+                    ],
+                    "operations": []
+                  },
+                  "message": "Wait for or cancel active work before shutting down",
+                  "requestId": "f4f3faee-81e0-402a-8153-26a747d7a21a",
+                  "retryable": true
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "shutdownService",
+              "wire_path": "/shutdown"
+            },
+            {
+              "decoder_operation": "shutdownService",
+              "exception": "ProjectBusyError",
+              "java_test_faults": [],
+              "operation": "shutdownService",
+              "surface": "high_level_sync",
+              "wire": {
+                "error": {
+                  "code": "PROJECT_BUSY",
+                  "details": {
+                    "activeJobCount": 1,
+                    "activeOperationCount": 0,
+                    "jobs": [
+                      {
+                        "jobId": "26ec7d86-814e-48e6-b375-213004579987",
+                        "state": "QUEUED",
+                        "type": "search-build-index"
+                      }
+                    ],
+                    "operations": []
+                  },
+                  "message": "Wait for or cancel active work before shutting down",
+                  "requestId": "d69239b8-0cd1-4576-92d2-1931f05c9b92",
+                  "retryable": true
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "shutdownService",
+              "wire_path": "/shutdown"
+            },
+            {
+              "decoder_operation": "shutdownService",
+              "exception": "ProjectBusyError",
+              "java_test_faults": [],
+              "operation": "shutdownService",
+              "surface": "high_level_async",
+              "wire": {
+                "error": {
+                  "code": "PROJECT_BUSY",
+                  "details": {
+                    "activeJobCount": 1,
+                    "activeOperationCount": 0,
+                    "jobs": [
+                      {
+                        "jobId": "152ee87d-3956-4574-a565-905ee8852f9b",
+                        "state": "QUEUED",
+                        "type": "search-build-index"
+                      }
+                    ],
+                    "operations": []
+                  },
+                  "message": "Wait for or cancel active work before shutting down",
+                  "requestId": "50bb0eb3-0e53-46a7-bd84-7da0dfee4c8f",
+                  "retryable": true
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "shutdownService",
+              "wire_path": "/shutdown"
+            }
+          ],
+          "surfaces": {
+            "generated_async": true,
+            "generated_sync": true,
+            "high_level_async": true,
+            "high_level_sync": true,
+            "raw_http": true
+          }
+        },
+        "PROJECT_LOAD_FAILED": {
+          "detailsVerified": true,
+          "httpStatuses": [
+            503
+          ],
+          "requestIdsVerified": true,
+          "scenarios": [
+            {
+              "decoder_operation": null,
+              "exception": null,
+              "java_test_faults": [
+                "startup"
+              ],
+              "operation": "getProject",
+              "surface": "raw_http",
+              "wire": {
+                "error": {
+                  "code": "PROJECT_LOAD_FAILED",
+                  "details": null,
+                  "message": "Project initialization failed (IllegalStateException); check the configured project and input files",
+                  "requestId": "d361ed44-9f99-4647-b9f7-301083f1b82b",
+                  "retryable": false
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "getProject",
+              "wire_path": "/project"
+            },
+            {
+              "decoder_operation": "getProject",
+              "exception": null,
+              "java_test_faults": [
+                "startup"
+              ],
+              "operation": "getProject",
+              "surface": "generated_sync",
+              "wire": {
+                "error": {
+                  "code": "PROJECT_LOAD_FAILED",
+                  "details": null,
+                  "message": "Project initialization failed (IllegalStateException); check the configured project and input files",
+                  "requestId": "60007159-7553-430f-ad15-1d6050d4ec5e",
+                  "retryable": false
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "getProject",
+              "wire_path": "/project"
+            },
+            {
+              "decoder_operation": "getProject",
+              "exception": null,
+              "java_test_faults": [
+                "startup"
+              ],
+              "operation": "getProject",
+              "surface": "generated_async",
+              "wire": {
+                "error": {
+                  "code": "PROJECT_LOAD_FAILED",
+                  "details": null,
+                  "message": "Project initialization failed (IllegalStateException); check the configured project and input files",
+                  "requestId": "2bafae5c-7b6a-438e-ac45-8a2249f6e7db",
+                  "retryable": false
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "getProject",
+              "wire_path": "/project"
+            },
+            {
+              "decoder_operation": "getProject",
+              "exception": "ProjectLoadFailedError",
+              "java_test_faults": [
+                "startup"
+              ],
+              "operation": "getProject",
+              "surface": "high_level_sync",
+              "wire": {
+                "error": {
+                  "code": "PROJECT_LOAD_FAILED",
+                  "details": null,
+                  "message": "Project initialization failed (IllegalStateException); check the configured project and input files",
+                  "requestId": "66952fcb-680d-407d-b683-db1d4eb8f849",
+                  "retryable": false
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "getProject",
+              "wire_path": "/project"
+            },
+            {
+              "decoder_operation": "getProject",
+              "exception": "ProjectLoadFailedError",
+              "java_test_faults": [
+                "startup"
+              ],
+              "operation": "getProject",
+              "surface": "high_level_async",
+              "wire": {
+                "error": {
+                  "code": "PROJECT_LOAD_FAILED",
+                  "details": null,
+                  "message": "Project initialization failed (IllegalStateException); check the configured project and input files",
+                  "requestId": "ff5b5b96-c35c-414e-801f-d745da0ea004",
+                  "retryable": false
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "getProject",
+              "wire_path": "/project"
+            }
+          ],
+          "surfaces": {
+            "generated_async": true,
+            "generated_sync": true,
+            "high_level_async": true,
+            "high_level_sync": true,
+            "raw_http": true
+          }
+        },
+        "PROJECT_NOT_READY": {
+          "detailsVerified": true,
+          "httpStatuses": [
+            503
+          ],
+          "requestIdsVerified": true,
+          "scenarios": [
+            {
+              "decoder_operation": null,
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "getProject",
+              "surface": "raw_http",
+              "wire": {
+                "error": {
+                  "code": "PROJECT_NOT_READY",
+                  "details": null,
+                  "message": "The fixed project is still loading; inspect GET /api/v1/status for lifecycle details",
+                  "requestId": "96384956-f014-43d4-a7e7-0011bfab6b9f",
+                  "retryable": true
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "getProject",
+              "wire_path": "/project"
+            },
+            {
+              "decoder_operation": "getProject",
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "getProject",
+              "surface": "generated_sync",
+              "wire": {
+                "error": {
+                  "code": "PROJECT_NOT_READY",
+                  "details": null,
+                  "message": "The fixed project is still loading; inspect GET /api/v1/status for lifecycle details",
+                  "requestId": "c3325541-24e7-4509-aa8f-11bb37401591",
+                  "retryable": true
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "getProject",
+              "wire_path": "/project"
+            },
+            {
+              "decoder_operation": "getProject",
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "getProject",
+              "surface": "generated_async",
+              "wire": {
+                "error": {
+                  "code": "PROJECT_NOT_READY",
+                  "details": null,
+                  "message": "The fixed project is still loading; inspect GET /api/v1/status for lifecycle details",
+                  "requestId": "afdfc77d-3a29-43bc-8b4f-70ccc31f3428",
+                  "retryable": true
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "getProject",
+              "wire_path": "/project"
+            },
+            {
+              "decoder_operation": "getProject",
+              "exception": "ProjectNotReadyError",
+              "java_test_faults": [],
+              "operation": "getProject",
+              "surface": "high_level_sync",
+              "wire": {
+                "error": {
+                  "code": "PROJECT_NOT_READY",
+                  "details": null,
+                  "message": "The fixed project is still loading; inspect GET /api/v1/status for lifecycle details",
+                  "requestId": "2d69a566-587b-4131-8bcd-22b68a8f00b3",
+                  "retryable": true
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "getProject",
+              "wire_path": "/project"
+            },
+            {
+              "decoder_operation": "getProject",
+              "exception": "ProjectNotReadyError",
+              "java_test_faults": [],
+              "operation": "getProject",
+              "surface": "high_level_async",
+              "wire": {
+                "error": {
+                  "code": "PROJECT_NOT_READY",
+                  "details": null,
+                  "message": "The fixed project is still loading; inspect GET /api/v1/status for lifecycle details",
+                  "requestId": "928cd78f-7456-4316-a3e1-0f6300956cb8",
+                  "retryable": true
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "getProject",
+              "wire_path": "/project"
+            }
+          ],
+          "surfaces": {
+            "generated_async": true,
+            "generated_sync": true,
+            "high_level_async": true,
+            "high_level_sync": true,
+            "raw_http": true
+          }
+        },
+        "RESOURCE_LIMIT": {
+          "detailsVerified": true,
+          "httpStatuses": [
+            429
+          ],
+          "requestIdsVerified": true,
+          "scenarios": [
+            {
+              "decoder_operation": null,
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "search",
+              "surface": "raw_http",
+              "wire": {
+                "error": {
+                  "code": "RESOURCE_LIMIT",
+                  "details": null,
+                  "message": "REGEX expression exceeds 256 characters",
+                  "requestId": "42b65632-c01c-43ee-b124-ea9288295241",
+                  "retryable": true
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "search",
+              "wire_path": "/search"
+            },
+            {
+              "decoder_operation": "search",
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "search",
+              "surface": "generated_sync",
+              "wire": {
+                "error": {
+                  "code": "RESOURCE_LIMIT",
+                  "details": null,
+                  "message": "REGEX expression exceeds 256 characters",
+                  "requestId": "dd09314d-7ec8-4bd7-91e3-4b4bb3b83cbb",
+                  "retryable": true
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "search",
+              "wire_path": "/search"
+            },
+            {
+              "decoder_operation": "search",
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "search",
+              "surface": "generated_async",
+              "wire": {
+                "error": {
+                  "code": "RESOURCE_LIMIT",
+                  "details": null,
+                  "message": "REGEX expression exceeds 256 characters",
+                  "requestId": "812a54e2-200e-4310-9584-da9d7dadfae0",
+                  "retryable": true
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "search",
+              "wire_path": "/search"
+            },
+            {
+              "decoder_operation": "search",
+              "exception": "ResourceLimitError",
+              "java_test_faults": [],
+              "operation": "search",
+              "surface": "high_level_sync",
+              "wire": {
+                "error": {
+                  "code": "RESOURCE_LIMIT",
+                  "details": null,
+                  "message": "REGEX expression exceeds 256 characters",
+                  "requestId": "574fcb7b-0154-4ff5-9e19-cfaa493acb7f",
+                  "retryable": true
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "search",
+              "wire_path": "/search"
+            },
+            {
+              "decoder_operation": "search",
+              "exception": "ResourceLimitError",
+              "java_test_faults": [],
+              "operation": "search",
+              "surface": "high_level_async",
+              "wire": {
+                "error": {
+                  "code": "RESOURCE_LIMIT",
+                  "details": null,
+                  "message": "REGEX expression exceeds 256 characters",
+                  "requestId": "77d36d3e-0217-4ace-a53f-a0ddec94f196",
+                  "retryable": true
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "search",
+              "wire_path": "/search"
+            }
+          ],
+          "surfaces": {
+            "generated_async": true,
+            "generated_sync": true,
+            "high_level_async": true,
+            "high_level_sync": true,
+            "raw_http": true
+          }
+        },
+        "SERVICE_SHUTTING_DOWN": {
+          "detailsVerified": true,
+          "httpStatuses": [
+            503
+          ],
+          "requestIdsVerified": true,
+          "scenarios": [
+            {
+              "decoder_operation": null,
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "getProject",
+              "surface": "raw_http",
+              "wire": {
+                "error": {
+                  "code": "SERVICE_SHUTTING_DOWN",
+                  "details": null,
+                  "message": "The service is shutting down",
+                  "requestId": "d342dd3d-2d7f-4b08-8790-6793ee1b1885",
+                  "retryable": false
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "getProject",
+              "wire_path": "/project"
+            },
+            {
+              "decoder_operation": "getProject",
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "getProject",
+              "surface": "generated_sync",
+              "wire": {
+                "error": {
+                  "code": "SERVICE_SHUTTING_DOWN",
+                  "details": null,
+                  "message": "The service is shutting down",
+                  "requestId": "b7383179-5e4a-4ce5-985a-79519860fc06",
+                  "retryable": false
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "getProject",
+              "wire_path": "/project"
+            },
+            {
+              "decoder_operation": "getProject",
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "getProject",
+              "surface": "generated_async",
+              "wire": {
+                "error": {
+                  "code": "SERVICE_SHUTTING_DOWN",
+                  "details": null,
+                  "message": "The service is shutting down",
+                  "requestId": "f9a0d7cf-c4ec-45a8-8c58-d22c3e8ca84f",
+                  "retryable": false
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "getProject",
+              "wire_path": "/project"
+            },
+            {
+              "decoder_operation": "getProject",
+              "exception": "ServiceShuttingDownError",
+              "java_test_faults": [],
+              "operation": "getProject",
+              "surface": "high_level_sync",
+              "wire": {
+                "error": {
+                  "code": "SERVICE_SHUTTING_DOWN",
+                  "details": null,
+                  "message": "The service is shutting down",
+                  "requestId": "103612d5-cd27-4adc-9ff7-9e541a900261",
+                  "retryable": false
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "getProject",
+              "wire_path": "/project"
+            },
+            {
+              "decoder_operation": "getProject",
+              "exception": "ServiceShuttingDownError",
+              "java_test_faults": [],
+              "operation": "getProject",
+              "surface": "high_level_async",
+              "wire": {
+                "error": {
+                  "code": "SERVICE_SHUTTING_DOWN",
+                  "details": null,
+                  "message": "The service is shutting down",
+                  "requestId": "985c4be5-e746-426c-bc91-df43412349ec",
+                  "retryable": false
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "getProject",
+              "wire_path": "/project"
+            }
+          ],
+          "surfaces": {
+            "generated_async": true,
+            "generated_sync": true,
+            "high_level_async": true,
+            "high_level_sync": true,
+            "raw_http": true
+          }
+        },
+        "STALE_REVISION": {
+          "detailsVerified": true,
+          "httpStatuses": [
+            409
+          ],
+          "requestIdsVerified": true,
+          "scenarios": [
+            {
+              "decoder_operation": null,
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "listClasses",
+              "surface": "raw_http",
+              "wire": {
+                "error": {
+                  "code": "STALE_REVISION",
+                  "details": null,
+                  "message": "Class cursor belongs to a previous project snapshot",
+                  "requestId": "90f50c72-63b0-4e86-bffc-67109bc719d7",
+                  "retryable": false
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "listClasses",
+              "wire_path": "/classes"
+            },
+            {
+              "decoder_operation": "listClasses",
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "listClasses",
+              "surface": "generated_sync",
+              "wire": {
+                "error": {
+                  "code": "STALE_REVISION",
+                  "details": null,
+                  "message": "Class cursor belongs to a previous project snapshot",
+                  "requestId": "3c362166-2f62-4310-85e0-4e58ec3d05fb",
+                  "retryable": false
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "listClasses",
+              "wire_path": "/classes"
+            },
+            {
+              "decoder_operation": "listClasses",
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "listClasses",
+              "surface": "generated_async",
+              "wire": {
+                "error": {
+                  "code": "STALE_REVISION",
+                  "details": null,
+                  "message": "Class cursor belongs to a previous project snapshot",
+                  "requestId": "04b893bd-80af-4091-923b-c7cafd8758fc",
+                  "retryable": false
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "listClasses",
+              "wire_path": "/classes"
+            },
+            {
+              "decoder_operation": "listClasses",
+              "exception": "StaleRevisionError",
+              "java_test_faults": [],
+              "operation": "listClasses",
+              "surface": "high_level_sync",
+              "wire": {
+                "error": {
+                  "code": "STALE_REVISION",
+                  "details": null,
+                  "message": "Class cursor belongs to a previous project snapshot",
+                  "requestId": "81fbc6e0-dce2-4956-a79e-db867c91ae02",
+                  "retryable": false
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "listClasses",
+              "wire_path": "/classes"
+            },
+            {
+              "decoder_operation": "listClasses",
+              "exception": "StaleRevisionError",
+              "java_test_faults": [],
+              "operation": "listClasses",
+              "surface": "high_level_async",
+              "wire": {
+                "error": {
+                  "code": "STALE_REVISION",
+                  "details": null,
+                  "message": "Class cursor belongs to a previous project snapshot",
+                  "requestId": "215041cb-0352-4168-83e9-d117dbcf10a8",
+                  "retryable": false
+                }
+              },
+              "wire_method": "GET",
+              "wire_operation": "listClasses",
+              "wire_path": "/classes"
+            }
+          ],
+          "surfaces": {
+            "generated_async": true,
+            "generated_sync": true,
+            "high_level_async": true,
+            "high_level_sync": true,
+            "raw_http": true
+          }
+        },
+        "UNSUPPORTED_CAPABILITY": {
+          "detailsVerified": true,
+          "httpStatuses": [
+            422
+          ],
+          "requestIdsVerified": true,
+          "scenarios": [
+            {
+              "decoder_operation": null,
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "applyEditBatch",
+              "surface": "raw_http",
+              "wire": {
+                "error": {
+                  "code": "UNSUPPORTED_CAPABILITY",
+                  "details": {
+                    "itemErrors": [
+                      {
+                        "code": "UNSUPPORTED_CAPABILITY",
+                        "index": 0,
+                        "message": "Parameter has no unique persistable declaration in this snapshot"
+                      }
+                    ]
+                  },
+                  "message": "Parameter has no unique persistable declaration in this snapshot",
+                  "requestId": "9f181b02-e492-47a1-9009-a59d2260ca51",
+                  "retryable": false
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "applyEditBatch",
+              "wire_path": "/edits/batch"
+            },
+            {
+              "decoder_operation": "applyEditBatch",
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "applyEditBatch",
+              "surface": "generated_sync",
+              "wire": {
+                "error": {
+                  "code": "UNSUPPORTED_CAPABILITY",
+                  "details": {
+                    "itemErrors": [
+                      {
+                        "code": "UNSUPPORTED_CAPABILITY",
+                        "index": 0,
+                        "message": "Parameter has no unique persistable declaration in this snapshot"
+                      }
+                    ]
+                  },
+                  "message": "Parameter has no unique persistable declaration in this snapshot",
+                  "requestId": "274ab77c-71b7-4e5a-85cf-ca37350d1880",
+                  "retryable": false
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "applyEditBatch",
+              "wire_path": "/edits/batch"
+            },
+            {
+              "decoder_operation": "applyEditBatch",
+              "exception": null,
+              "java_test_faults": [],
+              "operation": "applyEditBatch",
+              "surface": "generated_async",
+              "wire": {
+                "error": {
+                  "code": "UNSUPPORTED_CAPABILITY",
+                  "details": {
+                    "itemErrors": [
+                      {
+                        "code": "UNSUPPORTED_CAPABILITY",
+                        "index": 0,
+                        "message": "Parameter has no unique persistable declaration in this snapshot"
+                      }
+                    ]
+                  },
+                  "message": "Parameter has no unique persistable declaration in this snapshot",
+                  "requestId": "64e1ee4b-90cb-49be-9f08-1bd1ec265d3a",
+                  "retryable": false
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "applyEditBatch",
+              "wire_path": "/edits/batch"
+            },
+            {
+              "decoder_operation": "applyEditBatch",
+              "exception": "UnsupportedCapabilityError",
+              "java_test_faults": [],
+              "operation": "applyEditBatch",
+              "surface": "high_level_sync",
+              "wire": {
+                "error": {
+                  "code": "UNSUPPORTED_CAPABILITY",
+                  "details": {
+                    "itemErrors": [
+                      {
+                        "code": "UNSUPPORTED_CAPABILITY",
+                        "index": 0,
+                        "message": "Parameter has no unique persistable declaration in this snapshot"
+                      }
+                    ]
+                  },
+                  "message": "Parameter has no unique persistable declaration in this snapshot",
+                  "requestId": "550514da-c431-4e5e-84fd-ab929c7aea06",
+                  "retryable": false
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "applyEditBatch",
+              "wire_path": "/edits/batch"
+            },
+            {
+              "decoder_operation": "applyEditBatch",
+              "exception": "UnsupportedCapabilityError",
+              "java_test_faults": [],
+              "operation": "applyEditBatch",
+              "surface": "high_level_async",
+              "wire": {
+                "error": {
+                  "code": "UNSUPPORTED_CAPABILITY",
+                  "details": {
+                    "itemErrors": [
+                      {
+                        "code": "UNSUPPORTED_CAPABILITY",
+                        "index": 0,
+                        "message": "Parameter has no unique persistable declaration in this snapshot"
+                      }
+                    ]
+                  },
+                  "message": "Parameter has no unique persistable declaration in this snapshot",
+                  "requestId": "2a5af7e3-fb37-4844-9f0b-f1461bab207b",
+                  "retryable": false
+                }
+              },
+              "wire_method": "POST",
+              "wire_operation": "applyEditBatch",
+              "wire_path": "/edits/batch"
+            }
+          ],
+          "surfaces": {
+            "generated_async": true,
+            "generated_sync": true,
+            "high_level_async": true,
+            "high_level_sync": true,
+            "raw_http": true
+          }
+        }
+      },
+      "source_sha256": "20b93c16b32e52b711ef648a9e1eb320f63de4ee1bac756288edbaf529851e18"
+    }
+  }
+}

@@ -51,7 +51,7 @@ def source_hash():
     ).splitlines()
     digest = hashlib.sha256()
     for name in sorted(set(paths)):
-        if name.startswith("docs/pr-22-") or name == "docs/changelog.md":
+        if name.startswith("docs/release-evidence/") or name == "docs/changelog.md":
             continue  # Evidence is separately identified; cannot hash a manifest into itself.
         path = ROOT / name
         if path.is_file():
@@ -76,11 +76,14 @@ def validate_evidence_identity(record):
     )
     assert ancestor.returncode == 0, "Qualification head is not an ancestor"
     changes = subprocess.check_output(
-        ["git", "diff", "--name-only", record["head"], "HEAD"], cwd=ROOT, text=True
+        ["git", "log", "--format=", "--name-only", record["head"] + "..HEAD"],
+        cwd=ROOT,
+        text=True,
     ).splitlines()
     assert all(
-        name.startswith("docs/pr-22-") or name == "docs/changelog.md"
+        name.startswith("docs/release-evidence/") or name == "docs/changelog.md"
         for name in changes
+        if name
     ), "Only evidence commits may follow the qualification head"
 
 
@@ -156,48 +159,79 @@ def extract(path, directory):
 
 
 def audit_java(path):
-    with zipfile.ZipFile(path) as archive:
-        names = archive.namelist()
+    # Audit both outer formats, including exact first-party and upstream notices.
+    if path.suffix == ".zip":
+        with zipfile.ZipFile(path) as archive:
+            files = {
+                name: archive.read(name)
+                for name in archive.namelist()
+                if not name.endswith("/")
+            }
+            assert len(files) == len(
+                [name for name in archive.namelist() if not name.endswith("/")]
+            ), "Duplicate archive entries"
+    else:
+        with tarfile.open(path) as archive:
+            members = [entry for entry in archive.getmembers() if entry.isfile()]
+            files = {entry.name: archive.extractfile(entry).read() for entry in members}
+            assert len(files) == len(members), "Duplicate archive entries"
+    audit_java_files(files)
+
+
+def audit_java_files(files):
+    names = list(files)
+    license_path = f"libjadx-{VERSION}/LICENSE"
+    assert [p for p in names if p.endswith("/LICENSE")] == [license_path], (
+        "Exactly one distribution-root LICENSE required"
+    )
+    assert files[license_path] == (ROOT / "LICENSE").read_bytes(), (
+        "LibJadx LICENSE bytes differ"
+    )
+    assert not any(
+        "jadx-gui" in p.lower()
+        or "libghidra" in p.lower()
+        or "/.git/" in p
+        or "/tests/" in p
+        or "/.gradle/" in p
+        for p in names
+    )
+    for name in (
+        "JADX-LICENSE",
+        "JADX-NOTICE",
+        "MAPPING-IO-LICENSE",
+        "MAPPING-IO-NOTICE",
+        "RE2J-LICENSE",
+    ):
+        notice_path = f"libjadx-{VERSION}/licenses/{name}"
+        assert files[notice_path] == (ROOT / "licenses" / name).read_bytes(), name
+    assert any(p.endswith("/bin/libjadx.bat") for p in names)
+    for plugin in (
+        "jadx-core",
+        "jadx-dex-input",
+        "jadx-java-input",
+        "jadx-smali-input",
+        "jadx-rename-mappings",
+        "jadx-analysis",
+        "jadx-java-convert",
+        "jadx-kotlin-metadata",
+        "jadx-kotlin-source-debug-extension",
+        "jadx-xapk-input",
+        "jadx-aab-input",
+        "jadx-apkm-input",
+        "jadx-apks-input",
+    ):
+        assert any(p.endswith(f"/{plugin}-1.5.6.jar") for p in names), plugin
+    bat = next(p for p in names if p.endswith("/bin/libjadx.bat"))
+    assert "dev.libjadx.app.LibJadxMain" in files[bat].decode()
+    own = next(p for p in names if p.endswith(f"/libjadx-{VERSION}.jar"))
+    with zipfile.ZipFile(io.BytesIO(files[own])) as jar:
         assert not any(
-            "jadx-gui" in p or "/.git/" in p or "/tests/" in p or "/.gradle/" in p
-            for p in names
+            "/probes/" in p or p.endswith("Test.class") for p in jar.namelist()
         )
-        for name in (
-            "JADX-LICENSE",
-            "JADX-NOTICE",
-            "MAPPING-IO-LICENSE",
-            "MAPPING-IO-NOTICE",
-            "RE2J-LICENSE",
-        ):
-            assert any(p.endswith("/licenses/" + name) for p in names), name
-        assert any(p.endswith("/bin/libjadx.bat") for p in names)
-        for plugin in (
-            "jadx-core",
-            "jadx-dex-input",
-            "jadx-java-input",
-            "jadx-smali-input",
-            "jadx-rename-mappings",
-            "jadx-analysis",
-            "jadx-java-convert",
-            "jadx-kotlin-metadata",
-            "jadx-kotlin-source-debug-extension",
-            "jadx-xapk-input",
-            "jadx-aab-input",
-            "jadx-apkm-input",
-            "jadx-apks-input",
-        ):
-            assert any(p.endswith(f"/{plugin}-1.5.6.jar") for p in names), plugin
-        bat = next(p for p in names if p.endswith("/bin/libjadx.bat"))
-        assert "dev.libjadx.app.LibJadxMain" in archive.read(bat).decode()
-        own = next(p for p in names if p.endswith(f"/libjadx-{VERSION}.jar"))
-        with zipfile.ZipFile(io.BytesIO(archive.read(own))) as jar:
-            assert not any(
-                "/probes/" in p or p.endswith("Test.class") for p in jar.namelist()
-            )
-            assert (
-                jar.read("libjadx-build.properties").decode().strip()
-                == "version=" + VERSION
-            )
+        assert (
+            jar.read("libjadx-build.properties").decode().strip()
+            == "version=" + VERSION
+        )
 
 
 def core(uv, output):
@@ -241,6 +275,8 @@ def core(uv, output):
         py = ROOT / "python/.venv/bin/python"
         gate([py, ROOT / "tests/release/test_evidence.py"], "evidence-regressions")
         for name in (
+            "license",
+            "documentation",
             "edit-contract",
             "mapping-export-contract",
             "mapping-import-contract",
@@ -248,6 +284,10 @@ def core(uv, output):
             "openapi",
         ):
             gate([py, ROOT / f"tests/validate-{name}.py"], name)
+        gate(
+            [py, ROOT / "tests/validate-documentation.py", "--self-test"],
+            "documentation-regressions",
+        )
         for command, name in (
             (
                 [
@@ -278,7 +318,8 @@ def core(uv, output):
             ROOT / f"python/dist/libjadx-{PY_VERSION}.tar.gz",
         ]
         initial = {path.name: artifact(path) for path in archives}
-        audit_java(archives[0])
+        for path in archives[:2]:
+            audit_java(path)
         gate([py, ROOT / "python/scripts/artifact_manifest.py"], "python-audit")
         # Rebuild after deleting only owned candidate outputs; retain dependency/tool caches.
         for path in archives:
@@ -293,9 +334,14 @@ def core(uv, output):
         )
         evidence["artifacts"] = initial
         evidence["reproducible"] = True
+        (output / "SHA256SUMS").write_text(
+            "".join(f"{initial[name]['sha256']}  {name}\n" for name in sorted(initial))
+        )
         python_audit = json.loads((output / "python-audit.log").read_text())
         evidence["metadata"] = {
             "java_version": VERSION,
+            "license_expression": "Apache-2.0",
+            "license_sha256": sha(ROOT / "LICENSE"),
             "python_version": PY_VERSION,
             "api_version": "0.1.0-experimental",
             "jadx_version": "1.5.6",

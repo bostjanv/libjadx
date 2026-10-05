@@ -1,6 +1,13 @@
 # LibJadx — Detailed Implementation Instructions for a Coding Agent
 
-**Status:** Phases 0–6 are complete for the defined v0.1 experimental scope. PR #22 locally qualified the candidate; it is not published or tagged. Phase 7 is the active extended-capability roadmap. Completed-phase instructions below are historical acceptance criteria from the original 2026-09-24 plan; current support is governed by OpenAPI and the capability matrix.
+PR #24 freshly qualified the Apache-2.0 alpha locally. The
+[current validation record](docs/release-evidence/0.1.0-alpha.1/validation.json)
+identifies the exact qualified source HEAD and source SHA-256; the
+[qualification report](docs/release-evidence/0.1.0-alpha.1/review.md) records
+commands, results and limits. PR #22 reports are immutable historical evidence.
+Publication remains a separate explicit action.
+
+**Status:** Phases 0–6 are complete for the defined v0.1 experimental scope. PR #24 freshly qualified the Apache-2.0 candidate locally; it is not published or tagged. Phase 7 is the active extended-capability roadmap. Completed-phase instructions below are historical acceptance criteria from the original 2026-09-24 plan; current support is governed by OpenAPI and the capability matrix.
 **Read first:** [AGENTS.md](AGENTS.md), then [DESIGN.md](DESIGN.md). If feasibility findings contradict a required feature, implement the documented capability/error path and escalate the smallest genuinely blocking design change; do not invent API support.
 
 ## 0. Execution rules and definition of done
@@ -266,7 +273,12 @@ sync and async server tests cover Python 3.11/3.14. See
 errors, all five client surfaces, Python 3.11/3.14 installed-wheel qualification,
 reproducible Java/Python artifacts and all 12 matching-GUI gates at the qualified
 source head. Publication remains separate. See the [release runbook](docs/phase-6-release-qualification.md)
-and [exact evidence](docs/pr-22-review.md); this does not qualify later source revisions.
+and [historical PR #22 evidence](docs/pr-22-review.md); this does not qualify later source revisions.
+
+PR #24 freshly requalified the Apache-2.0 candidate under the same complete gate.
+[Current versioned evidence](docs/release-evidence/0.1.0-alpha.1/review.md) and its
+[validation record](docs/release-evidence/0.1.0-alpha.1/validation.json) identify the
+exact current qualification source HEAD and fingerprint.
 
 Run a real service in subprocess integration tests. Exercise every first-release route from raw HTTP, generated low-level Python, handwritten sync Python and async Python. Verify identical typed error codes, provenance fields, source snapshots, strict/partial behavior and SSE/polling outcomes. Generate the Python package and Java standalone distribution reproducibly.
 
@@ -326,7 +338,7 @@ GUI round-trip tests must actually start or otherwise exercise the matching GUI 
 - Build/format/lint/test Gradle packages; run small fixture integration tests on every change and expanded GUI/concurrency/security suites before release.
 - Validate OpenAPI schema and live-server request/response behavior; regenerate Python models and fail CI if generated code differs from committed outputs.
 - Bundle Java runtime or document supported JDK explicitly; ship Unix/Windows launch scripts as appropriate; keep runtime free of GUI requirements. **Standalone Java distribution only** unless scope changes.
-- Include upstream Jadx and dependency licenses/NOTICES and independent project attribution; do not copy libghidra code or schemas.
+- LibJadx first-party source and distributions use Apache-2.0. Include upstream Jadx and dependency licenses/NOTICES and independent project attribution; do not copy libghidra code or schemas.
 - Document CLI config precedence, loopback-only security boundary, allowed-root policy, input formats, limitation matrix, partial results, editing/save/conflict behavior, job cancellation truthfulness, and the Python SDK.
 - Maintain a human-readable experimental API changelog; regenerate SDK/tests for contract-breaking changes before 1.0.
 
@@ -348,9 +360,11 @@ JADX_GUI=/path/to/jadx-1.5.6/bin/jadx-gui \
 ```
 
 See the [release runbook](docs/phase-6-release-qualification.md) for exact interpreter,
-cache and evidence prerequisites. PR #22 source fingerprints include ordinary
-documentation; later Markdown changes fail its freshness validators. Preserve
-that historical evidence rather than rewriting its identity during cleanup.
+cache and evidence prerequisites. Current source fingerprints include ordinary
+documentation; later Markdown changes require a full rerun at a new clean source
+commit. Current status docs link to the versioned validation record for its
+qualified source HEAD, so regenerating evidence does not require another source
+edit. Preserve PR #22 historical evidence rather than rewriting its identity.
 
 ## 11. Required milestone handoff template
 

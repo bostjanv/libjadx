@@ -17,7 +17,9 @@ operations = {
 }
 data = json.loads(
     Path(
-        sys.argv[1] if len(sys.argv) > 1 else ROOT / "docs/pr-22-route-matrix.json"
+        sys.argv[1]
+        if len(sys.argv) > 1
+        else ROOT / "docs/release-evidence/0.1.0-alpha.1/route-matrix.json"
     ).read_text()
 )
 validate_evidence_identity(data)

@@ -1,7 +1,10 @@
 # LibJadx documentation
 
 LibJadx is v0.1 experimental feature-complete for the defined first-release scope,
-locally release-qualified by PR #22 and not tagged or externally published.
+freshly release-qualified locally by PR #24 under Apache-2.0 and not tagged or
+externally published. The
+[current validation record](release-evidence/0.1.0-alpha.1/validation.json) records
+the exact qualified source HEAD and source fingerprint.
 Phases 0–6 are completed milestone history; Phase 7 is the active extended-capability roadmap.
 
 ## Current user documentation
@@ -17,13 +20,13 @@ Phases 0–6 are completed milestone history; Phase 7 is the active extended-cap
 - [Implemented design and Phase 7 boundaries](../DESIGN.md): current architecture and public invariants.
 - [Completed acceptance criteria and active Phase 7 roadmap](../IMPLEMENTATION.md).
 - [Domain vocabulary](../CONTEXT.md).
-- [Python SDK architecture](phase-6-python-sdk.md): current generator/handwritten boundaries, with PR #21 validation history distinguished from subsequent PR #22 qualification.
+- [Python SDK architecture](phase-6-python-sdk.md): current generator/handwritten boundaries, with PR #21 validation history distinguished from current PR #24 qualification.
 
 ## Compatibility and capabilities
 
 [Compatibility](compatibility.md) records supported pins/platforms and qualified
 inputs. The [feasibility matrix](feasibility-matrix.md) separates internal Jadx
-probes from public service capabilities. [/capabilities evidence](pr-22-capabilities.json)
+probes from public service capabilities. [Current /capabilities evidence](release-evidence/0.1.0-alpha.1/capabilities.json)
 records the complete reviewed snapshot on all five ordinary-process client surfaces.
 [The reviewed example](../openapi/examples/capabilities.json) defines formal capability statuses.
 
@@ -50,16 +53,20 @@ records the complete reviewed snapshot on all five ordinary-process client surfa
 | Python SDK | Implemented; installed wheels locally qualified on Linux CPython 3.11.13/3.14.4 |
 | External publication | No tag, GitHub Release, PyPI or Maven publication |
 
-## Release qualification evidence
+## Current candidate qualification
 
-- [Repeatable qualification runbook](phase-6-release-qualification.md): all 12 matching-GUI gates, cross-language installed-artifact checks, strict source identity and publication boundary.
-- [PR #22 current candidate qualification report](pr-22-review.md): exact commands/outcomes and limits at source `55e46eb707d095abdb067424db77f51a31558e17`.
-- [Validation](pr-22-validation.json), [artifact manifest](pr-22-artifacts.json), [route matrix](pr-22-route-matrix.json) and [error matrix](pr-22-error-matrix.json).
+- [LibJadx Apache-2.0 license](../LICENSE), also carried by the Python package.
+- [Alpha release notes draft](releases/0.1.0-alpha.1.md).
+- [Publication checklist](alpha-publication-checklist.md): separate explicit approval is required.
+- [Current PR #24 qualification report](release-evidence/0.1.0-alpha.1/review.md).
+- [Validation and exact qualified source HEAD](release-evidence/0.1.0-alpha.1/validation.json).
+- [Reproducible artifact hashes](release-evidence/0.1.0-alpha.1/artifacts.json), [route matrix](release-evidence/0.1.0-alpha.1/route-matrix.json), [error matrix](release-evidence/0.1.0-alpha.1/error-matrix.json) and [capabilities](release-evidence/0.1.0-alpha.1/capabilities.json).
+- [Repeatable qualification runbook](phase-6-release-qualification.md): all 12 matching-GUI gates, installed-artifact checks and strict source identity.
 
-The evidence certifies its recorded source/artifacts, not every later main revision.
-The [PR #23 freshness finding](phase-6-release-qualification.md#documentation-cleanup-and-evidence-freshness)
-records why ordinary documentation changes fail existing evidence freshness checks.
-Evidence and release-test semantics are preserved; no new runtime qualification is claimed.
+PR #24 reports record the complete successful gate on a clean source commit.
+Their source identity is authoritative for current qualification and accepted
+evidence-only descendants. PR #22 reports below remain historical. No tag or
+external publication has occurred.
 
 ## Phase 7 roadmap
 
@@ -99,8 +106,8 @@ current public statuses above and OpenAPI take precedence over intermediate find
 
 ## PR review records
 
-PR #12–#21 are historical reviews. They retain exact commands, negative controls
-and handoffs as written at each PR. PR #22 above is the current candidate report.
+PR #12–#22 are historical reviews. They retain exact commands, negative controls
+and handoffs as written at each PR.
 
 - [PR #12 review](pr-12-review.md).
 - [PR #13 review](pr-13-review.md).
@@ -112,6 +119,7 @@ and handoffs as written at each PR. PR #22 above is the current candidate report
 - [PR #19 review](pr-19-review.md).
 - [PR #20 review](pr-20-review.md).
 - [PR #21 review](pr-21-review.md).
+- [PR #22 original qualification](pr-22-review.md): [validation](pr-22-validation.json), [artifacts](pr-22-artifacts.json), [routes](pr-22-route-matrix.json) and [errors](pr-22-error-matrix.json).
 
 ## Machine-generated qualification evidence
 
@@ -134,5 +142,6 @@ Run `python/.venv/bin/python tests/validate-documentation.py` from the repositor
 root. It checks every tracked or unignored Markdown file's relative links and
 heading/HTML anchors without network access, and rejects stale milestone phrases
 only in current-facing docs. Run `--self-test` to exercise valid/broken links,
-duplicate headings, reference links and historical-language exclusions.
+duplicate headings, reference links, stale current qualification language and
+historical-language exclusions.
 External HTTP links are not fetched by this offline check.

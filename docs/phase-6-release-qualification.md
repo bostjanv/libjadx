@@ -1,10 +1,30 @@
 # Cross-language release qualification
 
-**Status: PASSED** for source head `55e46eb707d095abdb067424db77f51a31558e17`,
-as recorded by PR #22 and merged to main. Candidate remains **NOT PUBLISHED**
-and not tagged. See the [qualification report](pr-22-review.md),
-[validation record](pr-22-validation.json) and [artifact manifest](pr-22-artifacts.json).
-The main merge SHA is not the tested source SHA.
+PR #24 freshly qualified the Apache-2.0 alpha locally. The
+[current validation record](release-evidence/0.1.0-alpha.1/validation.json)
+identifies the exact qualified source HEAD and source SHA-256; the
+[qualification report](release-evidence/0.1.0-alpha.1/review.md) records
+commands, results and limits. PR #22 reports are immutable historical evidence.
+Publication remains a separate explicit action.
+
+## Current PR #24 qualification
+
+**Status: PASSED locally under Apache-2.0; NOT PUBLISHED.** The
+[current validation record](release-evidence/0.1.0-alpha.1/validation.json)
+records the exact qualified source HEAD in `head` / `qualification_heads` and
+its `source_sha256`. The [report](release-evidence/0.1.0-alpha.1/review.md),
+[artifact manifest](release-evidence/0.1.0-alpha.1/artifacts.json),
+[route matrix](release-evidence/0.1.0-alpha.1/route-matrix.json),
+[error matrix](release-evidence/0.1.0-alpha.1/error-matrix.json) and
+[capabilities](release-evidence/0.1.0-alpha.1/capabilities.json) are current
+PR #24 evidence. This is author-run local qualification, with no remote CI or
+independent reviewer rerun claimed.
+
+Only that recorded source, or an evidence-only descendant that passes freshness
+validation, is qualified. Ordinary documentation changes require a new source
+commit and the full gate. Current status documents link to the validation record
+for the source HEAD; it is recorded after the source commit has been tested,
+without embedding a self-referential commit hash in the hashed documentation.
 
 Product candidate: `0.1.0-alpha.1`
 Python package: `0.1.0a1`
@@ -81,7 +101,8 @@ JADX_GUI=/path/to/jadx-1.5.6/bin/jadx-gui \
 
 Stages `core`, `gui` and `result` allow separate invocations, in that order. `result` requires both
 stages to pass with the exact source fingerprint and qualified source head.
-Only a descendant containing evidence files under docs/pr-22-* or changelog may
+Only a descendant containing evidence files under `docs/release-evidence/**` or
+`docs/changelog.md` may
 reuse the result; its Git ancestry and unchanged full source digest are verified.
 This permits committing reports without claiming their self-referential commit
 hash was tested. Any source or artifact-input change fails the freshness gate. Core alone prints
@@ -91,7 +112,8 @@ GUI requires that passing core evidence and runs all dedicated Exec/Test tasks
 with `--rerun-tasks -x test`; the shared Java test task is excluded to preserve
 those fresh inputs. Stale Save As outputs are removed.
 
-Core runs clean Java check, distribution construction, four existing contract
+Core runs clean Java check, distribution construction, license/documentation
+validation (including documentation self-tests), four existing contract
 validators, OpenAPI and external examples validation, frozen generator drift,
 Ruff formatting/lint and mypy, artifact content/license audits, repeat builds,
 and installed-wheel unit/integration/release suites. Archive metadata uses the
@@ -99,7 +121,10 @@ outer filename format: a TAR containing JARs also passes ZIP signature detection
 Owned archive/Git regressions check file counts and fail-closed freshness. Fresh 3.11 and 3.14 venvs
 launch the extracted ZIP outside the checkout. Extracted TAR runs representative
 raw and generated-async routes. Every mandatory installed test must run without
-skips. Wheel/sdist and Java ZIP/TAR must repeat byte for byte.
+skips. Wheel/sdist and Java ZIP/TAR must repeat byte for byte. Both Java outer formats must contain exact root LICENSE
+bytes and all separate dependency notices; the wheel must declare
+`License-Expression: Apache-2.0`. A deterministic `SHA256SUMS` is written outside
+the repository for the four candidate artifacts.
 
 `python/tests/release_support.py` derives the operation inventory from OpenAPI.
 Every actual response is schema validated; parsed models and handwritten wrappers
@@ -131,28 +156,39 @@ CLI precedence is CLI > environment > YAML > defaults, including selection,
 bind, port and allowed roots. The extracted-launcher tests exercise precedence
 without accepting remote binds or resolving invalid lower-priority paths.
 
-Publication is explicitly outside this workflow: it creates no tag, release,
-registry upload, branch merge, deployment or license grant. LibJadx has no root
-open-source license grant; Python retains LicenseRef-Proprietary. Upstream notices
-are distributed without suggesting endorsement. Future publication requires the
-human to choose its channels and license policy separately.
+LibJadx candidate artifacts carry Apache-2.0; bundled and runtime dependencies
+retain their own licenses/notices. Publication remains a separate explicit action.
+This workflow creates no tag, release, registry upload, branch merge or deployment.
+See the [alpha publication checklist](alpha-publication-checklist.md) for later
+human-approved publication.
 
 ## Documentation cleanup and evidence freshness
 
-PR #23 preserves the PR #22 evidence bytes and qualified source identity. The
-existing `tests/release/qualify.py` `source_hash()` hashes ordinary Markdown and
-validator scripts as well as runtime inputs. `validate_evidence_identity()` only
-permits descendants changing `docs/pr-22-*` or `docs/changelog.md`. Therefore the
-broader documentation cleanup is outside its evidence-only descendant rule:
-`validate-release-capabilities.py`, `validate-release-route-matrix.py` and
-`validate-release-error-matrix.py` reject the cleaned checkout with
-`Superseded-source evidence` even though runtime/OpenAPI/generated transport are
-unchanged. All three passed on the unchanged PR #22 main merge before cleanup.
+PR #23 preserved the PR #22 evidence bytes and qualified source identity. Its
+ordinary documentation changes invalidated the historical source fingerprint,
+even though runtime/OpenAPI/generated transport were unchanged. The old rule
+allowed only PR #22 report files and changelog descendants. The historical
+reports remain immutable audit records for their original source/artifacts.
 
-This is a separate documentation-work-order/freshness-policy mismatch. The work
-order expected documentation-only descendants to be accepted, but the existing
-executable rule does not accept them. This PR does not weaken that rule, regenerate
-release evidence, replace the recorded source SHA with a documentation SHA or
-claim a new runtime/GUI qualification. PR #22 evidence remains an audit record
-for its qualified source/artifacts. Qualification of a later release revision
-requires the full existing gate; changing the freshness policy is separate work.
+PR #24 replaces that PR-specific rule with `docs/release-evidence/**` and
+`docs/changelog.md`. `source_hash()` includes all other tracked and unignored
+inputs, including README, LICENSE, package metadata, ordinary Markdown and
+validator scripts. Qualification runs on a clean candidate source commit; a
+subsequent evidence-only descendant must preserve that digest and Git ancestry.
+Any other post-qualification path invalidates the result, including historical
+PR report edits. `tests/release/test_evidence.py` exercises exact heads, versioned
+evidence/changelog descendants and rejected source/config/documentation changes.
+
+New reports live under `docs/release-evidence/0.1.0-alpha.1/`. The qualified source
+commit identifies tested artifact inputs; an evidence-only descendant contains
+reports and may become the final PR head after freshness validation. No report
+can include its own commit hash. All ordinary documentation, license, packaging
+and release-note draft changes must be committed before running the full gate.
+
+## Historical PR #22 qualification
+
+**Historical PR #22 status: PASSED** for source head `55e46eb707d095abdb067424db77f51a31558e17`,
+as recorded by PR #22 and merged to main. Candidate remains **NOT PUBLISHED**
+and not tagged. See the [qualification report](pr-22-review.md),
+[validation record](pr-22-validation.json) and [artifact manifest](pr-22-artifacts.json).
+The main merge SHA is not the tested source SHA.

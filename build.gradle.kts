@@ -68,6 +68,7 @@ application {
 distributions {
     main {
         contents {
+            from("LICENSE")
             from("licenses") { into("licenses") }
         }
     }

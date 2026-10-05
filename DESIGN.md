@@ -1,6 +1,13 @@
 # LibJadx — Architecture and API Design
 
-**Status:** implemented v0.1 architectural baseline, locally release-qualified by PR #22; candidate not published or tagged.
+PR #24 freshly qualified the Apache-2.0 alpha locally. The
+[current validation record](docs/release-evidence/0.1.0-alpha.1/validation.json)
+identifies the exact qualified source HEAD and source SHA-256; the
+[qualification report](docs/release-evidence/0.1.0-alpha.1/review.md) records
+commands, results and limits. PR #22 reports are immutable historical evidence.
+Publication remains a separate explicit action.
+
+**Status:** implemented v0.1 architectural baseline, freshly release-qualified locally by PR #24 under Apache-2.0; candidate not published or tagged.
 **Original design prepared:** 2026-09-24.
 **Current implementation pin:** Jadx 1.5.6 / source `28ff15e4ae69950aebea110a13e5ab895d234dfc`, JDK 21. [OpenAPI](openapi/openapi.yaml) is authoritative for the implemented HTTP contract; illustrative models and Phase 7 goals below are not additional public guarantees.
 
@@ -10,7 +17,7 @@
 
 LibJadx is a headless Java service for local Jadx analysis, inspired by and modeled in spirit after [libghidra](https://github.com/0xeb/libghidra)'s goal of typed programmatic access to a reverse-engineering engine. LibJadx is independently designed for Jadx and does not copy or implement libghidra's interfaces, protobuf schemas, wire protocol, data models, internal architecture, examples or tests. It is not API/protocol compatible; neither libghidra nor Jadx endorses it.
 
-The qualified v0.1 baseline enables a Python or REST client to start a fixed-project service, observe load progress, list classes and methods, decompile source, follow basic references, perform indexed searches, rename supported entities, save the edits in a Jadx-native project, and open that project with the matching jadx-gui. PR #22 passed the contract, concurrent-client, external-modification and actual matching-GUI gates at its recorded source revision; see [qualification evidence](docs/pr-22-review.md).
+The qualified v0.1 baseline enables a Python or REST client to start a fixed-project service, observe load progress, list classes and methods, decompile source, follow basic references, perform indexed searches, rename supported entities, save the edits in a Jadx-native project, and open that project with the matching jadx-gui. PR #24 passed the contract, concurrent-client, external-modification and actual matching-GUI gates at the source revision identified by [current qualification evidence](docs/release-evidence/0.1.0-alpha.1/review.md).
 
 ### Current v0.1 requirements
 
@@ -115,7 +122,7 @@ Per-request decompiler overrides always use a **single-operation, read-only temp
 - Reuse Jadx-native cache implementations where feasible, and maintain additional search indexes and job data **in memory only**. Logs and external server config may exist outside the project, but must not carry authoritative project edits or revisions.
 - Do not confuse `JadxDecompiler.save()` (decompiled source/resources export) with native `.jadx` project serialization. The native project adapter is independently responsible for `.jadx` and mappings.
 
-The pinned upstream `jadx-gui` sources establish native serialization semantics: `JadxProject.loadProjectData`, `ProjectData` and `JadxProject`'s path and code-data adapters. `JadxProject` references GUI classes. Phase 0 proved the independent headless native codec, and PR #22 qualified matching-GUI persistence; production does not require the GUI.
+The pinned upstream `jadx-gui` sources establish native serialization semantics: `JadxProject.loadProjectData`, `ProjectData` and `JadxProject`'s path and code-data adapters. `JadxProject` references GUI classes. Phase 0 proved the independent headless native codec, and PR #24 freshly qualified matching-GUI persistence; production does not require the GUI.
 
 ### 4.2 Save, reload and external changes
 
@@ -255,7 +262,7 @@ Implemented usage and conflict handling are documented in [python/README.md](pyt
 
 ## 11. Validation and release strategy
 
-The initial release was gated by **headless native project load/save and actual matching-GUI round trips**. Phases 0–6 are complete for the defined v0.1 scope; [PR #22](docs/pr-22-review.md) records 22/22 operations, 19/19 errors, five client surfaces, installed wheels on Python 3.11/3.14, reproducible archives and all twelve matching-GUI gates at the qualified source revision. The candidate remains untagged/unpublished.
+The initial release was gated by **headless native project load/save and actual matching-GUI round trips**. Phases 0–6 are complete for the defined v0.1 scope; [Current PR #24 evidence](docs/release-evidence/0.1.0-alpha.1/review.md) records 22/22 operations, 19/19 errors, five client surfaces, installed wheels on Python 3.11/3.14, reproducible archives and all twelve matching-GUI gates at the qualified source revision. The candidate remains untagged/unpublished.
 
 The [release runbook](docs/phase-6-release-qualification.md) defines repeatable qualification and strict evidence freshness. Existing evidence is not a qualification of every later Git revision. Phase 7 requires fresh capability probes and relevant regression/GUI gates before advertising deeper analysis or persistence. See [IMPLEMENTATION.md](IMPLEMENTATION.md) for retained historical acceptance criteria and the active roadmap.
 
@@ -269,6 +276,8 @@ The [release runbook](docs/phase-6-release-qualification.md) defines repeatable 
 6. Headless runtime cannot assume `.jadx` stores every GUI-wide decompiler preference. Persist **only** natively representable settings; expose limitations.
 
 ## 12. Source and license references
+
+LibJadx first-party source and documentation use [Apache-2.0](LICENSE). Jadx is separate upstream work under Apache-2.0. libghidra is product inspiration only; its Human-Origin license applies to libghidra itself, not independently created LibJadx work.
 
 Jadx implementation references are pinned to the supported source commit:
 

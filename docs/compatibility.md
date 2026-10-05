@@ -1,7 +1,14 @@
 # Compatibility and pinned dependencies
 
-Status: v0.1 candidate locally release-qualified after PR #22; Phase 6.2 complete.
-Candidate not externally published or tagged. Updated 2026-10-02.
+PR #24 freshly qualified the Apache-2.0 alpha locally. The
+[current validation record](release-evidence/0.1.0-alpha.1/validation.json)
+identifies the exact qualified source HEAD and source SHA-256; the
+[qualification report](release-evidence/0.1.0-alpha.1/review.md) records
+commands, results and limits. PR #22 reports are immutable historical evidence.
+Publication remains a separate explicit action.
+
+Status: v0.1 Apache-2.0 candidate freshly release-qualified locally by PR #24; Phase 6.2 complete.
+Candidate not externally published or tagged. Updated 2026-10-05.
 
 ## Current version matrix
 
@@ -9,6 +16,7 @@ Candidate not externally published or tagged. Updated 2026-10-02.
 | --- | --- |
 | Java candidate | `0.1.0-alpha.1` |
 | Python SDK | `0.1.0a1` |
+| LibJadx license | Apache-2.0 |
 | OpenAPI | `0.1.0-experimental` |
 | Jadx | `1.5.6` |
 | Jadx source | `28ff15e4ae69950aebea110a13e5ab895d234dfc` |
@@ -17,7 +25,8 @@ Candidate not externally published or tagged. Updated 2026-10-02.
 | Generator | openapi-python-client 0.29.1 |
 
 Phases 0–6 are complete for the defined first-release scope. Qualification applies
-to PR #22's recorded source and artifacts; it is separate from external publication.
+to the source HEAD and artifacts in the current PR #24 versioned evidence; it is
+separate from external publication.
 See the [documentation index](README.md) for current guidance and historical records.
 
 ## Jadx pin
@@ -36,7 +45,7 @@ See the [documentation index](README.md) for current guidance and historical rec
 
 The 1.5.6 Git tag is `v1.5.6`, a stable, signed upstream release. No build-time dependency points to `master`. The production distribution is headless and has no GUI runtime dependency. Matching `jadx-gui:1.5.6` is test/qualification infrastructure only; it was used for all native persistence gates.
 
-The installed distribution includes the 1.5.6 analysis, dex, Java input/conversion, Smali, mapping, Kotlin metadata, XAPK, AAB, APKM and APKS plugins listed in the [pinned CLI build](https://github.com/skylot/jadx/blob/28ff15e4ae69950aebea110a13e5ab895d234dfc/jadx-cli/build.gradle.kts). Bundled plugin availability is not release qualification for every supported format: PR #22 qualified owned class/JAR/DEX/native fixtures, not the entire APK/bundle/conversion matrix. `jadx-core` alone has no input loaders in the distribution. `StandaloneDistributionTest` launches the installed service against a real native-project fixture and checks class loading and cursor behavior across two processes without the test-only GUI classpath.
+The installed distribution includes the 1.5.6 analysis, dex, Java input/conversion, Smali, mapping, Kotlin metadata, XAPK, AAB, APKM and APKS plugins listed in the [pinned CLI build](https://github.com/skylot/jadx/blob/28ff15e4ae69950aebea110a13e5ab895d234dfc/jadx-cli/build.gradle.kts). Bundled plugin availability is not release qualification for every supported format: PR #24 qualified owned class/JAR/DEX/native fixtures, not the entire APK/bundle/conversion matrix. `jadx-core` alone has no input loaders in the distribution. `StandaloneDistributionTest` launches the installed service against a real native-project fixture and checks class loading and cursor behavior across two processes without the test-only GUI classpath.
 
 ## Source evidence inspected
 
@@ -80,8 +89,9 @@ Resolved transitive versions are recorded in [gradle.lockfile](../gradle.lockfil
 
 The native codec, explicit save/reload/conflict handling, original identities,
 Java snapshots, basic references, search, declaration/mapping/parameter/group
-edits and Python sync/async clients are implemented. PR #22 is the final v0.1
-qualification report below; the [feasibility matrix](feasibility-matrix.md)
+edits and Python sync/async clients are implemented. The
+[current PR #24 qualification report](release-evidence/0.1.0-alpha.1/review.md)
+records fresh v0.1 qualification; the [feasibility matrix](feasibility-matrix.md)
 distinguishes public capabilities from internal Jadx probes.
 
 Local rename and public Smali are UNSUPPORTED. References and related propagation
@@ -94,7 +104,7 @@ CFG/resources/external-classpath/portable export work remains Phase 7.
 
 The following Phase 0–5 and PR #13–#21 records describe the state at each milestone.
 Their forward-looking statements and intermediate exclusions are historical;
-final v0.1 support is summarized above and in the PR #22 section below.
+final v0.1 support is summarized above and in the current PR #24 evidence.
 Pinned source/fixture details remain in the linked subsystem records.
 
 ## Reproducing Phase 0 probes
@@ -259,8 +269,9 @@ lock, runtime GUI, schema or mapping-format change. See
 
 ## PR #21 Python SDK baseline
 
-Distribution/import: `libjadx` **0.1.0a1**, HTTP-only, all rights reserved for now
-(`LicenseRef-Proprietary`, human-selected interim policy). Jadx pin/source, Java
+Distribution/import: `libjadx` **0.1.0a1**, HTTP-only, currently Apache-2.0.
+At PR #21 time the package used an interim reserved-rights policy; PR #24 replaced
+it with Apache-2.0 before public alpha publication. Jadx pin/source, Java
 runtime and OpenAPI 0.1.0-experimental remain unchanged. This is Phase 6.1 SDK
 foundation; subsequent PR #22 completed Phase 6.2 qualification. External publication remains separate.
 
@@ -288,7 +299,7 @@ records generator limitations; [review](pr-21-review.md) records actual commands
 counts and artifact fingerprints. PyPI name check returned 404 on 2026-09-30;
 no package was published or reserved.
 
-## Current PR #22 cross-language candidate qualification
+## Historical PR #22 cross-language candidate qualification
 
 Java `0.1.0-alpha.1` and Python `0.1.0a1` identify the same experimental candidate;
 OpenAPI remains `0.1.0-experimental`. CLI and capabilities use one deterministic
@@ -299,8 +310,9 @@ platform; Windows/macOS execution is unqualified (the batch launcher is audited)
 The completed executable [release gate](phase-6-release-qualification.md) exercises all 22
 operations on raw/generated/handwritten sync/async surfaces, all 19 stable errors,
 real class/JAR/DEX/native input, explicit native persistence and process restarts.
-[Current evidence](pr-22-review.md) determines qualification; historical PR results
-are not substituted for this run. No runtime GUI, project store, authentication,
+[Historical evidence](pr-22-review.md) qualifies only its recorded source;
+[Current PR #24 evidence](release-evidence/0.1.0-alpha.1/review.md) records the
+fresh Apache-2.0 requalification. No runtime GUI, project store, authentication,
 remote listening, extra transport or package publication is introduced.
 
 Public release capabilities are reconciled with the service contract, not the

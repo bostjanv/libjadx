@@ -1,8 +1,10 @@
 # Jadx feasibility matrix
 
 This matrix records pinned Jadx probes and subsystem evidence, not an additional
-public API contract. The v0.1 candidate was locally release-qualified by PR #22
-and is not published or tagged. [Public capabilities](../openapi/examples/capabilities.json)
+public API contract. PR #24 freshly qualified the Apache-2.0 v0.1 candidate locally.
+The [current report](release-evidence/0.1.0-alpha.1/review.md) and
+[validation record](release-evidence/0.1.0-alpha.1/validation.json) identify the
+exact qualified source HEAD; the candidate is not published or tagged. [Public capabilities](../openapi/examples/capabilities.json)
 and [OpenAPI](../openapi/openapi.yaml) govern service support; internal feasibility
 and historical investigations are explicitly separated below. See [docs index](README.md).
 
@@ -33,8 +35,8 @@ Evidence is tied to Jadx `1.5.6` source commit `28ff15e4ae69950aebea110a13e5ab89
 | Original bytecode offsets | UNKNOWN; API UNAVAILABLE | Pinned `InsnCodeOffset` exists, but its origin/precision relative to generated Java and DEX/JVM inputs are unproved. No bytecode offsets are returned. Follow-up: compare pinned instruction disassembly and annotations on owned JAR/DEX fixtures. |
 | CFG access and representation distinction | UNKNOWN | Bounded follow-up: inspect pinned graph APIs and test one loop/branch/try-catch method. No CFG endpoint or exactness guarantee is permitted yet. |
 | Android resources and manifest decoding | UNKNOWN | Bounded follow-up: use an owned minimal APK containing manifest, XML and assets; compare `ResourceFile` output with decoded fixture entries. |
-| Public parallel primary Jadx reads | UNSUPPORTED | `analysis.concurrent_reads`: `SERIALIZED_PRIMARY_READS_FAIL_FAST_PROJECT_BUSY`. Multiple clients are supported; primary reads remain serialized and conflicting admission fails PROJECT_BUSY. PR #22 qualifies this behavior. Future parallelism needs separate stress proof. |
-| Public cancellation and cache invalidation | PARTIAL | `analysis.cancellation`: `COOPERATIVE_JOBS_CANCELLING_UNTIL_WORK_STOPS_NO_HARD_JADX_INTERRUPTION`. PR #22 checks queued/running jobs, truthful CANCELLING and leases. `SearchBuildJobTest` proves class-boundary cancellation; `SearchInvalidationTest` covers edit/save/reload cursors. Complete graph invalidation and hard JVM interruption remain unproved. |
+| Public parallel primary Jadx reads | UNSUPPORTED | `analysis.concurrent_reads`: `SERIALIZED_PRIMARY_READS_FAIL_FAST_PROJECT_BUSY`. Multiple clients are supported; primary reads remain serialized and conflicting admission fails PROJECT_BUSY. Current PR #24 qualification covers this behavior. Future parallelism needs separate stress proof. |
+| Public cancellation and cache invalidation | PARTIAL | `analysis.cancellation`: `COOPERATIVE_JOBS_CANCELLING_UNTIL_WORK_STOPS_NO_HARD_JADX_INTERRUPTION`. Current PR #24 qualification checks queued/running jobs, truthful CANCELLING and leases. `SearchBuildJobTest` proves class-boundary cancellation; `SearchInvalidationTest` covers edit/save/reload cursors. Complete graph invalidation and hard JVM interruption remain unproved. |
 | Cold class-name search | SUPPORTED for owned JAR/native fixtures; input census UNKNOWN | `JadxSearchProbeTest` observes unchanged Jadx class process state after catalog and original-owner enumeration. `SearchEndpointsTest` and installed-distribution test show cold class hits with original refs. Duplicate original input definitions can be collapsed by Jadx. |
 | Incremental member-name search | SUPPORTED for Jadx-visible processed classes; initially PARTIAL | `JadxSearchProbeTest` preserves distinct return-only overload descriptors; decompile ingestion and the complete-index job copy original refs and aliases. Unprocessed or failed classes remain explicit. |
 | Exact emitted-Java source search | SUPPORTED for successful owner source; initially PARTIAL | `SearchEndpointsTest` compares UTF-16 half-open hit ranges and snapshot IDs with the exact `/decompile` Java, including a supplementary Unicode code point. Anonymous/inner classes share one emitted owner. Failed or evicted owners keep coverage partial. |
@@ -54,7 +56,7 @@ Evidence is tied to Jadx `1.5.6` source commit `28ff15e4ae69950aebea110a13e5ab89
 | Original-input declaration census | SUPPORTED for bounded class/JAR/DEX subset, internal only | `RawInputCensusProbeTest` and `InputCensusTest` retain duplicates and divergent methods/access/supertypes before RootNode selection, with exact configured origins, hard-limit boundaries and strict parse/checksum failures. No source bodies or mutable Jadx nodes are retained. |
 | Independent override-family completeness | SUPPORTED for conservative closed-input exact-return subset, internal only | `IndependentHierarchyVerifierTest` verifies chains/defaults/diamonds/independent branches, visibility, inherited interface implementations, two inputs and DEX. Every complete family is seed independent. Bridge/covariant/synthetic, missing/external/duplicate and resource-limited results expose no partial family. `HierarchyVerifierLifecycleTest` checks lifecycle and input invalidation. See [rules](phase-5-hierarchy-verifier.md). |
 
-## Python SDK and current PR #22 qualification
+## Python SDK and current PR #24 qualification
 
 Generated OpenAPI 3.1 transport, sync/async wrappers and local packaging are
 SUPPORTED for the representative owned-server workflows on CPython 3.11.13 and
@@ -62,7 +64,9 @@ SUPPORTED for the representative owned-server workflows on CPython 3.11.13 and
 five client surfaces, installed-wheel tests on Python 3.11/3.14, larger cooperative
 cancellation/lifecycle workflows, reproducible artifacts and all twelve matching-GUI
 gates. The candidate is locally qualified, not externally published or tagged. See
-[release qualification](phase-6-release-qualification.md) and [PR #22 report](pr-22-review.md).
+[release qualification](phase-6-release-qualification.md) and
+[current PR #24 report](release-evidence/0.1.0-alpha.1/review.md) for the fresh
+Apache-2.0 requalification; PR #22 is historical.
 Native/GUI behavior and all Jadx capability limitations above are unchanged.
 See [SDK architecture](phase-6-python-sdk.md) and [validation](pr-21-review.md).
 

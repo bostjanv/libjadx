@@ -39,10 +39,22 @@ def manifest() -> dict[str, object]:
             line for line in metadata.splitlines() if line.startswith("Requires-Dist:")
         ]
         assert len(runtime) == 3, runtime
-        assert "License-Expression: LicenseRef-Proprietary" in metadata
+        assert "License-Expression: Apache-2.0" in metadata.splitlines()
+        assert not any("libghidra" in p.lower() for p in wheel_files + runtime)
+        prefix = metadata_path.removesuffix("METADATA") + "licenses/"
+        for name in ("LICENSE", "OPENAPI-PYTHON-CLIENT-LICENSE", "THIRD_PARTY.md"):
+            assert archive.read(prefix + name) == (PYTHON / name).read_bytes(), name
     with tarfile.open(sdist) as archive:
         sdist_files = sorted(m.name for m in archive.getmembers() if m.isfile())
+        assert not any("libghidra" in p.lower() for p in sdist_files)
+        for name in ("LICENSE", "OPENAPI-PYTHON-CLIENT-LICENSE", "THIRD_PARTY.md"):
+            member = archive.getmember("libjadx-0.1.0a1/" + name)
+            stream = archive.extractfile(member)
+            assert stream is not None
+            assert stream.read() == (PYTHON / name).read_bytes(), name
     return {
+        "license_expression": "Apache-2.0",
+        "license_sha256": sha256(PYTHON / "LICENSE"),
         "openapi_sha256": sha256(PYTHON.parent / "openapi/openapi.yaml"),
         "generator_config_sha256": sha256(PYTHON / "generator.yaml"),
         "lockfile_sha256": sha256(PYTHON / "uv.lock"),
