@@ -10,8 +10,8 @@ import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-# Canonical Apache 2.0 text, verified from the existing upstream license bundle.
-APACHE_SHA256 = "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1"
+# Unmodified https://www.apache.org/licenses/LICENSE-2.0.txt (committed offline).
+APACHE_SHA256 = "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
 JAVA_NOTICES = (
     "JADX-LICENSE",
     "JADX-NOTICE",
