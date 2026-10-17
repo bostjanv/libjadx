@@ -6,6 +6,7 @@ from ._generated.models.class_info import ClassInfo
 from ._generated.models.edit_batch_result import EditBatchResult
 from ._generated.models.reference_page import ReferencePage
 from ._generated.models.reference_query_direction import ReferenceQueryDirection
+from ._generated.models.reference_query_view import ReferenceQueryView
 from ._generated.models.symbol_info import SymbolInfo
 from ._generated.models.symbol_ref import SymbolRef as WireRef
 from ._generated.models.symbol_ref_kind import SymbolRefKind
@@ -80,12 +81,14 @@ class _BoundSymbol(_Symbol):
         self,
         *,
         direction: ReferenceQueryDirection | str = "INCOMING",
+        view: ReferenceQueryView | str = "PAIRS",
         strict: bool = False,
         include_source_sites: bool = False,
     ) -> ReferencePage:
         return self._project.references(
             self.ref,
             direction=direction,
+            view=view,
             strict=strict,
             include_source_sites=include_source_sites,
         )
@@ -125,12 +128,14 @@ class _AsyncBoundSymbol(_Symbol):
         self,
         *,
         direction: ReferenceQueryDirection | str = "INCOMING",
+        view: ReferenceQueryView | str = "PAIRS",
         strict: bool = False,
         include_source_sites: bool = False,
     ) -> ReferencePage:
         return await self._project.references(
             self.ref,
             direction=direction,
+            view=view,
             strict=strict,
             include_source_sites=include_source_sites,
         )

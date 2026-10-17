@@ -11,6 +11,7 @@ from typing import (
 from attrs import define as _attrs_define
 
 from ..models.source_availability import SourceAvailability
+from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="ReferenceCapabilities")
 
@@ -24,6 +25,7 @@ class ReferenceCapabilities:
         original_offset (Literal['UNAVAILABLE']):
         reference_kind (Literal['PARTIAL']):
         global_coverage (Literal['UNKNOWN']):
+        loaded_dex_offset (None | SourceAvailability | Unset):
     """
 
     resolved_target: SourceAvailability
@@ -31,6 +33,7 @@ class ReferenceCapabilities:
     original_offset: Literal["UNAVAILABLE"]
     reference_kind: Literal["PARTIAL"]
     global_coverage: Literal["UNKNOWN"]
+    loaded_dex_offset: None | SourceAvailability | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         resolved_target = self.resolved_target.value
@@ -43,6 +46,14 @@ class ReferenceCapabilities:
 
         global_coverage = self.global_coverage
 
+        loaded_dex_offset: None | str | Unset
+        if isinstance(self.loaded_dex_offset, Unset):
+            loaded_dex_offset = UNSET
+        elif isinstance(self.loaded_dex_offset, SourceAvailability):
+            loaded_dex_offset = self.loaded_dex_offset.value
+        else:
+            loaded_dex_offset = self.loaded_dex_offset
+
         field_dict: dict[str, Any] = {}
 
         field_dict.update(
@@ -54,6 +65,8 @@ class ReferenceCapabilities:
                 "globalCoverage": global_coverage,
             }
         )
+        if loaded_dex_offset is not UNSET:
+            field_dict["loadedDexOffset"] = loaded_dex_offset
 
         return field_dict
 
@@ -82,12 +95,30 @@ class ReferenceCapabilities:
                 f"globalCoverage must match const 'UNKNOWN', got '{global_coverage}'"
             )
 
+        def _parse_loaded_dex_offset(data: object) -> None | SourceAvailability | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                loaded_dex_offset_type_0 = SourceAvailability(data)
+
+                return loaded_dex_offset_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(None | SourceAvailability | Unset, data)
+
+        loaded_dex_offset = _parse_loaded_dex_offset(d.pop("loadedDexOffset", UNSET))
+
         reference_capabilities = cls(
             resolved_target=resolved_target,
             source_location=source_location,
             original_offset=original_offset,
             reference_kind=reference_kind,
             global_coverage=global_coverage,
+            loaded_dex_offset=loaded_dex_offset,
         )
 
         return reference_capabilities

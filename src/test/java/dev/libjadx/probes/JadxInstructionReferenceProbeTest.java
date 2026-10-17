@@ -21,7 +21,7 @@ import jadx.plugins.input.dex.sections.DexCodeReader;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-/** Phase 7 feasibility only: no public instruction-reference capability is enabled. */
+/** Pinned loaded-DEX input-reader feasibility and boundary evidence. */
 class JadxInstructionReferenceProbeTest {
 
 	@TempDir Path dir;
@@ -103,6 +103,86 @@ class JadxInstructionReferenceProbeTest {
 			assertFalse(jvm.getClassNode().getMethods().stream().filter(method -> method.getName().equals("answer"))
 					.findFirst().orElseThrow().getCodeReader() instanceof DexCodeReader);
 		}
+	}
+
+	@Test
+	void invokeVariantsPayloadsAndReferencesSurviveRealJavaFailure() throws Exception {
+		Path dex = HierarchyFixture.dex(dir, "variants.dex",
+				Files.readString(Path.of("tests/fixtures/references/InstructionVariants.smali")), 28);
+		JadxArgs args = new JadxArgs();
+		args.setInputFiles(List.of(dex.toFile()));
+		try (JadxDecompiler jadx = new JadxDecompiler(args)) {
+			jadx.load();
+			var cls = JadxSymbolAdapter.visibleClass(jadx, "Lprobe/InstructionVariants;", 0);
+			var methods = cls.getClassNode().getMethods();
+			var variants = methods.stream().filter(m -> m.getName().equals("variants")).findFirst().orElseThrow();
+			List<Ref> refs = rawRefs(variants);
+			assertEquals(List.of(0, 3, 6, 9, 12, 15, 18, 21, 24, 27), refs.stream().map(Ref::offsetCodeUnits).toList());
+			assertEquals(List.of("invoke-virtual", "invoke-super", "invoke-direct", "invoke-static", "invoke-interface",
+					"invoke-virtual/range", "invoke-super/range", "invoke-direct/range", "invoke-static/range", "invoke-interface/range"),
+					refs.stream().map(Ref::opcode).toList());
+			assertEquals("Lmissing/External;->wide(J[[I)[J", refs.get(3).target());
+			assertEquals(refs.get(3).target(), refs.get(8).target());
+			var fields = rawRefs(methods.stream().filter(m -> m.getName().equals("fields")).findFirst().orElseThrow());
+			assertEquals(List.of(new Ref(0, "sget-wide", "Lmissing/Fields;->wide:J"),
+					new Ref(2, "sput-wide", "Lmissing/Fields;->wide:J"),
+					new Ref(4, "sget-object", "Lmissing/Fields;->matrix:[[I"),
+					new Ref(6, "sput-object", "Lmissing/Fields;->matrix:[[I")), fields);
+			var payloads = methods.stream().filter(m -> m.getName().equals("payloads")).findFirst().orElseThrow();
+			assertEquals(List.of(new Ref(9, "invoke-static", "Lmissing/External;->before()V"),
+					new Ref(32, "invoke-static", "Lmissing/External;->after()V")), rawRefs(payloads));
+			assertEquals(1, payloads.getCodeReader().getTries().size());
+			var broken = methods.stream().filter(m -> m.getName().equals("broken")).findFirst().orElseThrow();
+			var expected = List.of(new Ref(0, "invoke-static", "Lmissing/External;->recover()V"));
+			assertEquals(expected, rawRefs(broken));
+			cls.getCodeInfo();
+			assertTrue(jadx.getRoot().getErrorsCounter().getErrorNodes().contains(broken));
+			assertEquals(expected, rawRefs(broken));
+		}
+	}
+
+	@Test
+	void truncatedReaderThrowsButUnknownOpcodeNeedsExplicitRejection() throws Exception {
+		Path dex = HierarchyFixture.dex(dir, "malformed.dex",
+				Files.readString(Path.of("tests/fixtures/references/InstructionRefs.smali")));
+		JadxArgs args = new JadxArgs(); args.setInputFiles(List.of(dex.toFile()));
+		try (JadxDecompiler jadx = new JadxDecompiler(args)) {
+			jadx.load();
+			var entry = JadxSymbolAdapter.visibleClass(jadx, "Lprobe/InstructionRefs;", 0).getClassNode().getMethods()
+					.stream().filter(m -> m.getName().equals("entry")).findFirst().orElseThrow();
+			int code = entry.getCodeReader().getCodeOffset();
+			byte[] bytes = Files.readAllBytes(dex);
+			var truncated = new jadx.plugins.input.dex.DexReader(1, "truncated.dex", bytes, 0);
+			truncated.getBuf().limit(code + 17); // Header loaded; instruction buffer ends halfway through its first unit.
+			var reader = new DexCodeReader(new jadx.plugins.input.dex.sections.SectionReader(
+					truncated, code));
+			assertThrows(RuntimeException.class, () -> reader.visitInstructions(insn -> insn.decode()));
+			bytes[code + 16] = (byte) 0x73; // Reserved opcode: decode() alone does not reject it.
+			var unknown = new DexCodeReader(new jadx.plugins.input.dex.sections.SectionReader(
+					new jadx.plugins.input.dex.DexReader(2, "unknown.dex", bytes, 0), code));
+			assertThrows(IllegalArgumentException.class, () -> unknown.visitInstructions(insn -> {
+				if (((jadx.plugins.input.dex.insns.DexInsnData) insn).getInsnInfo() == null)
+					throw new IllegalArgumentException("Unknown opcode");
+				insn.decode();
+			}));
+		}
+	}
+
+	private static List<Ref> rawRefs(MethodNode method) {
+		List<Ref> refs = new ArrayList<>();
+		method.getCodeReader().copy().visitInstructions(insn -> {
+			insn.decode();
+			if (insn.getIndexType() == jadx.api.plugins.input.insns.InsnIndexType.METHOD_REF) {
+				var target = insn.getIndexAsMethod(); target.load();
+				refs.add(new Ref(insn.getOffset(), insn.getOpcodeMnemonic(), target.getParentClassType() + "->"
+						+ target.getName() + "(" + String.join("", target.getArgTypes()) + ")" + target.getReturnType()));
+			} else if (insn.getIndexType() == jadx.api.plugins.input.insns.InsnIndexType.FIELD_REF) {
+				var target = insn.getIndexAsField();
+				refs.add(new Ref(insn.getOffset(), insn.getOpcodeMnemonic(), target.getParentClassType() + "->"
+						+ target.getName() + ":" + target.getType()));
+			}
+		});
+		return refs;
 	}
 
 	private record Ref(int offsetCodeUnits, String opcode, String target) { }

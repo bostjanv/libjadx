@@ -75,12 +75,19 @@ from .reference_edge import ReferenceEdge
 from .reference_edge_evidence import ReferenceEdgeEvidence
 from .reference_edge_resolution import ReferenceEdgeResolution
 from .reference_edge_source_site_coverage import ReferenceEdgeSourceSiteCoverage
+from .reference_instruction import ReferenceInstruction
+from .reference_instruction_scan import ReferenceInstructionScan
+from .reference_instruction_scan_availability import (
+    ReferenceInstructionScanAvailability,
+)
 from .reference_page import ReferencePage
 from .reference_page_coverage import ReferencePageCoverage
 from .reference_page_direction import ReferencePageDirection
 from .reference_page_outcome import ReferencePageOutcome
+from .reference_page_scope import ReferencePageScope
 from .reference_query import ReferenceQuery
 from .reference_query_direction import ReferenceQueryDirection
+from .reference_query_view import ReferenceQueryView
 from .reference_relation import ReferenceRelation
 from .reference_site import ReferenceSite
 from .reload_project_request import ReloadProjectRequest
@@ -208,12 +215,17 @@ __all__ = (
     "ReferenceEdgeEvidence",
     "ReferenceEdgeResolution",
     "ReferenceEdgeSourceSiteCoverage",
+    "ReferenceInstruction",
+    "ReferenceInstructionScan",
+    "ReferenceInstructionScanAvailability",
     "ReferencePage",
     "ReferencePageCoverage",
     "ReferencePageDirection",
     "ReferencePageOutcome",
+    "ReferencePageScope",
     "ReferenceQuery",
     "ReferenceQueryDirection",
+    "ReferenceQueryView",
     "ReferenceRelation",
     "ReferenceSite",
     "ReloadProjectRequest",

@@ -6,14 +6,22 @@ import java.util.UUID;
 import dev.libjadx.core.symbols.SymbolRef;
 
 public record ReferenceQuery(SymbolRef ref, Direction direction, List<Relation> relations, int pageSize,
-        String cursor, boolean includeSourceSites, boolean strict, String expectedSessionId, Long expectedLogicalRevision) {
+        String cursor, boolean includeSourceSites, boolean strict, String expectedSessionId, Long expectedLogicalRevision, View view) {
+    public enum View { PAIRS, INSTRUCTIONS }
     public enum Direction { INCOMING, OUTGOING }
-    public enum Relation { CALL, UNRESOLVED_CALL, FIELD_USE, CLASS_DEPENDENCY }
+    public enum Relation { CALL, UNRESOLVED_CALL, FIELD_USE, CLASS_DEPENDENCY, FIELD_READ, FIELD_WRITE }
+    public ReferenceQuery(SymbolRef ref, Direction direction, List<Relation> relations, int pageSize,
+            String cursor, boolean includeSourceSites, boolean strict, String session, Long revision) {
+        this(ref, direction, relations, pageSize, cursor, includeSourceSites, strict, session, revision, View.PAIRS);
+    }
     public ReferenceQuery {
-        Objects.requireNonNull(ref); Objects.requireNonNull(direction);
+        Objects.requireNonNull(ref); Objects.requireNonNull(direction); Objects.requireNonNull(view);
+        if (view == View.INSTRUCTIONS && (ref.kind() != SymbolRef.Kind.METHOD || direction != Direction.OUTGOING || includeSourceSites))
+            throw new IllegalArgumentException("INSTRUCTIONS requires METHOD/OUTGOING without source sites");
         if (ref.kind() == SymbolRef.Kind.FIELD && direction != Direction.INCOMING)
             throw new IllegalArgumentException("FIELD only supports INCOMING");
-        List<Relation> allowed = switch (ref.kind()) {
+        List<Relation> allowed = view == View.INSTRUCTIONS
+                ? List.of(Relation.CALL, Relation.UNRESOLVED_CALL, Relation.FIELD_READ, Relation.FIELD_WRITE) : switch (ref.kind()) {
             case CLASS -> List.of(Relation.CLASS_DEPENDENCY);
             case FIELD -> List.of(Relation.FIELD_USE);
             case METHOD -> direction == Direction.INCOMING ? List.of(Relation.CALL) : List.of(Relation.CALL, Relation.UNRESOLVED_CALL);

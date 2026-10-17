@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 
@@ -9,8 +9,10 @@ from ..models.reference_edge_evidence import ReferenceEdgeEvidence
 from ..models.reference_edge_resolution import ReferenceEdgeResolution
 from ..models.reference_edge_source_site_coverage import ReferenceEdgeSourceSiteCoverage
 from ..models.reference_relation import ReferenceRelation
+from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
+    from ..models.reference_instruction import ReferenceInstruction
     from ..models.reference_site import ReferenceSite
     from ..models.symbol_ref import SymbolRef
 
@@ -40,6 +42,7 @@ class ReferenceEdge:
             source_sites (list[ReferenceSite]):
             source_site_coverage (ReferenceEdgeSourceSiteCoverage):
             original_offset (None):
+            instruction (None | ReferenceInstruction | Unset):
     """
 
     source_ref: SymbolRef
@@ -50,8 +53,11 @@ class ReferenceEdge:
     source_sites: list[ReferenceSite]
     source_site_coverage: ReferenceEdgeSourceSiteCoverage
     original_offset: None
+    instruction: None | ReferenceInstruction | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.reference_instruction import ReferenceInstruction  # noqa: PLC0415
+
         source_ref = self.source_ref.to_dict()
 
         target_ref = self.target_ref.to_dict()
@@ -71,6 +77,14 @@ class ReferenceEdge:
 
         original_offset = self.original_offset
 
+        instruction: dict[str, Any] | None | Unset
+        if isinstance(self.instruction, Unset):
+            instruction = UNSET
+        elif isinstance(self.instruction, ReferenceInstruction):
+            instruction = self.instruction.to_dict()
+        else:
+            instruction = self.instruction
+
         field_dict: dict[str, Any] = {}
 
         field_dict.update(
@@ -85,11 +99,14 @@ class ReferenceEdge:
                 "originalOffset": original_offset,
             }
         )
+        if instruction is not UNSET:
+            field_dict["instruction"] = instruction
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.reference_instruction import ReferenceInstruction  # noqa: PLC0415
         from ..models.reference_site import ReferenceSite  # noqa: PLC0415
         from ..models.symbol_ref import SymbolRef  # noqa: PLC0415
 
@@ -117,6 +134,23 @@ class ReferenceEdge:
 
         original_offset = d.pop("originalOffset")
 
+        def _parse_instruction(data: object) -> None | ReferenceInstruction | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                instruction_type_0 = ReferenceInstruction.from_dict(data)
+
+                return instruction_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(None | ReferenceInstruction | Unset, data)
+
+        instruction = _parse_instruction(d.pop("instruction", UNSET))
+
         reference_edge = cls(
             source_ref=source_ref,
             target_ref=target_ref,
@@ -126,6 +160,7 @@ class ReferenceEdge:
             source_sites=source_sites,
             source_site_coverage=source_site_coverage,
             original_offset=original_offset,
+            instruction=instruction,
         )
 
         return reference_edge

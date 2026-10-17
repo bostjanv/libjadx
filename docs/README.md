@@ -43,6 +43,7 @@ versioned PR #24 snapshot remains unchanged.
 | Class listing / `class.list`, original resolution / `symbol.resolve` | PARTIAL; Jadx-visible entities, aliases separate from identity |
 | Input provenance / `symbol.input_provenance` | UNKNOWN; exact input origin unavailable |
 | Basic references / `references.method_uses` | PARTIAL; coverage and locations explicit |
+| Instruction references / `references.dex_instructions` | PARTIAL; opt-in outgoing loaded-DEX invokes/field accesses, exact reader coordinates, no original-input/Java mapping; [contract and validation](phase-7-instruction-references.md) |
 | Class-name search / `search.class_names`, safe source regex / `search.regex_safe` | SUPPORTED |
 | Member/source search / `search.member_names`, `search.source_text`, complete-index jobs / `search.complete_index_job` | PARTIAL; explicit coverage and failures |
 | Declaration renames/LINE comments / `edit.class_rename`, `edit.method_rename`, `edit.field_rename`, `edit.class_comment`, `edit.method_comment`, `edit.field_comment` | SUPPORTED within validated native subsets |

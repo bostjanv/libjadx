@@ -75,6 +75,30 @@ the string enum `DecompileResultRepresentation` (`JAVA` / `SMALI`), rather than
 the former Java-only literal. Low-level operation name `decompile_java` is
 retained for compatibility. See [scope, proof and qualification limits](../docs/phase-7-smali.md).
 
+For individual outgoing method/field occurrences in loaded DEX data, opt in to
+the instruction view (the default remains aggregate method pairs):
+
+```python
+method = SymbolRef.method(
+    "Lprobe/InstructionRefs;", "entry", "(Lprobe/InstructionRefs;Lmissing/Api;)V"
+)
+page = project.references(method, direction="OUTGOING", view="INSTRUCTIONS")
+print(page.instruction_scan.availability)  # AVAILABLE, UNAVAILABLE or FAILED
+for edge in page.edges:
+    print(edge.instruction.offset_code_units, edge.instruction.unit, edge.target_ref)
+# Async: await project.references(method, direction="OUTGOING", view="INSTRUCTIONS")
+```
+
+Offsets are 16-bit code units from the loaded method's `insns[]` start, not
+original-input addresses or Java positions. Repeated/recursive/unresolved
+occurrences are retained. `AVAILABLE` includes a successful empty scan;
+`UNAVAILABLE` means no supported reader and `FAILED` means traversal failed.
+Coverage is always PARTIAL, so `strict=True` raises `IncompleteAnalysisError`.
+Custom/polymorphic invokes and handles are excluded and disclosed; source sites
+cannot be requested in this view. Generated `ReferenceQuery(view=INSTRUCTIONS)`
+also works with existing sync/async `reference_pages` iterators. See the
+[instruction contract and validation](../docs/phase-7-instruction-references.md).
+
 **Edits never autosave.** Call `project.save()` after a native path has been
 established, or explicitly request `client.shutdown(policy="save")`. A first
 save from raw input needs a target. `shutdown("discard")` is explicit too;

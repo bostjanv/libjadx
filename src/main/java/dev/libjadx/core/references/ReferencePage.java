@@ -8,8 +8,12 @@ import dev.libjadx.core.symbols.SymbolResolution;
 public record ReferencePage(SymbolResolution.Outcome outcome, SymbolRef queriedRef, ReferenceQuery.Direction direction,
         List<SymbolInfo> candidates, String sessionId, long logicalRevision, String snapshotId,
         String scope, Coverage coverage, List<ReferenceEdge> edges, String nextCursor, boolean pageComplete,
-        Capabilities capabilities, List<String> diagnostics) {
+        Capabilities capabilities, List<String> diagnostics, InstructionScan instructionScan) {
     public ReferencePage { candidates = List.copyOf(candidates); edges = List.copyOf(edges); diagnostics = List.copyOf(diagnostics); }
     public record Coverage(String status, String reason) { }
-    public record Capabilities(String resolvedTarget, String sourceLocation, String originalOffset, String referenceKind, String globalCoverage) { }
+    public record Capabilities(String resolvedTarget, String sourceLocation, String originalOffset, String referenceKind,
+            String globalCoverage, String loadedDexOffset) { }
+    public record InstructionScan(String availability, String reason, List<String> excludedOpcodes) {
+        public InstructionScan { excludedOpcodes = List.copyOf(excludedOpcodes); }
+    }
 }

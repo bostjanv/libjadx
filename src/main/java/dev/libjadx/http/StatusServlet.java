@@ -109,6 +109,7 @@ public final class StatusServlet extends HttpServlet {
 					new Capability("code.original_bytecode_offsets", "UNKNOWN", "ORIGIN_NOT_VERIFIED", "UNAVAILABLE"),
 					new Capability("code.smali", "PARTIAL", "CLASS_ONLY_LOADED_DEX_BAKSMALI_NO_JAVA_METADATA", "READ_ONLY"),
 					new Capability("references.method_uses", "PARTIAL", "METHOD_FIELD_CLASS_AND_UNRESOLVED_JAR_PROBED", "READ_ONLY"),
+					new Capability("references.dex_instructions", "PARTIAL", "LOADED_DEX_ORDINARY_INVOKES_AND_FIELD_ACCESSES", "READ_ONLY"),
 					new Capability("search.class_names", "SUPPORTED", "JADX_VISIBLE_CATALOG", "MEMORY_ONLY"),
 					new Capability("search.member_names", "PARTIAL", "PINNED_ORIGINAL_MEMBER_SIGNATURES", "MEMORY_ONLY"),
 					new Capability("search.source_text", "PARTIAL", "EXACT_EMITTED_OWNER_JAVA", "MEMORY_ONLY"),
@@ -650,7 +651,7 @@ public final class StatusServlet extends HttpServlet {
 			}
 			JsonNode body = readBody(request);
 			requireFields(body, Set.of("ref", "direction", "relations", "pageSize", "cursor", "includeSourceSites", "strict",
-					"expectedSessionId", "expectedLogicalRevision"));
+					"expectedSessionId", "expectedLogicalRevision", "view"));
 			if (!body.has("ref") || !body.get("ref").isObject()) throw new IllegalArgumentException("ref object is required");
 			var ref = parseSymbolRef(body.get("ref"));
 			String rawDirection = textOption(body, "direction", "");
@@ -680,7 +681,8 @@ public final class StatusServlet extends HttpServlet {
 				revision = body.get("expectedLogicalRevision").longValue();
 			}
 			write(response, 200, referenceService.query(new dev.libjadx.core.references.ReferenceQuery(ref, direction, relations,
-					pageSize, cursor, booleanOption(body, "includeSourceSites", false), booleanOption(body, "strict", false), session, revision)));
+					pageSize, cursor, booleanOption(body, "includeSourceSites", false), booleanOption(body, "strict", false), session, revision,
+					dev.libjadx.core.references.ReferenceQuery.View.valueOf(textOption(body, "view", "PAIRS")))));
 		} catch (dev.libjadx.core.references.ReferenceSnapshot.StaleReferenceException stale) {
 			writeError(response, 409, "STALE_REVISION", "Reference cursor or precondition belongs to an obsolete observed snapshot");
 		} catch (dev.libjadx.app.ReferenceQueryService.IncompleteReferencesException incomplete) {

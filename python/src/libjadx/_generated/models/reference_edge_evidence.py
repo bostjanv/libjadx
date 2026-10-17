@@ -8,6 +8,7 @@ class ReferenceEdgeEvidence(StrEnum):
     JADX_METHOD_UNRESOLVED_USED = "JADX_METHOD_UNRESOLVED_USED"
     JADX_METHOD_USED = "JADX_METHOD_USED"
     JADX_METHOD_USE_IN = "JADX_METHOD_USE_IN"
+    LOADED_DEX_INPUT_READER = "LOADED_DEX_INPUT_READER"
 
     def __str__(self) -> str:
         return str(self.value)

@@ -1,23 +1,20 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Literal,
-    TypeVar,
-    cast,
-)
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 from uuid import UUID
 
 from attrs import define as _attrs_define
 
 from ..models.reference_page_direction import ReferencePageDirection
 from ..models.reference_page_outcome import ReferencePageOutcome
+from ..models.reference_page_scope import ReferencePageScope
+from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
     from ..models.reference_capabilities import ReferenceCapabilities
     from ..models.reference_edge import ReferenceEdge
+    from ..models.reference_instruction_scan import ReferenceInstructionScan
     from ..models.reference_page_coverage import ReferencePageCoverage
     from ..models.symbol_info import SymbolInfo
     from ..models.symbol_ref import SymbolRef
@@ -41,13 +38,14 @@ class ReferencePage:
         session_id (UUID):
         logical_revision (int):
         snapshot_id (None | str):
-        scope (Literal['JADX_REPORTED']):
+        scope (ReferencePageScope):
         coverage (ReferencePageCoverage):
         edges (list[ReferenceEdge]):
         next_cursor (None | str):
         page_complete (bool):
         capabilities (ReferenceCapabilities):
         diagnostics (list[str]):
+        instruction_scan (None | ReferenceInstructionScan | Unset):
     """
 
     outcome: ReferencePageOutcome
@@ -57,15 +55,20 @@ class ReferencePage:
     session_id: UUID
     logical_revision: int
     snapshot_id: None | str
-    scope: Literal["JADX_REPORTED"]
+    scope: ReferencePageScope
     coverage: ReferencePageCoverage
     edges: list[ReferenceEdge]
     next_cursor: None | str
     page_complete: bool
     capabilities: ReferenceCapabilities
     diagnostics: list[str]
+    instruction_scan: None | ReferenceInstructionScan | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.reference_instruction_scan import (
+            ReferenceInstructionScan,  # noqa: PLC0415
+        )
+
         outcome = self.outcome.value
 
         queried_ref = self.queried_ref.to_dict()
@@ -84,7 +87,7 @@ class ReferencePage:
         snapshot_id: None | str
         snapshot_id = self.snapshot_id
 
-        scope = self.scope
+        scope = self.scope.value
 
         coverage = self.coverage.to_dict()
 
@@ -101,6 +104,14 @@ class ReferencePage:
         capabilities = self.capabilities.to_dict()
 
         diagnostics = self.diagnostics
+
+        instruction_scan: dict[str, Any] | None | Unset
+        if isinstance(self.instruction_scan, Unset):
+            instruction_scan = UNSET
+        elif isinstance(self.instruction_scan, ReferenceInstructionScan):
+            instruction_scan = self.instruction_scan.to_dict()
+        else:
+            instruction_scan = self.instruction_scan
 
         field_dict: dict[str, Any] = {}
 
@@ -122,6 +133,8 @@ class ReferencePage:
                 "diagnostics": diagnostics,
             }
         )
+        if instruction_scan is not UNSET:
+            field_dict["instructionScan"] = instruction_scan
 
         return field_dict
 
@@ -131,6 +144,9 @@ class ReferencePage:
             ReferenceCapabilities,  # noqa: PLC0415
         )
         from ..models.reference_edge import ReferenceEdge  # noqa: PLC0415
+        from ..models.reference_instruction_scan import (
+            ReferenceInstructionScan,  # noqa: PLC0415
+        )
         from ..models.reference_page_coverage import (
             ReferencePageCoverage,  # noqa: PLC0415
         )
@@ -162,9 +178,7 @@ class ReferencePage:
 
         snapshot_id = _parse_snapshot_id(d.pop("snapshotId"))
 
-        scope = cast(Literal["JADX_REPORTED"], d.pop("scope"))
-        if scope != "JADX_REPORTED":
-            raise ValueError(f"scope must match const 'JADX_REPORTED', got '{scope}'")
+        scope = ReferencePageScope(d.pop("scope"))
 
         coverage = ReferencePageCoverage.from_dict(d.pop("coverage"))
 
@@ -188,6 +202,25 @@ class ReferencePage:
 
         diagnostics = cast(list[str], d.pop("diagnostics"))
 
+        def _parse_instruction_scan(
+            data: object,
+        ) -> None | ReferenceInstructionScan | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                instruction_scan_type_0 = ReferenceInstructionScan.from_dict(data)
+
+                return instruction_scan_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(None | ReferenceInstructionScan | Unset, data)
+
+        instruction_scan = _parse_instruction_scan(d.pop("instructionScan", UNSET))
+
         reference_page = cls(
             outcome=outcome,
             queried_ref=queried_ref,
@@ -203,6 +236,7 @@ class ReferencePage:
             page_complete=page_complete,
             capabilities=capabilities,
             diagnostics=diagnostics,
+            instruction_scan=instruction_scan,
         )
 
         return reference_page

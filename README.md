@@ -29,6 +29,7 @@ LibJadx is an independent implementation. It does not copy or implement libghidr
 - Java decompilation, source snapshots, verified token metadata and method excerpts where available.
 - Class-level Smali for loaded DEX data, with representation-scoped snapshots and explicit non-DEX unavailability.
 - Basic references with explicit partial coverage, incremental search and complete-index jobs.
+- Opt-in outgoing loaded-DEX instruction references with per-occurrence code-unit coordinates, field read/write direction and explicit scan availability; [scope and limits](docs/phase-7-instruction-references.md).
 - Process-local jobs with polling, cooperative cancellation and SSE progress.
 - Declaration renames/comments, strict Tiny v2 mapping import/export, snapshot-bound parameter renames and a conservative related-method propagation subset.
 - Explicit native save, reload, pending-edit export and external-modification conflict detection.

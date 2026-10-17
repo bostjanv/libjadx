@@ -233,6 +233,14 @@ decision](docs/phase-7-smali.md). Further versioned IR remains roadmap work.
 
 v0.1 reports Jadx-observed method pairs, field users, class dependencies and unresolved original method descriptors with PARTIAL coverage. Optional source sites are verified against a Java snapshot. READ/WRITE distinctions and original instruction offsets are unavailable. Deeper reference kinds, inheritance queries and exact instruction provenance are Phase 7 goals.
 
+Phase 7 adds an opt-in outgoing-method `INSTRUCTIONS` view to the existing
+references operation. It reports ordinary invokes and field reads/writes from
+loaded DEX readers, with exact method-relative 16-bit code-unit coordinates,
+unresolved symbolic targets and per-scan availability/failure. These are not
+verified original-input offsets or Java-source sites. Coverage remains PARTIAL
+and strict queries reject it. Pair-level behavior, serialized reads and native
+persistence are unchanged. See [contract and slice evidence](docs/phase-7-instruction-references.md).
+
 For Phase 7, expose raw/original and transformed/decompiled CFG independently, with `availability`, representation-specific block/edge IDs, provenance and diagnostics. Verify how the pinned Jadx release exposes its original and transformed graphs. A DOT export alone does not prove a stable in-memory CFG API. Do not infer an "exact original CFG" by parsing decompiled Java. Capability reporting may vary per method.
 
 ### 6.3 Resources and classpath — Phase 7 roadmap

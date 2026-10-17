@@ -180,6 +180,7 @@ def factory(tmp_path):
             "long": ROOT / "build/release-fixtures/workload.jar",
             "dex": ROOT / "build/release-fixtures/owned.dex",
             "catch": ROOT / "build/release-fixtures/unused-catch.dex",
+            "instruction_refs": ROOT / "build/instruction-reference-fixture/refs.dex",
             "class": ROOT / "build/release-fixtures/small/classes/probe/Unicode.class",
         }
         if kind == "native":

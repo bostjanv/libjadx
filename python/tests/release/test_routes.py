@@ -507,6 +507,52 @@ async def test_smali_text_only_dex_contract(factory, surface):
             await api.close()
 
 
+@pytest.mark.parametrize("surface", SURFACES)
+async def test_loaded_dex_instruction_references(factory, surface):
+    with factory(kind="instruction_refs", hooks=False) as service:
+        api = Surface(service, surface)
+        try:
+            ref = {
+                "kind": "METHOD",
+                "originalClassDescriptor": "Lprobe/InstructionRefs;",
+                "originalName": "entry",
+                "originalDescriptor": "(Lprobe/InstructionRefs;Lmissing/Api;)V",
+            }
+            query = {
+                "ref": ref,
+                "direction": "OUTGOING",
+                "view": "INSTRUCTIONS",
+                "pageSize": 3,
+            }
+            before = await api.call("getProject", expected=200)
+            offsets = []
+            while True:
+                page = await api.call("queryReferences", body=query, expected=200)
+                assert page["instructionScan"]["availability"] == "AVAILABLE"
+                assert (
+                    page["scope"] == "LOADED_DEX_METHOD"
+                    and page["coverage"]["status"] == "PARTIAL"
+                )
+                for edge in page["edges"]:
+                    assert edge["evidence"] == "LOADED_DEX_INPUT_READER"
+                    assert edge["instruction"]["unit"] == "DEX_CODE_UNIT_16"
+                    assert edge["instruction"]["base"] == "LOADED_METHOD_INSNS_START"
+                    assert edge["originalOffset"] is None and not edge["sourceSites"]
+                    offsets.append(edge["instruction"]["offsetCodeUnits"])
+                if page["pageComplete"]:
+                    break
+                query["cursor"] = page["nextCursor"]
+            assert offsets == [2, 4, 6, 8, 10, 13, 16, 19, 22, 27]
+            query.pop("cursor", None)
+            await api.call(
+                "queryReferences", body={**query, "strict": True}, expected=409
+            )
+            after = await api.call("getProject", expected=200)
+            assert before["revisions"] == after["revisions"] and not after["dirty"]
+        finally:
+            await api.close()
+
+
 def test_wrong_methods_fixed_project_and_wire_validation(factory):
     with factory() as service:
         for operation, (method, path, _) in OPERATIONS.items():

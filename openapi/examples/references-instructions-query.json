@@ -1,0 +1,11 @@
+{
+  "ref": {
+    "kind": "METHOD",
+    "originalClassDescriptor": "Lprobe/InstructionRefs;",
+    "originalName": "entry",
+    "originalDescriptor": "(Lprobe/InstructionRefs;Lmissing/Api;)V"
+  },
+  "direction": "OUTGOING",
+  "view": "INSTRUCTIONS",
+  "pageSize": 50
+}

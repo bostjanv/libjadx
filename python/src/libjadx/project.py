@@ -37,6 +37,7 @@ from ._generated.models import (
     ReferencePage,
     ReferenceQuery,
     ReferenceQueryDirection,
+    ReferenceQueryView,
     ReferenceRelation,
     ReloadProjectRequest,
     RenameOperation,
@@ -372,6 +373,7 @@ class Project(_ProjectBase):
         ref: SymbolRef | _Symbol,
         *,
         direction: ReferenceQueryDirection | str = "INCOMING",
+        view: ReferenceQueryView | str = "PAIRS",
         relations: Sequence[ReferenceRelation | str] | None = None,
         page_size: int = 50,
         cursor: str | None = None,
@@ -381,6 +383,7 @@ class Project(_ProjectBase):
         query = ReferenceQuery(
             reference(ref),
             ReferenceQueryDirection(direction),
+            view=ReferenceQueryView(view),
             relations=UNSET
             if relations is None
             else [ReferenceRelation(r) for r in relations],
@@ -708,6 +711,7 @@ class AsyncProject(_ProjectBase):
         ref: SymbolRef | _Symbol,
         *,
         direction: ReferenceQueryDirection | str = "INCOMING",
+        view: ReferenceQueryView | str = "PAIRS",
         relations: Sequence[ReferenceRelation | str] | None = None,
         page_size: int = 50,
         cursor: str | None = None,
@@ -717,6 +721,7 @@ class AsyncProject(_ProjectBase):
         query = ReferenceQuery(
             reference(ref),
             ReferenceQueryDirection(direction),
+            view=ReferenceQueryView(view),
             relations=UNSET
             if relations is None
             else [ReferenceRelation(r) for r in relations],

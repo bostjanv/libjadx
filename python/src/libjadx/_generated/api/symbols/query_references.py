@@ -92,24 +92,36 @@ def sync_detailed(
 ) -> Response[ErrorEnvelope | ReferencePage]:
     """Query bounded Jadx-reported original reference relationships
 
-     Uses current primary settings under one conservative CLASS_READ lease. CALL is a distinct observed
-    method pair, not an invoke count or dynamic dispatch closure. FIELD_USE has unknown access
+     Uses current primary settings under one conservative CLASS_READ lease. view defaults to PAIRS,
+    preserving the aggregate usage-graph semantics. INSTRUCTIONS accepts only one METHOD/OUTGOING query
+    without source sites; scans its loaded DEX input reader without Java generation and returns ordinary
+    invokes and opcode-backed field reads/writes as occurrences. Repeated, recursive and unresolved
+    encoded targets remain separate. instructionScan distinguishes AVAILABLE (including a successful
+    empty scan), UNAVAILABLE (non-DEX/no code/domain miss), and FAILED. Excluded custom/polymorphic
+    invokes and method-handle/type constants are disclosed. Offsets use DEX_CODE_UNIT_16 from
+    LOADED_METHOD_INSNS_START, not verified original-input addresses, archive identities or Java
+    positions. Resolution is loaded-declaration evidence, not runtime dispatch. No conversion lineage,
+    source correspondence or exhaustive program coverage is claimed. In PAIRS, CALL is a distinct
+    observed method pair, not an invoke count or dynamic dispatch closure. FIELD_USE has unknown access
     direction. CLASS_DEPENDENCY is class-level, not a type occurrence. Coverage is always PARTIAL;
     pageComplete only exhausts the filtered observed set. strict rejects resolved queries with 409
     INCOMPLETE_ANALYSIS; domain misses remain 200. Source sites are optional, exact tokens with verified
     caller and target in a P4.2 source snapshot. Original offsets are unavailable. HMAC authentication
     precedes cursor field interpretation. Changed query options or tampering return 400; authentic stale
     session, revision, publication, settings or graph content returns 409 STALE_REVISION. Limits are
-    10000 observed edges, 20000 sites and 4 MiB copied strings, enforced during collection. These do not
+    10000 observed edges, 20000 sites and 4 MiB copied strings, enforced during collection; instruction
+    scans also limit methods to 1000000 code units. Bounds apply before relation filtering. These do not
     bound Jadx internal allocation or wall time. Busy admission fails promptly with PROJECT_BUSY.
 
     Args:
         body (ReferenceQuery): Direction is always required. FIELD accepts only
             INCOMING/FIELD_USE; CLASS accepts CLASS_DEPENDENCY; METHOD INCOMING accepts CALL and
             OUTGOING accepts CALL/UNRESOLVED_CALL. Omitted relations selects all compatible relations.
-            Empty, repeated or incompatible relations (including unproved READ/WRITE) return 400
-            INVALID_REQUEST. Unknown/repeated fields and bodies over 64 KiB are rejected. Revision
-            preconditions are checked after admission.
+            INSTRUCTIONS accepts only METHOD/OUTGOING with includeSourceSites=false and
+            CALL/UNRESOLVED_CALL/FIELD_READ/FIELD_WRITE; unresolved field occurrences use
+            FIELD_READ/FIELD_WRITE with UNRESOLVED resolution. Empty, repeated or incompatible
+            relations return 400 INVALID_REQUEST. Unknown/repeated fields and bodies over 64 KiB are
+            rejected. Revision preconditions are checked after admission.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -137,24 +149,36 @@ def sync(
 ) -> ErrorEnvelope | ReferencePage | None:
     """Query bounded Jadx-reported original reference relationships
 
-     Uses current primary settings under one conservative CLASS_READ lease. CALL is a distinct observed
-    method pair, not an invoke count or dynamic dispatch closure. FIELD_USE has unknown access
+     Uses current primary settings under one conservative CLASS_READ lease. view defaults to PAIRS,
+    preserving the aggregate usage-graph semantics. INSTRUCTIONS accepts only one METHOD/OUTGOING query
+    without source sites; scans its loaded DEX input reader without Java generation and returns ordinary
+    invokes and opcode-backed field reads/writes as occurrences. Repeated, recursive and unresolved
+    encoded targets remain separate. instructionScan distinguishes AVAILABLE (including a successful
+    empty scan), UNAVAILABLE (non-DEX/no code/domain miss), and FAILED. Excluded custom/polymorphic
+    invokes and method-handle/type constants are disclosed. Offsets use DEX_CODE_UNIT_16 from
+    LOADED_METHOD_INSNS_START, not verified original-input addresses, archive identities or Java
+    positions. Resolution is loaded-declaration evidence, not runtime dispatch. No conversion lineage,
+    source correspondence or exhaustive program coverage is claimed. In PAIRS, CALL is a distinct
+    observed method pair, not an invoke count or dynamic dispatch closure. FIELD_USE has unknown access
     direction. CLASS_DEPENDENCY is class-level, not a type occurrence. Coverage is always PARTIAL;
     pageComplete only exhausts the filtered observed set. strict rejects resolved queries with 409
     INCOMPLETE_ANALYSIS; domain misses remain 200. Source sites are optional, exact tokens with verified
     caller and target in a P4.2 source snapshot. Original offsets are unavailable. HMAC authentication
     precedes cursor field interpretation. Changed query options or tampering return 400; authentic stale
     session, revision, publication, settings or graph content returns 409 STALE_REVISION. Limits are
-    10000 observed edges, 20000 sites and 4 MiB copied strings, enforced during collection. These do not
+    10000 observed edges, 20000 sites and 4 MiB copied strings, enforced during collection; instruction
+    scans also limit methods to 1000000 code units. Bounds apply before relation filtering. These do not
     bound Jadx internal allocation or wall time. Busy admission fails promptly with PROJECT_BUSY.
 
     Args:
         body (ReferenceQuery): Direction is always required. FIELD accepts only
             INCOMING/FIELD_USE; CLASS accepts CLASS_DEPENDENCY; METHOD INCOMING accepts CALL and
             OUTGOING accepts CALL/UNRESOLVED_CALL. Omitted relations selects all compatible relations.
-            Empty, repeated or incompatible relations (including unproved READ/WRITE) return 400
-            INVALID_REQUEST. Unknown/repeated fields and bodies over 64 KiB are rejected. Revision
-            preconditions are checked after admission.
+            INSTRUCTIONS accepts only METHOD/OUTGOING with includeSourceSites=false and
+            CALL/UNRESOLVED_CALL/FIELD_READ/FIELD_WRITE; unresolved field occurrences use
+            FIELD_READ/FIELD_WRITE with UNRESOLVED resolution. Empty, repeated or incompatible
+            relations return 400 INVALID_REQUEST. Unknown/repeated fields and bodies over 64 KiB are
+            rejected. Revision preconditions are checked after admission.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -177,24 +201,36 @@ async def asyncio_detailed(
 ) -> Response[ErrorEnvelope | ReferencePage]:
     """Query bounded Jadx-reported original reference relationships
 
-     Uses current primary settings under one conservative CLASS_READ lease. CALL is a distinct observed
-    method pair, not an invoke count or dynamic dispatch closure. FIELD_USE has unknown access
+     Uses current primary settings under one conservative CLASS_READ lease. view defaults to PAIRS,
+    preserving the aggregate usage-graph semantics. INSTRUCTIONS accepts only one METHOD/OUTGOING query
+    without source sites; scans its loaded DEX input reader without Java generation and returns ordinary
+    invokes and opcode-backed field reads/writes as occurrences. Repeated, recursive and unresolved
+    encoded targets remain separate. instructionScan distinguishes AVAILABLE (including a successful
+    empty scan), UNAVAILABLE (non-DEX/no code/domain miss), and FAILED. Excluded custom/polymorphic
+    invokes and method-handle/type constants are disclosed. Offsets use DEX_CODE_UNIT_16 from
+    LOADED_METHOD_INSNS_START, not verified original-input addresses, archive identities or Java
+    positions. Resolution is loaded-declaration evidence, not runtime dispatch. No conversion lineage,
+    source correspondence or exhaustive program coverage is claimed. In PAIRS, CALL is a distinct
+    observed method pair, not an invoke count or dynamic dispatch closure. FIELD_USE has unknown access
     direction. CLASS_DEPENDENCY is class-level, not a type occurrence. Coverage is always PARTIAL;
     pageComplete only exhausts the filtered observed set. strict rejects resolved queries with 409
     INCOMPLETE_ANALYSIS; domain misses remain 200. Source sites are optional, exact tokens with verified
     caller and target in a P4.2 source snapshot. Original offsets are unavailable. HMAC authentication
     precedes cursor field interpretation. Changed query options or tampering return 400; authentic stale
     session, revision, publication, settings or graph content returns 409 STALE_REVISION. Limits are
-    10000 observed edges, 20000 sites and 4 MiB copied strings, enforced during collection. These do not
+    10000 observed edges, 20000 sites and 4 MiB copied strings, enforced during collection; instruction
+    scans also limit methods to 1000000 code units. Bounds apply before relation filtering. These do not
     bound Jadx internal allocation or wall time. Busy admission fails promptly with PROJECT_BUSY.
 
     Args:
         body (ReferenceQuery): Direction is always required. FIELD accepts only
             INCOMING/FIELD_USE; CLASS accepts CLASS_DEPENDENCY; METHOD INCOMING accepts CALL and
             OUTGOING accepts CALL/UNRESOLVED_CALL. Omitted relations selects all compatible relations.
-            Empty, repeated or incompatible relations (including unproved READ/WRITE) return 400
-            INVALID_REQUEST. Unknown/repeated fields and bodies over 64 KiB are rejected. Revision
-            preconditions are checked after admission.
+            INSTRUCTIONS accepts only METHOD/OUTGOING with includeSourceSites=false and
+            CALL/UNRESOLVED_CALL/FIELD_READ/FIELD_WRITE; unresolved field occurrences use
+            FIELD_READ/FIELD_WRITE with UNRESOLVED resolution. Empty, repeated or incompatible
+            relations return 400 INVALID_REQUEST. Unknown/repeated fields and bodies over 64 KiB are
+            rejected. Revision preconditions are checked after admission.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -220,24 +256,36 @@ async def asyncio(
 ) -> ErrorEnvelope | ReferencePage | None:
     """Query bounded Jadx-reported original reference relationships
 
-     Uses current primary settings under one conservative CLASS_READ lease. CALL is a distinct observed
-    method pair, not an invoke count or dynamic dispatch closure. FIELD_USE has unknown access
+     Uses current primary settings under one conservative CLASS_READ lease. view defaults to PAIRS,
+    preserving the aggregate usage-graph semantics. INSTRUCTIONS accepts only one METHOD/OUTGOING query
+    without source sites; scans its loaded DEX input reader without Java generation and returns ordinary
+    invokes and opcode-backed field reads/writes as occurrences. Repeated, recursive and unresolved
+    encoded targets remain separate. instructionScan distinguishes AVAILABLE (including a successful
+    empty scan), UNAVAILABLE (non-DEX/no code/domain miss), and FAILED. Excluded custom/polymorphic
+    invokes and method-handle/type constants are disclosed. Offsets use DEX_CODE_UNIT_16 from
+    LOADED_METHOD_INSNS_START, not verified original-input addresses, archive identities or Java
+    positions. Resolution is loaded-declaration evidence, not runtime dispatch. No conversion lineage,
+    source correspondence or exhaustive program coverage is claimed. In PAIRS, CALL is a distinct
+    observed method pair, not an invoke count or dynamic dispatch closure. FIELD_USE has unknown access
     direction. CLASS_DEPENDENCY is class-level, not a type occurrence. Coverage is always PARTIAL;
     pageComplete only exhausts the filtered observed set. strict rejects resolved queries with 409
     INCOMPLETE_ANALYSIS; domain misses remain 200. Source sites are optional, exact tokens with verified
     caller and target in a P4.2 source snapshot. Original offsets are unavailable. HMAC authentication
     precedes cursor field interpretation. Changed query options or tampering return 400; authentic stale
     session, revision, publication, settings or graph content returns 409 STALE_REVISION. Limits are
-    10000 observed edges, 20000 sites and 4 MiB copied strings, enforced during collection. These do not
+    10000 observed edges, 20000 sites and 4 MiB copied strings, enforced during collection; instruction
+    scans also limit methods to 1000000 code units. Bounds apply before relation filtering. These do not
     bound Jadx internal allocation or wall time. Busy admission fails promptly with PROJECT_BUSY.
 
     Args:
         body (ReferenceQuery): Direction is always required. FIELD accepts only
             INCOMING/FIELD_USE; CLASS accepts CLASS_DEPENDENCY; METHOD INCOMING accepts CALL and
             OUTGOING accepts CALL/UNRESOLVED_CALL. Omitted relations selects all compatible relations.
-            Empty, repeated or incompatible relations (including unproved READ/WRITE) return 400
-            INVALID_REQUEST. Unknown/repeated fields and bodies over 64 KiB are rejected. Revision
-            preconditions are checked after admission.
+            INSTRUCTIONS accepts only METHOD/OUTGOING with includeSourceSites=false and
+            CALL/UNRESOLVED_CALL/FIELD_READ/FIELD_WRITE; unresolved field occurrences use
+            FIELD_READ/FIELD_WRITE with UNRESOLVED resolution. Empty, repeated or incompatible
+            relations return 400 INVALID_REQUEST. Unknown/repeated fields and bodies over 64 KiB are
+            rejected. Revision preconditions are checked after admission.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

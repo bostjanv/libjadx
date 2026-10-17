@@ -7,6 +7,7 @@ from uuid import UUID
 from attrs import define as _attrs_define
 
 from ..models.reference_query_direction import ReferenceQueryDirection
+from ..models.reference_query_view import ReferenceQueryView
 from ..models.reference_relation import ReferenceRelation
 from ..types import UNSET, Unset
 
@@ -20,9 +21,11 @@ T = TypeVar("T", bound="ReferenceQuery")
 @_attrs_define
 class ReferenceQuery:
     """Direction is always required. FIELD accepts only INCOMING/FIELD_USE; CLASS accepts CLASS_DEPENDENCY; METHOD INCOMING
-    accepts CALL and OUTGOING accepts CALL/UNRESOLVED_CALL. Omitted relations selects all compatible relations. Empty,
-    repeated or incompatible relations (including unproved READ/WRITE) return 400 INVALID_REQUEST. Unknown/repeated
-    fields and bodies over 64 KiB are rejected. Revision preconditions are checked after admission.
+    accepts CALL and OUTGOING accepts CALL/UNRESOLVED_CALL. Omitted relations selects all compatible relations.
+    INSTRUCTIONS accepts only METHOD/OUTGOING with includeSourceSites=false and
+    CALL/UNRESOLVED_CALL/FIELD_READ/FIELD_WRITE; unresolved field occurrences use FIELD_READ/FIELD_WRITE with UNRESOLVED
+    resolution. Empty, repeated or incompatible relations return 400 INVALID_REQUEST. Unknown/repeated fields and bodies
+    over 64 KiB are rejected. Revision preconditions are checked after admission.
 
         Attributes:
             ref (SymbolRef): Exact original JVM/DEX identity. CLASS omits member fields or carries null; METHOD and FIELD
@@ -31,6 +34,7 @@ class ReferenceQuery:
                 type, which may be V. Field descriptors contain exactly one nonvoid type. No whitespace, generic syntax or
                 normalization is accepted.
             direction (ReferenceQueryDirection):
+            view (ReferenceQueryView | Unset):  Default: ReferenceQueryView.PAIRS.
             relations (list[ReferenceRelation] | Unset):
             page_size (int | Unset):  Default: 50.
             cursor (None | str | Unset):
@@ -42,6 +46,7 @@ class ReferenceQuery:
 
     ref: SymbolRef
     direction: ReferenceQueryDirection
+    view: ReferenceQueryView | Unset = ReferenceQueryView.PAIRS
     relations: list[ReferenceRelation] | Unset = UNSET
     page_size: int | Unset = 50
     cursor: None | str | Unset = UNSET
@@ -54,6 +59,10 @@ class ReferenceQuery:
         ref = self.ref.to_dict()
 
         direction = self.direction.value
+
+        view: str | Unset = UNSET
+        if not isinstance(self.view, Unset):
+            view = self.view.value
 
         relations: list[str] | Unset = UNSET
         if not isinstance(self.relations, Unset):
@@ -88,6 +97,8 @@ class ReferenceQuery:
                 "direction": direction,
             }
         )
+        if view is not UNSET:
+            field_dict["view"] = view
         if relations is not UNSET:
             field_dict["relations"] = relations
         if page_size is not UNSET:
@@ -113,6 +124,13 @@ class ReferenceQuery:
         ref = SymbolRef.from_dict(d.pop("ref"))
 
         direction = ReferenceQueryDirection(d.pop("direction"))
+
+        _view = d.pop("view", UNSET)
+        view: ReferenceQueryView | Unset
+        if isinstance(_view, Unset):
+            view = UNSET
+        else:
+            view = ReferenceQueryView(_view)
 
         _relations = d.pop("relations", UNSET)
         relations: list[ReferenceRelation] | Unset = UNSET
@@ -150,6 +168,7 @@ class ReferenceQuery:
         reference_query = cls(
             ref=ref,
             direction=direction,
+            view=view,
             relations=relations,
             page_size=page_size,
             cursor=cursor,

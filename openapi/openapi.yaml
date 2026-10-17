@@ -471,7 +471,19 @@ paths:
       summary: Query bounded Jadx-reported original reference relationships
       description: >-
         Uses current primary settings under one conservative CLASS_READ lease.
-        CALL is a distinct observed method pair, not an invoke count or dynamic
+        view defaults to PAIRS, preserving the aggregate usage-graph semantics.
+        INSTRUCTIONS accepts only one METHOD/OUTGOING query without source sites;
+        scans its loaded DEX input reader without Java generation and returns
+        ordinary invokes and opcode-backed field reads/writes as occurrences.
+        Repeated, recursive and unresolved encoded targets remain separate.
+        instructionScan distinguishes AVAILABLE (including a successful empty
+        scan), UNAVAILABLE (non-DEX/no code/domain miss), and FAILED. Excluded
+        custom/polymorphic invokes and method-handle/type constants are disclosed.
+        Offsets use DEX_CODE_UNIT_16 from LOADED_METHOD_INSNS_START, not verified
+        original-input addresses, archive identities or Java positions. Resolution
+        is loaded-declaration evidence, not runtime dispatch. No conversion
+        lineage, source correspondence or exhaustive program coverage is claimed.
+        In PAIRS, CALL is a distinct observed method pair, not an invoke count or dynamic
         dispatch closure. FIELD_USE has unknown access direction. CLASS_DEPENDENCY
         is class-level, not a type occurrence. Coverage is always PARTIAL;
         pageComplete only exhausts the filtered observed set. strict rejects
@@ -482,7 +494,8 @@ paths:
         options or tampering return 400; authentic stale session, revision,
         publication, settings or graph content returns 409 STALE_REVISION.
         Limits are 10000 observed edges, 20000 sites and 4 MiB copied strings,
-        enforced during collection. These do not bound Jadx internal allocation
+        enforced during collection; instruction scans also limit methods to
+        1000000 code units. Bounds apply before relation filtering. These do not bound Jadx internal allocation
         or wall time. Busy admission fails promptly with PROJECT_BUSY.
       requestBody:
         required: true
@@ -491,6 +504,7 @@ paths:
             schema: { $ref: '#/components/schemas/ReferenceQuery' }
             examples:
               sourceSites: { externalValue: ./examples/references-query.json }
+              instructions: { externalValue: ./examples/references-instructions-query.json }
       responses:
         '200':
           description: Typed outcome and bounded observed relationships; never exhaustive program analysis.
@@ -502,6 +516,7 @@ paths:
                 fields: { externalValue: ./examples/references-field.json }
                 classes: { externalValue: ./examples/references-class.json }
                 sites: { externalValue: ./examples/references-sites.json }
+                instructions: { externalValue: ./examples/references-instructions.json }
         '400':
           $ref: '#/components/responses/ApiErrorResponse'
         '409':
@@ -1296,6 +1311,7 @@ components:
       properties:
         ref: { $ref: '#/components/schemas/SymbolRef' }
         direction: { type: string, enum: [INCOMING, OUTGOING] }
+        view: { type: string, enum: [PAIRS, INSTRUCTIONS], default: PAIRS }
         relations:
           type: array
           minItems: 1
@@ -1312,12 +1328,40 @@ components:
         Direction is always required. FIELD accepts only INCOMING/FIELD_USE;
         CLASS accepts CLASS_DEPENDENCY; METHOD INCOMING accepts CALL and OUTGOING
         accepts CALL/UNRESOLVED_CALL. Omitted relations selects all compatible
-        relations. Empty, repeated or incompatible relations (including unproved
-        READ/WRITE) return 400 INVALID_REQUEST. Unknown/repeated fields and bodies
+        relations. INSTRUCTIONS accepts only METHOD/OUTGOING with
+        includeSourceSites=false and CALL/UNRESOLVED_CALL/FIELD_READ/FIELD_WRITE;
+        unresolved field occurrences use FIELD_READ/FIELD_WRITE with UNRESOLVED
+        resolution. Empty, repeated or incompatible relations return 400
+        INVALID_REQUEST. Unknown/repeated fields and bodies
         over 64 KiB are rejected. Revision preconditions are checked after admission.
     ReferenceRelation:
       type: string
-      enum: [CALL, UNRESOLVED_CALL, FIELD_USE, CLASS_DEPENDENCY]
+      enum: [CALL, UNRESOLVED_CALL, FIELD_USE, CLASS_DEPENDENCY, FIELD_READ, FIELD_WRITE]
+    ReferenceInstruction:
+      type: object
+      additionalProperties: false
+      required: [offsetCodeUnits, unit, base, precision, opcode]
+      properties:
+        offsetCodeUnits: { type: integer, minimum: 0, maximum: 999999 }
+        unit: { const: DEX_CODE_UNIT_16 }
+        base: { const: LOADED_METHOD_INSNS_START }
+        precision: { const: EXACT }
+        opcode: { type: string, maxLength: 64 }
+      description: Exact loaded-reader coordinate only; no original-input or Java-source mapping is implied.
+    ReferenceInstructionScan:
+      type: object
+      additionalProperties: false
+      required: [availability, reason, excludedOpcodes]
+      properties:
+        availability: { type: string, enum: [AVAILABLE, UNAVAILABLE, FAILED] }
+        reason: { type: string, maxLength: 512 }
+        excludedOpcodes: { type: array, maxItems: 6, uniqueItems: true, items: { type: string, maxLength: 64 } }
+      description: >-
+        AVAILABLE means traversal finished, not exhaustive reference coverage.
+        FAILED may retain observations before the failure; never interpret its
+        empty edges as a successful empty scan. strict rejects all resolved
+        instruction queries because coverage remains PARTIAL, including failed
+        scans, excluded forms and unavailable readers.
     ReferenceSite:
       type: object
       additionalProperties: false
@@ -1338,10 +1382,14 @@ components:
         resolution: { type: string, enum: [RESOLVED, UNRESOLVED, OBSERVED] }
         evidence:
           type: string
-          enum: [JADX_METHOD_USED, JADX_METHOD_USE_IN, JADX_METHOD_UNRESOLVED_USED, JADX_FIELD_USE_IN, JADX_CLASS_DEPENDENCY, JADX_CLASS_USE_IN]
+          enum: [JADX_METHOD_USED, JADX_METHOD_USE_IN, JADX_METHOD_UNRESOLVED_USED, JADX_FIELD_USE_IN, JADX_CLASS_DEPENDENCY, JADX_CLASS_USE_IN, LOADED_DEX_INPUT_READER]
         sourceSites: { type: array, maxItems: 20000, items: { $ref: '#/components/schemas/ReferenceSite' } }
         sourceSiteCoverage: { type: string, enum: [PARTIAL, UNAVAILABLE] }
         originalOffset: { type: 'null' }
+        instruction:
+          oneOf:
+            - { $ref: '#/components/schemas/ReferenceInstruction' }
+            - { type: 'null' }
       description: OBSERVED means a reported node has no verified standalone visible declaration; per-input provenance is always unavailable.
     ReferenceCapabilities:
       type: object
@@ -1353,6 +1401,10 @@ components:
         originalOffset: { const: UNAVAILABLE }
         referenceKind: { const: PARTIAL }
         globalCoverage: { const: UNKNOWN }
+        loadedDexOffset:
+          oneOf:
+            - { $ref: '#/components/schemas/SourceAvailability' }
+            - { type: 'null' }
     ReferencePage:
       type: object
       additionalProperties: false
@@ -1365,7 +1417,11 @@ components:
         sessionId: { type: string, format: uuid }
         logicalRevision: { type: integer, format: int64, minimum: 0 }
         snapshotId: { type: [string, 'null'], pattern: '^sha256:[0-9a-f]{64}$' }
-        scope: { const: JADX_REPORTED }
+        scope: { type: string, enum: [JADX_REPORTED, LOADED_DEX_METHOD] }
+        instructionScan:
+          oneOf:
+            - { $ref: '#/components/schemas/ReferenceInstructionScan' }
+            - { type: 'null' }
         coverage:
           type: object
           additionalProperties: false

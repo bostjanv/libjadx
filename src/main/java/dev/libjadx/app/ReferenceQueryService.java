@@ -21,32 +21,56 @@ public final class ReferenceQueryService {
                     || revision != query.expectedLogicalRevision())) throw new ReferenceSnapshot.StaleReferenceException();
             var catalog = catalogs.primary(context);
             var ref = query.ref();
-            var resolution = SymbolLookup.resolve(catalog, ref, entry -> JadxSymbolAdapter.matchingMembers(
-                    JadxSymbolAdapter.visibleClass(context.decompiler(), ref.originalClassDescriptor(), entry.occurrence()), ref));
+            boolean instructions = query.view() == ReferenceQuery.View.INSTRUCTIONS;
+            var resolution = SymbolLookup.resolve(catalog, ref, entry -> {
+                var cls = JadxSymbolAdapter.visibleClass(context.decompiler(), ref.originalClassDescriptor(), entry.occurrence());
+                return instructions ? JadxInstructionReferenceAdapter.matchingMembers(cls, ref) : JadxSymbolAdapter.matchingMembers(cls, ref);
+            });
             List<ReferenceEdge> edges = List.of();
             List<String> diagnostics = resolution.diagnostics();
+            ReferencePage.InstructionScan scan = instructions
+                    ? new ReferencePage.InstructionScan("UNAVAILABLE", "No unique loaded method was selected", List.of()) : null;
             if (resolution.outcome() == SymbolResolution.Outcome.RESOLVED) {
                 var cls = JadxSymbolAdapter.visibleClass(context.decompiler(), ref.originalClassDescriptor(), 0);
-                edges = JadxReferenceAdapter.extract(context.decompiler(), cls, query, session, revision,
+                if (instructions) {
+                    var observed = JadxInstructionReferenceAdapter.extract(cls, ref);
+                    edges = observed.edges().stream().filter(e -> query.relations().contains(e.relation())).toList();
+                    scan = observed.status();
+                    diagnostics = List.of(scan.reason(),
+                            "Loaded DEX input-reader evidence only; configured input/archive identity and conversion lineage are unavailable",
+                            "Ordinary invokes and field accesses only; type/string references, custom/polymorphic invokes and handles are excluded",
+                            "Encoded symbolic targets are preserved; loaded-declaration resolution does not prove runtime dispatch",
+                            "DEX_CODE_UNIT_16 offsets start at loaded method insns[]; original-input addresses and Java correspondence are unavailable",
+                            "Coverage remains PARTIAL, even after successful traversal; pageComplete only exhausts observed occurrences",
+                            "Only current primary settings are used; no Java generation, native edits or save are performed");
+                } else {
+                    edges = JadxReferenceAdapter.extract(context.decompiler(), cls, query, session, revision,
                         context.publicationEpoch(), context.settings().fingerprint());
-                diagnostics = List.of(
+                    diagnostics = List.of(
                         "CALL is a distinct Jadx-reported method pair, not an invoke count or dynamic dispatch closure",
                         "Usage graph may omit recursive, optimized, unresolved or discarded input relationships; coverage is not exhaustive",
                         "FIELD_USE access direction, original bytecode offsets and per-input provenance are unavailable",
                         "Source sites require matching original target, exact P4.2 token/range and enclosing caller metadata; absent sites are unavailable",
                         "Only current primary settings are used; no native edits or save are performed");
+                }
             }
-            var snapshot = new ReferenceSnapshot(edges, query, session, revision, context.publicationEpoch(), context.settings().fingerprint(), key);
+            var snapshot = new ReferenceSnapshot(edges, query, session, revision, context.publicationEpoch(),
+                    context.settings().fingerprint(), key, scan == null ? "" : scan.toString());
             var slice = snapshot.page(query, cursor);
             if (resolution.outcome() == SymbolResolution.Outcome.RESOLVED && query.strict())
                 throw new IncompleteReferencesException(diagnostics);
             boolean sites = edges.stream().anyMatch(e -> !e.sourceSites().isEmpty());
             return new ReferencePage(resolution.outcome(), ref, query.direction(), resolution.candidates(), session, revision,
-                    resolution.outcome() == SymbolResolution.Outcome.RESOLVED ? snapshot.id() : null, "JADX_REPORTED",
-                    new ReferencePage.Coverage("PARTIAL", "Jadx usage graph and discarded/original input coverage are not proved exhaustive"),
+                    resolution.outcome() == SymbolResolution.Outcome.RESOLVED ? snapshot.id() : null,
+                    instructions ? "LOADED_DEX_METHOD" : "JADX_REPORTED",
+                    new ReferencePage.Coverage("PARTIAL", instructions
+                            ? "Only ordinary invokes and field accesses in the selected loaded DEX method; no exhaustive program coverage"
+                            : "Jadx usage graph and discarded/original input coverage are not proved exhaustive"),
                     slice.edges(), slice.nextCursor(), slice.nextCursor() == null,
                     new ReferencePage.Capabilities(resolution.outcome() == SymbolResolution.Outcome.RESOLVED ? "PARTIAL" : "UNAVAILABLE",
-                            sites ? "PARTIAL" : "UNAVAILABLE", "UNAVAILABLE", "PARTIAL", "UNKNOWN"), diagnostics);
+                            sites ? "PARTIAL" : "UNAVAILABLE", "UNAVAILABLE", "PARTIAL", "UNKNOWN",
+                            instructions ? (scan.availability().equals("AVAILABLE") || !edges.isEmpty() ? "EXACT" : "UNAVAILABLE") : null),
+                    diagnostics, scan);
         });
     }
     public static final class IncompleteReferencesException extends RuntimeException {

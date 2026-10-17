@@ -16,7 +16,11 @@ from libjadx import (
 )
 from libjadx._generated.api.analysis import decompile_java
 from libjadx._generated.api.service import get_capabilities, get_liveness
-from libjadx._generated.api.symbols import list_classes, resolve_symbol
+from libjadx._generated.api.symbols import (
+    list_classes,
+    query_references,
+    resolve_symbol,
+)
 from libjadx.errors import (
     ExternalModificationConflictError,
     IncompleteAnalysisError,
@@ -104,6 +108,153 @@ async def test_smali_parity_on_raw_generated_and_handwritten_clients(service):
         after = sync.project.snapshot()
         assert after.revisions.logical_revision == before.revisions.logical_revision
         assert not after.dirty and not list(root.glob("*.jadx"))
+
+
+@pytest.mark.parametrize(
+    "filename,owner,name,descriptor,offsets",
+    [
+        (
+            "refs.dex",
+            "InstructionRefs",
+            "entry",
+            "(Lprobe/InstructionRefs;Lmissing/Api;)V",
+            [2, 4, 6, 8, 10, 13, 16, 19, 22, 27],
+        ),
+        (
+            "variants.dex",
+            "InstructionVariants",
+            "variants",
+            "(J[[ILmissing/Api;)V",
+            list(range(0, 30, 3)),
+        ),
+        ("variants.dex", "InstructionVariants", "broken", "()V", [0]),
+    ],
+)
+async def test_instruction_reference_five_surface_parity(
+    service, filename, owner, name, descriptor, offsets
+):
+    fixture = (
+        Path(__file__).resolve().parents[3]
+        / "build/instruction-reference-fixture"
+        / filename
+    )
+    assert fixture.is_file(), (
+        "Run the Java InstructionReferenceEndpointsTest fixture producer first"
+    )
+    ref = SymbolRef.method(f"Lprobe/{owner};", name, descriptor)
+    query = m.ReferenceQuery(
+        ref, m.ReferenceQueryDirection.OUTGOING, view=m.ReferenceQueryView.INSTRUCTIONS
+    )
+    with service(input_path=fixture) as (url, root), Client(url) as sync:
+        before = sync.project.snapshot()
+        raw = httpx.post(
+            url + "/api/v1/references/query", json=query.to_dict(), trust_env=False
+        )
+        assert raw.status_code == 200
+        expected = raw.json()
+        assert expected["instructionScan"]["availability"] == "AVAILABLE"
+        assert [
+            edge["instruction"]["offsetCodeUnits"] for edge in expected["edges"]
+        ] == offsets
+        assert expected["coverage"]["status"] == "PARTIAL"
+        for edge in expected["edges"]:
+            assert edge["instruction"]["unit"] == "DEX_CODE_UNIT_16"
+            assert edge["instruction"]["base"] == "LOADED_METHOD_INSNS_START"
+            assert edge["originalOffset"] is None and not edge["sourceSites"]
+        generated = query_references.sync(client=sync.lowlevel, body=query)
+        assert (
+            isinstance(generated, m.ReferencePage) and generated.to_dict() == expected
+        )
+        assert (
+            sync.project.references(
+                ref, direction="OUTGOING", view="INSTRUCTIONS"
+            ).to_dict()
+            == expected
+        )
+        with pytest.raises(IncompleteAnalysisError):
+            sync.project.references(
+                ref, direction="OUTGOING", view="INSTRUCTIONS", strict=True
+            )
+        async with AsyncClient(url) as asynchronous:
+            generated_async = await query_references.asyncio(
+                client=asynchronous.lowlevel, body=query
+            )
+            assert (
+                isinstance(generated_async, m.ReferencePage)
+                and generated_async.to_dict() == expected
+            )
+            result = await asynchronous.project.references(
+                ref, direction="OUTGOING", view="INSTRUCTIONS"
+            )
+            assert result.to_dict() == expected
+            query.page_size = 3
+            pages = [page async for page in asynchronous.project.reference_pages(query)]
+            assert [
+                e.instruction.offset_code_units for p in pages for e in p.edges
+            ] == offsets
+            assert all(p.snapshot_id == pages[0].snapshot_id for p in pages)
+        # Raw occurrences survive Java transformation, including a known Java failure.
+        sync.project.decompile(ref)
+        assert (
+            sync.project.references(
+                ref, direction="OUTGOING", view="INSTRUCTIONS"
+            ).edges
+            == generated.edges
+        )
+        assert (
+            sync.project.snapshot().revisions.logical_revision
+            == before.revisions.logical_revision
+        )
+        assert not sync.project.snapshot().dirty and not list(root.glob("*.jadx"))
+
+
+async def test_instruction_paging_stale_and_explicit_save_restart(service):
+    fixture = (
+        Path(__file__).resolve().parents[3]
+        / "build/instruction-reference-fixture/refs.dex"
+    )
+    ref = SymbolRef.method(
+        "Lprobe/InstructionRefs;", "entry", "(Lprobe/InstructionRefs;Lmissing/Api;)V"
+    )
+    with service(input_path=fixture) as (url, root), Client(url) as sync:
+        query = m.ReferenceQuery(
+            ref,
+            m.ReferenceQueryDirection.OUTGOING,
+            view=m.ReferenceQueryView.INSTRUCTIONS,
+            page_size=3,
+        )
+        pages = list(sync.project.reference_pages(query))
+        assert [e.instruction.offset_code_units for p in pages for e in p.edges] == [
+            2,
+            4,
+            6,
+            8,
+            10,
+            13,
+            16,
+            19,
+            22,
+            27,
+        ]
+        first = pages[0]
+        sync.project.rename(SymbolRef.class_("Lprobe/InstructionRefs;"), "UnsavedAlias")
+        assert not list(root.glob("*.jadx"))
+        with pytest.raises(StaleRevisionError):
+            sync.project.references(
+                ref,
+                direction="OUTGOING",
+                view="INSTRUCTIONS",
+                page_size=3,
+                cursor=first.next_cursor,
+            )
+        saved = sync.project.references(ref, direction="OUTGOING", view="INSTRUCTIONS")
+        sync.project.save(str(root / "instructions.jadx"))
+    with service(root / "instructions.jadx") as (url, root), Client(url) as sync:
+        restored = sync.project.references(
+            ref, direction="OUTGOING", view="INSTRUCTIONS"
+        )
+        assert restored.edges == saved.edges and restored.session_id != saved.session_id
+        assert not sync.project.snapshot().dirty
 
 
 @pytest.mark.parametrize(

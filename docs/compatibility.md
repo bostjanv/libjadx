@@ -29,6 +29,12 @@ to the source HEAD and artifacts in the current PR #24 versioned evidence; it is
 separate from external publication.
 See the [documentation index](README.md) for current guidance and historical records.
 
+The later Phase 7 [instruction-reference slice](phase-7-instruction-references.md)
+adds `references.dex_instructions = PARTIAL` without changing dependency pins.
+It is an opt-in outgoing-method view of loaded DEX readers, not an original-input
+offset/provenance guarantee. Pair-level references and native persistence remain
+unchanged; the recorded PR #24 qualification does not qualify this later source.
+
 ## Jadx pin
 
 | Component | Pin | Evidence |

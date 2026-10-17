@@ -1,0 +1,317 @@
+{
+  "outcome" : "RESOLVED",
+  "queriedRef" : {
+    "kind" : "METHOD",
+    "originalClassDescriptor" : "Lprobe/InstructionRefs;",
+    "inputIdentity" : null,
+    "originalName" : "entry",
+    "originalDescriptor" : "(Lprobe/InstructionRefs;Lmissing/Api;)V"
+  },
+  "direction" : "OUTGOING",
+  "candidates" : [ ],
+  "sessionId" : "9666438c-6449-4a95-ac1e-a4f9a95ce01f",
+  "logicalRevision" : 0,
+  "snapshotId" : "sha256:ed3a479d760d4deefb0072a42ca5080246a864c195dea57e4f61613afd98722c",
+  "scope" : "LOADED_DEX_METHOD",
+  "coverage" : {
+    "status" : "PARTIAL",
+    "reason" : "Only ordinary invokes and field accesses in the selected loaded DEX method; no exhaustive program coverage"
+  },
+  "edges" : [ {
+    "sourceRef" : {
+      "kind" : "METHOD",
+      "originalClassDescriptor" : "Lprobe/InstructionRefs;",
+      "inputIdentity" : null,
+      "originalName" : "entry",
+      "originalDescriptor" : "(Lprobe/InstructionRefs;Lmissing/Api;)V"
+    },
+    "targetRef" : {
+      "kind" : "FIELD",
+      "originalClassDescriptor" : "Lprobe/InstructionRefs;",
+      "inputIdentity" : null,
+      "originalName" : "total",
+      "originalDescriptor" : "I"
+    },
+    "relation" : "FIELD_READ",
+    "resolution" : "RESOLVED",
+    "evidence" : "LOADED_DEX_INPUT_READER",
+    "sourceSites" : [ ],
+    "sourceSiteCoverage" : "UNAVAILABLE",
+    "originalOffset" : null,
+    "instruction" : {
+      "offsetCodeUnits" : 2,
+      "unit" : "DEX_CODE_UNIT_16",
+      "base" : "LOADED_METHOD_INSNS_START",
+      "precision" : "EXACT",
+      "opcode" : "sget"
+    }
+  }, {
+    "sourceRef" : {
+      "kind" : "METHOD",
+      "originalClassDescriptor" : "Lprobe/InstructionRefs;",
+      "inputIdentity" : null,
+      "originalName" : "entry",
+      "originalDescriptor" : "(Lprobe/InstructionRefs;Lmissing/Api;)V"
+    },
+    "targetRef" : {
+      "kind" : "FIELD",
+      "originalClassDescriptor" : "Lprobe/InstructionRefs;",
+      "inputIdentity" : null,
+      "originalName" : "total",
+      "originalDescriptor" : "I"
+    },
+    "relation" : "FIELD_WRITE",
+    "resolution" : "RESOLVED",
+    "evidence" : "LOADED_DEX_INPUT_READER",
+    "sourceSites" : [ ],
+    "sourceSiteCoverage" : "UNAVAILABLE",
+    "originalOffset" : null,
+    "instruction" : {
+      "offsetCodeUnits" : 4,
+      "unit" : "DEX_CODE_UNIT_16",
+      "base" : "LOADED_METHOD_INSNS_START",
+      "precision" : "EXACT",
+      "opcode" : "sput"
+    }
+  }, {
+    "sourceRef" : {
+      "kind" : "METHOD",
+      "originalClassDescriptor" : "Lprobe/InstructionRefs;",
+      "inputIdentity" : null,
+      "originalName" : "entry",
+      "originalDescriptor" : "(Lprobe/InstructionRefs;Lmissing/Api;)V"
+    },
+    "targetRef" : {
+      "kind" : "FIELD",
+      "originalClassDescriptor" : "Lprobe/InstructionRefs;",
+      "inputIdentity" : null,
+      "originalName" : "value",
+      "originalDescriptor" : "I"
+    },
+    "relation" : "FIELD_READ",
+    "resolution" : "RESOLVED",
+    "evidence" : "LOADED_DEX_INPUT_READER",
+    "sourceSites" : [ ],
+    "sourceSiteCoverage" : "UNAVAILABLE",
+    "originalOffset" : null,
+    "instruction" : {
+      "offsetCodeUnits" : 6,
+      "unit" : "DEX_CODE_UNIT_16",
+      "base" : "LOADED_METHOD_INSNS_START",
+      "precision" : "EXACT",
+      "opcode" : "iget"
+    }
+  }, {
+    "sourceRef" : {
+      "kind" : "METHOD",
+      "originalClassDescriptor" : "Lprobe/InstructionRefs;",
+      "inputIdentity" : null,
+      "originalName" : "entry",
+      "originalDescriptor" : "(Lprobe/InstructionRefs;Lmissing/Api;)V"
+    },
+    "targetRef" : {
+      "kind" : "FIELD",
+      "originalClassDescriptor" : "Lprobe/InstructionRefs;",
+      "inputIdentity" : null,
+      "originalName" : "value",
+      "originalDescriptor" : "I"
+    },
+    "relation" : "FIELD_WRITE",
+    "resolution" : "RESOLVED",
+    "evidence" : "LOADED_DEX_INPUT_READER",
+    "sourceSites" : [ ],
+    "sourceSiteCoverage" : "UNAVAILABLE",
+    "originalOffset" : null,
+    "instruction" : {
+      "offsetCodeUnits" : 8,
+      "unit" : "DEX_CODE_UNIT_16",
+      "base" : "LOADED_METHOD_INSNS_START",
+      "precision" : "EXACT",
+      "opcode" : "iput"
+    }
+  }, {
+    "sourceRef" : {
+      "kind" : "METHOD",
+      "originalClassDescriptor" : "Lprobe/InstructionRefs;",
+      "inputIdentity" : null,
+      "originalName" : "entry",
+      "originalDescriptor" : "(Lprobe/InstructionRefs;Lmissing/Api;)V"
+    },
+    "targetRef" : {
+      "kind" : "METHOD",
+      "originalClassDescriptor" : "Lprobe/InstructionRefs;",
+      "inputIdentity" : null,
+      "originalName" : "target",
+      "originalDescriptor" : "()V"
+    },
+    "relation" : "CALL",
+    "resolution" : "RESOLVED",
+    "evidence" : "LOADED_DEX_INPUT_READER",
+    "sourceSites" : [ ],
+    "sourceSiteCoverage" : "UNAVAILABLE",
+    "originalOffset" : null,
+    "instruction" : {
+      "offsetCodeUnits" : 10,
+      "unit" : "DEX_CODE_UNIT_16",
+      "base" : "LOADED_METHOD_INSNS_START",
+      "precision" : "EXACT",
+      "opcode" : "invoke-static"
+    }
+  }, {
+    "sourceRef" : {
+      "kind" : "METHOD",
+      "originalClassDescriptor" : "Lprobe/InstructionRefs;",
+      "inputIdentity" : null,
+      "originalName" : "entry",
+      "originalDescriptor" : "(Lprobe/InstructionRefs;Lmissing/Api;)V"
+    },
+    "targetRef" : {
+      "kind" : "METHOD",
+      "originalClassDescriptor" : "Lprobe/InstructionRefs;",
+      "inputIdentity" : null,
+      "originalName" : "target",
+      "originalDescriptor" : "()V"
+    },
+    "relation" : "CALL",
+    "resolution" : "RESOLVED",
+    "evidence" : "LOADED_DEX_INPUT_READER",
+    "sourceSites" : [ ],
+    "sourceSiteCoverage" : "UNAVAILABLE",
+    "originalOffset" : null,
+    "instruction" : {
+      "offsetCodeUnits" : 13,
+      "unit" : "DEX_CODE_UNIT_16",
+      "base" : "LOADED_METHOD_INSNS_START",
+      "precision" : "EXACT",
+      "opcode" : "invoke-static"
+    }
+  }, {
+    "sourceRef" : {
+      "kind" : "METHOD",
+      "originalClassDescriptor" : "Lprobe/InstructionRefs;",
+      "inputIdentity" : null,
+      "originalName" : "entry",
+      "originalDescriptor" : "(Lprobe/InstructionRefs;Lmissing/Api;)V"
+    },
+    "targetRef" : {
+      "kind" : "METHOD",
+      "originalClassDescriptor" : "Lmissing/External;",
+      "inputIdentity" : null,
+      "originalName" : "lost",
+      "originalDescriptor" : "()V"
+    },
+    "relation" : "UNRESOLVED_CALL",
+    "resolution" : "UNRESOLVED",
+    "evidence" : "LOADED_DEX_INPUT_READER",
+    "sourceSites" : [ ],
+    "sourceSiteCoverage" : "UNAVAILABLE",
+    "originalOffset" : null,
+    "instruction" : {
+      "offsetCodeUnits" : 16,
+      "unit" : "DEX_CODE_UNIT_16",
+      "base" : "LOADED_METHOD_INSNS_START",
+      "precision" : "EXACT",
+      "opcode" : "invoke-static"
+    }
+  }, {
+    "sourceRef" : {
+      "kind" : "METHOD",
+      "originalClassDescriptor" : "Lprobe/InstructionRefs;",
+      "inputIdentity" : null,
+      "originalName" : "entry",
+      "originalDescriptor" : "(Lprobe/InstructionRefs;Lmissing/Api;)V"
+    },
+    "targetRef" : {
+      "kind" : "METHOD",
+      "originalClassDescriptor" : "Lmissing/Api;",
+      "inputIdentity" : null,
+      "originalName" : "run",
+      "originalDescriptor" : "()V"
+    },
+    "relation" : "UNRESOLVED_CALL",
+    "resolution" : "UNRESOLVED",
+    "evidence" : "LOADED_DEX_INPUT_READER",
+    "sourceSites" : [ ],
+    "sourceSiteCoverage" : "UNAVAILABLE",
+    "originalOffset" : null,
+    "instruction" : {
+      "offsetCodeUnits" : 19,
+      "unit" : "DEX_CODE_UNIT_16",
+      "base" : "LOADED_METHOD_INSNS_START",
+      "precision" : "EXACT",
+      "opcode" : "invoke-interface"
+    }
+  }, {
+    "sourceRef" : {
+      "kind" : "METHOD",
+      "originalClassDescriptor" : "Lprobe/InstructionRefs;",
+      "inputIdentity" : null,
+      "originalName" : "entry",
+      "originalDescriptor" : "(Lprobe/InstructionRefs;Lmissing/Api;)V"
+    },
+    "targetRef" : {
+      "kind" : "METHOD",
+      "originalClassDescriptor" : "Lprobe/InstructionRefs;",
+      "inputIdentity" : null,
+      "originalName" : "entry",
+      "originalDescriptor" : "(Lprobe/InstructionRefs;Lmissing/Api;)V"
+    },
+    "relation" : "CALL",
+    "resolution" : "RESOLVED",
+    "evidence" : "LOADED_DEX_INPUT_READER",
+    "sourceSites" : [ ],
+    "sourceSiteCoverage" : "UNAVAILABLE",
+    "originalOffset" : null,
+    "instruction" : {
+      "offsetCodeUnits" : 22,
+      "unit" : "DEX_CODE_UNIT_16",
+      "base" : "LOADED_METHOD_INSNS_START",
+      "precision" : "EXACT",
+      "opcode" : "invoke-static"
+    }
+  }, {
+    "sourceRef" : {
+      "kind" : "METHOD",
+      "originalClassDescriptor" : "Lprobe/InstructionRefs;",
+      "inputIdentity" : null,
+      "originalName" : "entry",
+      "originalDescriptor" : "(Lprobe/InstructionRefs;Lmissing/Api;)V"
+    },
+    "targetRef" : {
+      "kind" : "METHOD",
+      "originalClassDescriptor" : "Lprobe/InstructionRefs;",
+      "inputIdentity" : null,
+      "originalName" : "target",
+      "originalDescriptor" : "(Ljava/lang/Class;)V"
+    },
+    "relation" : "CALL",
+    "resolution" : "RESOLVED",
+    "evidence" : "LOADED_DEX_INPUT_READER",
+    "sourceSites" : [ ],
+    "sourceSiteCoverage" : "UNAVAILABLE",
+    "originalOffset" : null,
+    "instruction" : {
+      "offsetCodeUnits" : 27,
+      "unit" : "DEX_CODE_UNIT_16",
+      "base" : "LOADED_METHOD_INSNS_START",
+      "precision" : "EXACT",
+      "opcode" : "invoke-static"
+    }
+  } ],
+  "nextCursor" : null,
+  "pageComplete" : true,
+  "capabilities" : {
+    "resolvedTarget" : "PARTIAL",
+    "sourceLocation" : "UNAVAILABLE",
+    "originalOffset" : "UNAVAILABLE",
+    "referenceKind" : "PARTIAL",
+    "globalCoverage" : "UNKNOWN",
+    "loadedDexOffset" : "EXACT"
+  },
+  "diagnostics" : [ "Loaded DEX traversal finished; only ordinary invokes and field accesses are reported", "Loaded DEX input-reader evidence only; configured input/archive identity and conversion lineage are unavailable", "Ordinary invokes and field accesses only; type/string references, custom/polymorphic invokes and handles are excluded", "Encoded symbolic targets are preserved; loaded-declaration resolution does not prove runtime dispatch", "DEX_CODE_UNIT_16 offsets start at loaded method insns[]; original-input addresses and Java correspondence are unavailable", "Coverage remains PARTIAL, even after successful traversal; pageComplete only exhausts observed occurrences", "Only current primary settings are used; no Java generation, native edits or save are performed" ],
+  "instructionScan" : {
+    "availability" : "AVAILABLE",
+    "reason" : "Loaded DEX traversal finished; only ordinary invokes and field accesses are reported",
+    "excludedOpcodes" : [ ]
+  }
+}

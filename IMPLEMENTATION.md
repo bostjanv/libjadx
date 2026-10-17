@@ -300,7 +300,7 @@ If any mandatory criterion fails, do not label the build a release candidate. Ke
 
 The v0.1 vertical slice has passed. The following are post-v0.1 roadmap items:
 
-1. **Instruction-level references:** verified original offsets and per-reference provenance; unresolved references remain first-class.
+1. **Instruction-level references:** the [outgoing loaded-DEX method/field occurrence slice](docs/phase-7-instruction-references.md) is implemented through an opt-in references view. Original-input provenance, Java correspondence, incoming crawls and exhaustive coverage remain unproved; unresolved references are first-class.
 2. **CFGs:** independently report raw/original and transformed graphs with availability, block/edge IDs, edge kinds and method/settings provenance. Test try/catch, loops, switch, obfuscation and failed decompilations. A DOT dump is not a sufficient runtime API by itself.
 3. **Richer representations:** class-level loaded-DEX Smali is implemented with PARTIAL capability and explicit non-DEX unavailability; see [scope and evidence](docs/phase-7-smali.md). JVM/Raung, method-level disassembly metadata and further versioned internal representations remain open. Do not expose unversioned internal Jadx objects or misleading AST promises.
 4. **Advanced annotations:** parameters/locals with snapshot-scoped identities, source-line and bytecode mapping precision, native persistability per operation.

@@ -25,13 +25,20 @@ public final class ReferenceSnapshot {
 
     public ReferenceSnapshot(List<ReferenceEdge> observed, ReferenceQuery query, String session, long revision,
             long epoch, String settings, byte[] key) {
+        this(observed, query, session, revision, epoch, settings, key, "");
+    }
+    public ReferenceSnapshot(List<ReferenceEdge> observed, ReferenceQuery query, String session, long revision,
+            long epoch, String settings, byte[] key, String observation) {
         this.key = key.clone();
-        this.edges = observed.stream().distinct().sorted(Comparator.comparing((ReferenceEdge e) -> e.relation().name())
+        Comparator<ReferenceEdge> order = Comparator.comparing((ReferenceEdge e) -> e.relation().name())
                 .thenComparing(ReferenceEdge::sourceRef, REF_ORDER).thenComparing(ReferenceEdge::targetRef, REF_ORDER)
-                .thenComparing(e -> e.resolution().name()).thenComparing(ReferenceSnapshot::orderingKey)).toList();
+                .thenComparing(e -> e.resolution().name()).thenComparing(ReferenceSnapshot::orderingKey);
+        if (query.view() == ReferenceQuery.View.INSTRUCTIONS)
+            order = Comparator.comparingInt((ReferenceEdge e) -> e.instruction().offsetCodeUnits()).thenComparing(order);
+        this.edges = observed.stream().distinct().sorted(order).toList();
         state = hash(List.of(DOMAIN, session, Long.toString(revision), Long.toString(epoch), settings));
         queryHash = queryHash(query);
-        List<String> fields = new ArrayList<>(List.of(DOMAIN, state, queryHash));
+        List<String> fields = new ArrayList<>(List.of(DOMAIN, state, queryHash, observation));
         Map<String, Integer> positions = new HashMap<>();
         List<String> digests = new ArrayList<>(edges.size());
         for (int i = 0; i < edges.size(); i++) {
@@ -96,6 +103,10 @@ public final class ReferenceSnapshot {
         for (var site : edge.sourceSites()) fields.add(pack(List.of(refKey(site.sourceOwnerRef()), site.sourceSnapshotId(),
                 Integer.toString(site.position().offsetUtf16()), Integer.toString(site.position().line()),
                 Integer.toString(site.position().columnCodePoints()), site.precision())));
+        if (edge.instruction() != null) {
+            var insn = edge.instruction();
+            fields.add(pack(List.of(Integer.toString(insn.offsetCodeUnits()), insn.unit(), insn.base(), insn.precision(), insn.opcode())));
+        }
         return pack(fields);
     }
     public static String refKey(SymbolRef ref) {
@@ -103,7 +114,7 @@ public final class ReferenceSnapshot {
     }
     private static String queryHash(ReferenceQuery q) {
         return hash(List.of(refKey(q.ref()), q.direction().name(), q.relations().toString(), Integer.toString(q.pageSize()),
-                Boolean.toString(q.includeSourceSites()), Boolean.toString(q.strict())));
+                Boolean.toString(q.includeSourceSites()), Boolean.toString(q.strict()), q.view().name()));
     }
     private static String pack(List<String> fields) {
         StringBuilder result = new StringBuilder();

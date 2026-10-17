@@ -63,6 +63,12 @@
       "persistence": "READ_ONLY"
     },
     {
+      "name": "references.dex_instructions",
+      "status": "PARTIAL",
+      "evidence": "LOADED_DEX_ORDINARY_INVOKES_AND_FIELD_ACCESSES",
+      "persistence": "READ_ONLY"
+    },
+    {
       "name": "search.class_names",
       "status": "SUPPORTED",
       "evidence": "JADX_VISIBLE_CATALOG",

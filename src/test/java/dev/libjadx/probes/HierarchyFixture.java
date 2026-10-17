@@ -49,10 +49,14 @@ public final class HierarchyFixture {
 	}
 	/** Existing runtime smali dependency, invoked reflectively to keep it out of production compile dependencies. */
 	public static Path dex(Path root, String name, String source) throws Exception {
+		return dex(root, name, source, 15);
+	}
+	public static Path dex(Path root, String name, String source, int apiLevel) throws Exception {
 		Files.createDirectories(root);
 		Path smali = root.resolve(name + ".smali"); Files.writeString(smali, source);
 		Class<?> optionsClass = Class.forName("com.android.tools.smali.smali.SmaliOptions");
 		Object options = optionsClass.getConstructor().newInstance();
+		optionsClass.getField("apiLevel").setInt(options, apiLevel);
 		byte[] bytes = (byte[]) Class.forName("jadx.plugins.input.smali.SmaliUtils")
 				.getMethod("assemble", java.io.File.class, optionsClass).invoke(null, smali.toFile(), options);
 		Path path = root.resolve(name); Files.write(path, bytes); return path;
