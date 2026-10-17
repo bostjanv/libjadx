@@ -26,6 +26,10 @@ commit and the full gate. Current status documents link to the validation record
 for the source HEAD; it is recorded after the source commit has been tested,
 without embedding a self-referential commit hash in the hashed documentation.
 
+The later Phase 7 [loaded-DEX Smali slice](phase-7-smali.md) is not covered by
+this recorded qualification. Its validation does not replace a full clean-source
+candidate gate before publication; existing versioned evidence is not rewritten.
+
 Product candidate: `0.1.0-alpha.1`
 Python package: `0.1.0a1`
 API contract: `0.1.0-experimental`
@@ -61,7 +65,9 @@ server cancellation. SSE read inactivity remains disabled while other timeouts
 retain their configured values.
 
 Public capabilities describe the service contract rather than an internal Jadx
-feasibility probe. `code.smali=UNSUPPORTED` means no public Smali representation;
+feasibility probe. PR #24 recorded `code.smali=UNSUPPORTED` (no public Smali
+representation); the current Phase 7 contract changes it to PARTIAL for
+class-level loaded-DEX disassembly only.
 `analysis.concurrent_reads=UNSUPPORTED` means parallel primary Jadx reads are
 disabled, with serialized/fail-fast PROJECT_BUSY admission (multiple HTTP clients
 are supported). `analysis.cancellation=PARTIAL` describes cooperative queued/running
@@ -80,7 +86,7 @@ aggregate checks 27 matching log entries against 27 newly created projects.
 
 Linux JDK 21 and CPython 3.11/3.14 are the intended qualification matrix. Installed
 Jadx plugins and qualified input formats are reported separately. Local-variable
-renames, remote hosting/auth, project switching/uploads, CFG/resources/Smali HTTP
+renames, remote hosting/auth, project switching/uploads, CFG/resources HTTP
 representations, portable project export and Python process management remain
 unsupported. Related propagation and references retain their partial boundaries.
 

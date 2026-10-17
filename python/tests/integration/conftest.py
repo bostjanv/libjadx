@@ -28,14 +28,19 @@ def service(tmp_path):
     shutil.copy2(source, tmp_path / "sample.jar")
 
     @contextmanager
-    def start(project=None):
+    def start(project=None, *, input_path=None):
+        if input_path is not None:
+            shutil.copy2(input_path, tmp_path / input_path.name)
         lines = []
         addresses = queue.Queue()
         process = subprocess.Popen(
             [
                 str(executable),
                 "--project" if project else "--input",
-                str(project or (tmp_path / "sample.jar")),
+                str(
+                    project
+                    or (tmp_path / (input_path.name if input_path else "sample.jar"))
+                ),
                 "--allowed-root",
                 str(tmp_path),
                 "--port",

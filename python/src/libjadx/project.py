@@ -341,6 +341,7 @@ class Project(_ProjectBase):
         self,
         ref: SymbolRef | _Symbol,
         *,
+        representation: str = "JAVA",
         strict: bool = False,
         decompilation_mode: DecompileRequestDecompilationMode | str | Unset = UNSET,
         include_annotations: bool = True,
@@ -357,6 +358,7 @@ class Project(_ProjectBase):
                 DecompileResult,
                 body=DecompileRequest(
                     reference(ref),
+                    representation=representation,
                     decompilation_mode=mode,
                     strict=strict,
                     include_annotations=include_annotations,
@@ -675,6 +677,7 @@ class AsyncProject(_ProjectBase):
         self,
         ref: SymbolRef | _Symbol,
         *,
+        representation: str = "JAVA",
         strict: bool = False,
         decompilation_mode: DecompileRequestDecompilationMode | str | Unset = UNSET,
         include_annotations: bool = True,
@@ -691,6 +694,7 @@ class AsyncProject(_ProjectBase):
                 DecompileResult,
                 body=DecompileRequest(
                     reference(ref),
+                    representation=representation,
                     decompilation_mode=mode,
                     strict=strict,
                     include_annotations=include_annotations,

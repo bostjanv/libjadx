@@ -1,12 +1,12 @@
 """Bounded representations with full typed provenance and raw model access."""
 
 from dataclasses import dataclass
-from typing import Literal
 from uuid import UUID
 
 from ._generated.models import (
     DecompileResult,
     DecompileResultOutcome,
+    DecompileResultRepresentation,
     DecompileResultStatus,
     EffectiveSourceSettings,
     PendingEdits,
@@ -65,7 +65,7 @@ class SourceResult:
         return self.raw.status
 
     @property
-    def representation(self) -> Literal["JAVA"]:
+    def representation(self) -> DecompileResultRepresentation:
         return self.raw.representation
 
     @property

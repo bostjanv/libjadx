@@ -6,6 +6,8 @@ externally published. The
 [current validation record](release-evidence/0.1.0-alpha.1/validation.json) records
 the exact qualified source HEAD and source fingerprint.
 Phases 0–6 are completed milestone history; Phase 7 is the active extended-capability roadmap.
+The current source adds [class-level loaded-DEX Smali](phase-7-smali.md), whose
+slice validation is separate from that recorded release qualification.
 
 ## Current user documentation
 
@@ -28,9 +30,11 @@ Phases 0–6 are completed milestone history; Phase 7 is the active extended-cap
 inputs. The [feasibility matrix](feasibility-matrix.md) separates internal Jadx
 probes from public service capabilities. [Current /capabilities evidence](release-evidence/0.1.0-alpha.1/capabilities.json)
 records the complete reviewed snapshot on all five ordinary-process client surfaces.
-[The reviewed example](../openapi/examples/capabilities.json) defines formal capability statuses.
+[The reviewed example](../openapi/examples/capabilities.json) defines current
+formal capability statuses, including the later Phase 7 Smali extension; the
+versioned PR #24 snapshot remains unchanged.
 
-| Area / formal capability | v0.1 state |
+| Area / formal capability | Current state (v0.1 baseline plus Phase 7 slice) |
 | --- | --- |
 | Java engine / `code.java` | SUPPORTED |
 | Java endpoint / `code.java_source_endpoint`, method excerpts / `code.method_excerpt` | PARTIAL; verified metadata/range limits |
@@ -45,7 +49,7 @@ records the complete reviewed snapshot on all five ordinary-process client surfa
 | Parameter rename / `edit.parameter_rename` | SUPPORTED conservative snapshot-bound subset |
 | Related propagation / `edit.related_propagation` | PARTIAL conservative independently COMPLETE families |
 | Local rename / `edit.local_rename` | UNSUPPORTED |
-| Smali representation / `code.smali` | UNSUPPORTED; internal retrieval is not a public API |
+| Smali representation / `code.smali` | PARTIAL; class-level loaded DEX only, no Java metadata/original offsets; non-DEX is UNAVAILABLE |
 | CFG / `analysis.cfg` | UNKNOWN; no public API, Phase 7 |
 | Resource query API | Not implemented; Phase 7, no formal resource capability in v0.1 |
 | Parallel primary Jadx reads / `analysis.concurrent_reads` | UNSUPPORTED; serialized, conflicting admission fails PROJECT_BUSY; multiple clients supported |

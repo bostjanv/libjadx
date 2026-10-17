@@ -142,9 +142,15 @@ async def test_operation_inventory_and_vertical_slice(factory, surface):
                 body={"ref": FAN, "direction": "OUTGOING", "strict": True},
                 expected=409,
             )
-            await api.call(
+            smali = await api.call(
                 "decompileJava",
                 body={"ref": CLASS, "representation": "SMALI"},
+                expected=200,
+            )
+            assert smali["status"] == "UNAVAILABLE" and smali["source"] is None
+            await api.call(
+                "decompileJava",
+                body={"ref": CLASS, "representation": "UNKNOWN"},
                 expected=422,
             )
             await api.call(
@@ -456,6 +462,47 @@ async def test_operation_inventory_and_vertical_slice(factory, surface):
             await api.call("getJob", job_id=job["jobId"], expected=404)
             assert set(OPERATIONS) <= set(ROUTES)
             assert all(surface in ROUTES[op]["surfaces"] for op in OPERATIONS)
+        finally:
+            await api.close()
+
+
+@pytest.mark.parametrize("surface", SURFACES)
+async def test_smali_text_only_dex_contract(factory, surface):
+    with factory(kind="dex", hooks=False) as service:
+        api = Surface(service, surface)
+        try:
+            ref = {"kind": "CLASS", "originalClassDescriptor": "Lprobe/LocalDex;"}
+            before = await api.call("getProject", expected=200)
+            result = await api.call(
+                "decompileJava",
+                body={
+                    "ref": ref,
+                    "representation": "SMALI",
+                    "includeAnnotations": False,
+                    "strict": True,
+                },
+                expected=200,
+            )
+            assert (
+                result["representation"] == "SMALI" and result["status"] == "COMPLETE"
+            )
+            assert ".class public Lprobe/LocalDex;" in result["source"]
+            assert "mul-int/lit8 v0, p0, 0x7" in result["source"]
+            assert (
+                result["sourceSnapshotId"]
+                and not result["annotations"]
+                and not result["variables"]
+            )
+            assert result["methodRange"] is None
+            assert result["capabilities"]["originalBytecodeOffsets"] == "UNAVAILABLE"
+            await api.call(
+                "decompileJava",
+                body={"ref": ref, "representation": "SMALI", "strict": True},
+                expected=409,
+            )
+            after = await api.call("getProject", expected=200)
+            assert after["revisions"] == before["revisions"] and not after["dirty"]
+            assert not list(service.root.glob("*.jadx"))
         finally:
             await api.close()
 

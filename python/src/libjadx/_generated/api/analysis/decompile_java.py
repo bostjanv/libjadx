@@ -95,18 +95,30 @@ def sync_detailed(
     client: AuthenticatedClient | Client,
     body: DecompileRequest,
 ) -> Response[DecompileResult | ErrorEnvelope]:
-    """Get Jadx Java for one original class or method identity
+    """Get Java for a class or method, or Smali for a loaded DEX class
 
-     A method request returns its containing class source. A method excerpt is present only when its
-    original declaration and complete boundary are independently verified. Source offsets index UTF-16
-    code units in the exact returned Java string; ranges are half-open. Lines are 1-based and columns
-    are 0-based Unicode code points. Source coordinates are not bytecode offsets or original debug-
-    source line numbers. Strict mode returns INCOMPLETE_ANALYSIS when requested coverage is unavailable.
+     Java is the default representation. A Java method request returns its containing class source. A
+    method excerpt is present only when its original declaration and complete boundary are independently
+    verified. Source offsets index UTF-16 code units in the exact returned Java string; ranges are half-
+    open. Lines are 1-based and columns are 0-based Unicode code points. Source coordinates are not
+    bytecode offsets or original debug-source line numbers. Strict mode returns INCOMPLETE_ANALYSIS when
+    requested coverage is unavailable. SMALI accepts CLASS refs only and returns exact single-class
+    Baksmali text from loaded DEX data without Java decompilation or inner-class concatenation. Non-
+    DEX/generated data and disassembly failures return UNAVAILABLE, not JVM/Raung text or exception
+    traces. Conversion and original-input provenance remain unverified. Native renames/comments do not
+    rewrite DEX text. Annotations, variables, method ranges, debug mappings and original offsets are
+    unavailable; strict text-only Smali requires includeAnnotations false. Decompilation mode retains
+    existing isolated-engine routing/provenance but does not transform DEX text. Smali does not enter
+    Java source search. Snapshot preconditions are representation-scoped; the operation ID is retained
+    for compatibility.
 
     Args:
         body (DecompileRequest): Only CLASS and METHOD refs are accepted. Revision preconditions
-            must occur together. Only JAVA is currently supported; other representations return 422
-            UNSUPPORTED_CAPABILITY. Requests are limited to 64 KiB.
+            must occur together. JAVA is the default; SMALI requires a CLASS ref. Unknown
+            representations and SMALI METHOD requests return 422 UNSUPPORTED_CAPABILITY. SMALI is
+            available only for loaded DEX class data. includeAnnotations and includeRawDebugLines
+            request unavailable Smali metadata: non-strict responses disclose omission and strict
+            requests fail INCOMPLETE_ANALYSIS. Requests are limited to 64 KiB.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -132,18 +144,30 @@ def sync(
     client: AuthenticatedClient | Client,
     body: DecompileRequest,
 ) -> DecompileResult | ErrorEnvelope | None:
-    """Get Jadx Java for one original class or method identity
+    """Get Java for a class or method, or Smali for a loaded DEX class
 
-     A method request returns its containing class source. A method excerpt is present only when its
-    original declaration and complete boundary are independently verified. Source offsets index UTF-16
-    code units in the exact returned Java string; ranges are half-open. Lines are 1-based and columns
-    are 0-based Unicode code points. Source coordinates are not bytecode offsets or original debug-
-    source line numbers. Strict mode returns INCOMPLETE_ANALYSIS when requested coverage is unavailable.
+     Java is the default representation. A Java method request returns its containing class source. A
+    method excerpt is present only when its original declaration and complete boundary are independently
+    verified. Source offsets index UTF-16 code units in the exact returned Java string; ranges are half-
+    open. Lines are 1-based and columns are 0-based Unicode code points. Source coordinates are not
+    bytecode offsets or original debug-source line numbers. Strict mode returns INCOMPLETE_ANALYSIS when
+    requested coverage is unavailable. SMALI accepts CLASS refs only and returns exact single-class
+    Baksmali text from loaded DEX data without Java decompilation or inner-class concatenation. Non-
+    DEX/generated data and disassembly failures return UNAVAILABLE, not JVM/Raung text or exception
+    traces. Conversion and original-input provenance remain unverified. Native renames/comments do not
+    rewrite DEX text. Annotations, variables, method ranges, debug mappings and original offsets are
+    unavailable; strict text-only Smali requires includeAnnotations false. Decompilation mode retains
+    existing isolated-engine routing/provenance but does not transform DEX text. Smali does not enter
+    Java source search. Snapshot preconditions are representation-scoped; the operation ID is retained
+    for compatibility.
 
     Args:
         body (DecompileRequest): Only CLASS and METHOD refs are accepted. Revision preconditions
-            must occur together. Only JAVA is currently supported; other representations return 422
-            UNSUPPORTED_CAPABILITY. Requests are limited to 64 KiB.
+            must occur together. JAVA is the default; SMALI requires a CLASS ref. Unknown
+            representations and SMALI METHOD requests return 422 UNSUPPORTED_CAPABILITY. SMALI is
+            available only for loaded DEX class data. includeAnnotations and includeRawDebugLines
+            request unavailable Smali metadata: non-strict responses disclose omission and strict
+            requests fail INCOMPLETE_ANALYSIS. Requests are limited to 64 KiB.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -164,18 +188,30 @@ async def asyncio_detailed(
     client: AuthenticatedClient | Client,
     body: DecompileRequest,
 ) -> Response[DecompileResult | ErrorEnvelope]:
-    """Get Jadx Java for one original class or method identity
+    """Get Java for a class or method, or Smali for a loaded DEX class
 
-     A method request returns its containing class source. A method excerpt is present only when its
-    original declaration and complete boundary are independently verified. Source offsets index UTF-16
-    code units in the exact returned Java string; ranges are half-open. Lines are 1-based and columns
-    are 0-based Unicode code points. Source coordinates are not bytecode offsets or original debug-
-    source line numbers. Strict mode returns INCOMPLETE_ANALYSIS when requested coverage is unavailable.
+     Java is the default representation. A Java method request returns its containing class source. A
+    method excerpt is present only when its original declaration and complete boundary are independently
+    verified. Source offsets index UTF-16 code units in the exact returned Java string; ranges are half-
+    open. Lines are 1-based and columns are 0-based Unicode code points. Source coordinates are not
+    bytecode offsets or original debug-source line numbers. Strict mode returns INCOMPLETE_ANALYSIS when
+    requested coverage is unavailable. SMALI accepts CLASS refs only and returns exact single-class
+    Baksmali text from loaded DEX data without Java decompilation or inner-class concatenation. Non-
+    DEX/generated data and disassembly failures return UNAVAILABLE, not JVM/Raung text or exception
+    traces. Conversion and original-input provenance remain unverified. Native renames/comments do not
+    rewrite DEX text. Annotations, variables, method ranges, debug mappings and original offsets are
+    unavailable; strict text-only Smali requires includeAnnotations false. Decompilation mode retains
+    existing isolated-engine routing/provenance but does not transform DEX text. Smali does not enter
+    Java source search. Snapshot preconditions are representation-scoped; the operation ID is retained
+    for compatibility.
 
     Args:
         body (DecompileRequest): Only CLASS and METHOD refs are accepted. Revision preconditions
-            must occur together. Only JAVA is currently supported; other representations return 422
-            UNSUPPORTED_CAPABILITY. Requests are limited to 64 KiB.
+            must occur together. JAVA is the default; SMALI requires a CLASS ref. Unknown
+            representations and SMALI METHOD requests return 422 UNSUPPORTED_CAPABILITY. SMALI is
+            available only for loaded DEX class data. includeAnnotations and includeRawDebugLines
+            request unavailable Smali metadata: non-strict responses disclose omission and strict
+            requests fail INCOMPLETE_ANALYSIS. Requests are limited to 64 KiB.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -199,18 +235,30 @@ async def asyncio(
     client: AuthenticatedClient | Client,
     body: DecompileRequest,
 ) -> DecompileResult | ErrorEnvelope | None:
-    """Get Jadx Java for one original class or method identity
+    """Get Java for a class or method, or Smali for a loaded DEX class
 
-     A method request returns its containing class source. A method excerpt is present only when its
-    original declaration and complete boundary are independently verified. Source offsets index UTF-16
-    code units in the exact returned Java string; ranges are half-open. Lines are 1-based and columns
-    are 0-based Unicode code points. Source coordinates are not bytecode offsets or original debug-
-    source line numbers. Strict mode returns INCOMPLETE_ANALYSIS when requested coverage is unavailable.
+     Java is the default representation. A Java method request returns its containing class source. A
+    method excerpt is present only when its original declaration and complete boundary are independently
+    verified. Source offsets index UTF-16 code units in the exact returned Java string; ranges are half-
+    open. Lines are 1-based and columns are 0-based Unicode code points. Source coordinates are not
+    bytecode offsets or original debug-source line numbers. Strict mode returns INCOMPLETE_ANALYSIS when
+    requested coverage is unavailable. SMALI accepts CLASS refs only and returns exact single-class
+    Baksmali text from loaded DEX data without Java decompilation or inner-class concatenation. Non-
+    DEX/generated data and disassembly failures return UNAVAILABLE, not JVM/Raung text or exception
+    traces. Conversion and original-input provenance remain unverified. Native renames/comments do not
+    rewrite DEX text. Annotations, variables, method ranges, debug mappings and original offsets are
+    unavailable; strict text-only Smali requires includeAnnotations false. Decompilation mode retains
+    existing isolated-engine routing/provenance but does not transform DEX text. Smali does not enter
+    Java source search. Snapshot preconditions are representation-scoped; the operation ID is retained
+    for compatibility.
 
     Args:
         body (DecompileRequest): Only CLASS and METHOD refs are accepted. Revision preconditions
-            must occur together. Only JAVA is currently supported; other representations return 422
-            UNSUPPORTED_CAPABILITY. Requests are limited to 64 KiB.
+            must occur together. JAVA is the default; SMALI requires a CLASS ref. Unknown
+            representations and SMALI METHOD requests return 422 UNSUPPORTED_CAPABILITY. SMALI is
+            available only for loaded DEX class data. includeAnnotations and includeRawDebugLines
+            request unavailable Smali metadata: non-strict responses disclose omission and strict
+            requests fail INCOMPLETE_ANALYSIS. Requests are limited to 64 KiB.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

@@ -20,8 +20,11 @@ T = TypeVar("T", bound="DecompileRequest")
 
 @_attrs_define
 class DecompileRequest:
-    """Only CLASS and METHOD refs are accepted. Revision preconditions must occur together. Only JAVA is currently
-    supported; other representations return 422 UNSUPPORTED_CAPABILITY. Requests are limited to 64 KiB.
+    """Only CLASS and METHOD refs are accepted. Revision preconditions must occur together. JAVA is the default; SMALI
+    requires a CLASS ref. Unknown representations and SMALI METHOD requests return 422 UNSUPPORTED_CAPABILITY. SMALI is
+    available only for loaded DEX class data. includeAnnotations and includeRawDebugLines request unavailable Smali
+    metadata: non-strict responses disclose omission and strict requests fail INCOMPLETE_ANALYSIS. Requests are limited
+    to 64 KiB.
 
         Attributes:
             ref (SymbolRef): Exact original JVM/DEX identity. CLASS omits member fields or carries null; METHOD and FIELD

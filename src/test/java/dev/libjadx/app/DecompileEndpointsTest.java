@@ -30,6 +30,7 @@ import dev.libjadx.jadxadapter.JadxSymbolAdapter;
 import dev.libjadx.jadxadapter.JadxSourceAdapter;
 import dev.libjadx.core.symbols.SymbolRef;
 import dev.libjadx.core.edits.EditDtos;
+import dev.libjadx.probes.HierarchyFixture;
 import dev.libjadx.scheduler.ProjectBusyException;
 import jadx.api.JadxDecompiler;
 import org.junit.jupiter.api.Test;
@@ -39,6 +40,143 @@ class DecompileEndpointsTest {
 	private static final ObjectMapper JSON = new ObjectMapper();
 	private static final HttpClient HTTP = HttpClient.newHttpClient();
 	@TempDir Path dir;
+
+	@Test
+	void smaliIsSingleClassDexTextWithSeparateSnapshotsAndNoJavaSearchIngestion() throws Exception {
+		Path dex = HierarchyFixture.dex(dir, "sample.dex",
+				Files.readString(Path.of("tests/fixtures/smali/Disassembly.smali")));
+		Path inner = HierarchyFixture.dex(dir, "inner.dex", """
+				.class public Lprobe/Disassembly$Inner;
+				.super Ljava/lang/Object;
+				.annotation system Ldalvik/annotation/EnclosingClass;
+				    value = Lprobe/Disassembly;
+				.end annotation
+				.annotation system Ldalvik/annotation/InnerClass;
+				    accessFlags = 0x9
+				    name = "Inner"
+				.end annotation
+				.method public static other()I
+				.registers 1
+				const/16 v0, 0x11
+				return v0
+				.end method
+				""");
+		byte[] inputBefore = Files.readAllBytes(dex);
+		ProjectRuntime runtime = new ProjectRuntime(null, List.of(dex, inner), List.of(dir));
+		try (HttpApiServer server = new HttpApiServer("127.0.0.1", 0, runtime)) {
+			server.start(); runtime.initializeAsync(null).get(20, TimeUnit.SECONDS);
+			String cls = ref("CLASS", "Lprobe/Disassembly;", null, null);
+			String request = "{\"ref\":" + cls + ",\"representation\":\"SMALI\"";
+			JsonNode smali = body(post(server, request + "}"));
+			OpenApiExampleValidator.assertValid(new ObjectMapper(new YAMLFactory()).readTree(
+					Path.of("openapi/openapi.yaml").toFile()), "DecompileResult", smali);
+			assertEquals("RESOLVED", smali.path("outcome").asText());
+			assertEquals("COMPLETE", smali.path("status").asText());
+			assertEquals("SMALI", smali.path("representation").asText());
+			assertEquals("Lprobe/Disassembly;", smali.path("sourceOwnerRef").path("originalClassDescriptor").asText());
+			String text = smali.path("source").asText();
+			assertTrue(text.contains("const/16 v0, 0x2a"));
+			assertFalse(text.contains("other()I"));
+			assertEquals(0, smali.path("annotations").size());
+			assertEquals(0, smali.path("variables").size());
+			assertTrue(smali.path("methodRangeAvailable").isNull());
+			assertEquals("UNAVAILABLE", smali.path("capabilities").path("originalBytecodeOffsets").asText());
+			assertError(post(server, request + ",\"strict\":true}"), 409, "INCOMPLETE_ANALYSIS");
+			assertEquals(text, body(post(server, request + ",\"strict\":true,\"includeAnnotations\":false}")).path("source").asText());
+			assertError(post(server, request + ",\"strict\":true,\"includeAnnotations\":false,\"includeRawDebugLines\":true}"),
+					409, "INCOMPLETE_ANALYSIS");
+			JsonNode child = body(post(server, "{\"ref\":" + ref("CLASS", "Lprobe/Disassembly$Inner;", null, null)
+					+ ",\"representation\":\"SMALI\"}"));
+			assertEquals("Lprobe/Disassembly$Inner;", child.path("sourceOwnerRef").path("originalClassDescriptor").asText());
+			assertTrue(child.path("source").asText().contains("const/16 v0, 0x11"));
+			assertFalse(child.path("source").asText().contains("answer()I"));
+			HttpResponse<String> search = HTTP.send(HttpRequest.newBuilder(URI.create("http://127.0.0.1:"
+					+ server.localPort() + "/api/v1/search")).header("Content-Type", "application/json")
+					.POST(HttpRequest.BodyPublishers.ofString("{\"query\":\"const/16\",\"domains\":[\"SOURCE_TEXT\"]}"))
+					.build(), HttpResponse.BodyHandlers.ofString());
+			assertEquals(200, search.statusCode(), search.body());
+			assertEquals(0, body(search).path("hits").size());
+			JsonNode java = success(server, cls);
+			assertTrue(java.path("source").asText().contains("Method not decompiled"), java.toPrettyString());
+			assertNotEquals(java.path("sourceSnapshotId"), smali.path("sourceSnapshotId"));
+			assertEquals(smali.path("sourceSnapshotId"), body(post(server, request + "}")).path("sourceSnapshotId"));
+			assertError(post(server, request + ",\"expectedSourceSnapshotId\":\"" + java.path("sourceSnapshotId").asText() + "\"}"),
+					409, "STALE_REVISION");
+			assertError(post(server, "{\"ref\":" + cls + ",\"expectedSourceSnapshotId\":\""
+					+ smali.path("sourceSnapshotId").asText() + "\"}"), 409, "STALE_REVISION");
+			JsonNode temporary = body(post(server, request + ",\"decompilationMode\":\"SIMPLE\"}"));
+			assertEquals(text, temporary.path("source").asText());
+			assertNotEquals(smali.path("sourceSnapshotId"), temporary.path("sourceSnapshotId"));
+			assertEquals(0, runtime.projectSnapshot().revisions().logicalRevision());
+			assertFalse(runtime.projectSnapshot().dirty());
+			new EditBatchService(runtime).apply(new EditDtos.Request(null, null, List.of(
+					new EditDtos.Operation(EditDtos.Kind.RENAME, SymbolRef.classRef("Lprobe/Disassembly;"), "Alias", null, null))));
+			JsonNode renamed = body(post(server, request + "}"));
+			assertEquals(text, renamed.path("source").asText());
+			assertNotEquals(smali.path("sourceSnapshotId"), renamed.path("sourceSnapshotId"));
+			assertError(post(server, request + ",\"expectedSourceSnapshotId\":\"" + smali.path("sourceSnapshotId").asText() + "\"}"),
+					409, "STALE_REVISION");
+			assertArrayEquals(inputBefore, Files.readAllBytes(dex));
+			try (var files = Files.list(dir)) { assertFalse(files.anyMatch(file -> file.toString().endsWith(".jadx"))); }
+		} finally { runtime.close(); }
+	}
+
+	@Test
+	void smaliRejectsMethodRequestsAndNeverRelabelsJvmDisassembly() throws Exception {
+		Path jar = SymbolFixtureSupport.compileFixture(dir);
+		ProjectRuntime runtime = new ProjectRuntime(null, List.of(jar), List.of(dir));
+		try (HttpApiServer server = new HttpApiServer("127.0.0.1", 0, runtime)) {
+			server.start(); runtime.initializeAsync(null).get(20, TimeUnit.SECONDS);
+			String cls = ref("CLASS", "Lprobe/SymbolFixture;", null, null);
+			String request = "{\"ref\":" + cls + ",\"representation\":\"SMALI\"";
+			JsonNode unavailable = body(post(server, request + "}"));
+			assertEquals("RESOLVED", unavailable.path("outcome").asText());
+			assertEquals("UNAVAILABLE", unavailable.path("status").asText());
+			assertEquals("SMALI", unavailable.path("representation").asText());
+			assertTrue(unavailable.path("source").isNull());
+			assertTrue(unavailable.path("sourceSnapshotId").isNull());
+			assertTrue(unavailable.path("diagnostics").toString().contains("JVM/Raung"));
+			assertError(post(server, request + ",\"includeAnnotations\":false,\"strict\":true}"), 409, "INCOMPLETE_ANALYSIS");
+			assertError(post(server, "{\"ref\":" + ref("METHOD", "Lprobe/SymbolFixture;", "mix", "(I)I")
+					+ ",\"representation\":\"SMALI\"}"), 422, "UNSUPPORTED_CAPABILITY");
+			JsonNode missing = body(post(server, "{\"ref\":" + ref("CLASS", "Lprobe/Absent;", null, null)
+					+ ",\"representation\":\"SMALI\"}"));
+			assertEquals("NOT_FOUND", missing.path("outcome").asText());
+			assertEquals("SMALI", missing.path("representation").asText());
+		} finally { runtime.close(); }
+	}
+
+	@Test
+	void failedDexDisassemblyNeverReturnsTheUpstreamExceptionTrace() throws Exception {
+		Path dex = HierarchyFixture.dex(dir, "sample.dex",
+				Files.readString(Path.of("tests/fixtures/smali/Disassembly.smali")));
+		ProjectRuntime runtime = new ProjectRuntime(null, List.of(dex), List.of(dir));
+		try (HttpApiServer server = new HttpApiServer("127.0.0.1", 0, runtime)) {
+			server.start(); runtime.initializeAsync(null).get(20, TimeUnit.SECONDS);
+			// Fault injection after a real load: corrupt only the in-memory DEX class
+			// type index so the pinned disassembler returns its swallowed exception.
+			runtime.withPrimarySymbolRead("corrupt-disassembly", context -> {
+				var cls = JadxSymbolAdapter.visibleClass(context.decompiler(), "Lprobe/Disassembly;", 0);
+				var data = (jadx.plugins.input.dex.sections.DexClassData) cls.getClassNode().getClsData();
+				try {
+					var field = data.getClass().getDeclaredField("in");
+					field.setAccessible(true);
+					var reader = (jadx.plugins.input.dex.sections.SectionReader) field.get(data);
+					reader.getDexReader().getBuf().putInt(data.getClassDefOffset(), Integer.MAX_VALUE);
+				} catch (ReflectiveOperationException failure) { throw new AssertionError(failure); }
+				assertTrue(data.getDisassembledCode().contains("Error generating smali code: "));
+				return null;
+			});
+			HttpResponse<String> response = post(server, "{\"ref\":" + ref("CLASS", "Lprobe/Disassembly;", null, null)
+					+ ",\"representation\":\"SMALI\"}");
+			assertEquals(200, response.statusCode(), response.body());
+			assertEquals("UNAVAILABLE", body(response).path("status").asText());
+			assertTrue(body(response).path("source").isNull());
+			assertTrue(body(response).path("sourceSnapshotId").isNull());
+			assertFalse(response.body().contains("Exception"));
+			assertFalse(response.body().contains("\tat "));
+		} finally { runtime.close(); }
+	}
 
 	@Test
 	void anonymousClassFirstUsesEmittedParentButEmptySyntheticHasNoSource() throws Exception {
@@ -305,7 +443,7 @@ class DecompileEndpointsTest {
 			String cls = ref("CLASS", "Lprobe/SymbolFixture;", null, null);
 			assertError(post(server, "{"), 400, "INVALID_REQUEST");
 			assertError(post(server, "{\"ref\":" + cls + ",\"unknown\":true}"), 400, "INVALID_REQUEST");
-			assertError(post(server, "{\"ref\":" + cls + ",\"representation\":\"SMALI\"}"), 422, "UNSUPPORTED_CAPABILITY");
+			assertError(post(server, "{\"ref\":" + cls + ",\"representation\":\"UNKNOWN\"}"), 422, "UNSUPPORTED_CAPABILITY");
 			assertError(post(server, "{\"ref\":" + cls + ",\"expectedSessionId\":\"bad\"}"), 400, "INVALID_REQUEST");
 			assertError(post(server, "{\"ref\":{\"kind\":\"METHOD\",\"originalClassDescriptor\":\"Lprobe/SymbolFixture;\","
 					+ "\"originalName\":\"mix\",\"originalDescriptor\":\"(V)V\"}}"), 400, "INVALID_REQUEST");
@@ -345,6 +483,7 @@ class DecompileEndpointsTest {
 			try {
 				assertTrue(entered.await(5, TimeUnit.SECONDS));
 				assertError(post(server, "{\"ref\":" + cls + "}"), 409, "PROJECT_BUSY");
+				assertError(post(server, "{\"ref\":" + cls + ",\"representation\":\"SMALI\"}"), 409, "PROJECT_BUSY");
 				assertError(post(server, "{\"ref\":" + cls + ",\"decompilationMode\":\"SIMPLE\"}"),
 						409, "PROJECT_BUSY");
 				assertThrows(ProjectBusyException.class, () -> runtime.saveProject(null, session, 0L));

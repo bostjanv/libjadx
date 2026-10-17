@@ -54,6 +54,27 @@ with Client("http://127.0.0.1:18777", timeout=10.0) as client:
     project.save("/work/sample.jadx")  # explicit server-side path
 ```
 
+For a CLASS ref backed by loaded DEX data, both `Project.decompile` and
+`AsyncProject.decompile` accept `representation="SMALI"`:
+
+```python
+smali = project.decompile(
+    ref, representation="SMALI", include_annotations=False, strict=True
+)
+print(smali.representation, smali.source)
+# Async equivalent: await project.decompile(ref, representation="SMALI", ...)
+```
+
+This is one class's loaded-DEX Baksmali text, not Java, a method excerpt, or a
+guarantee of original-input provenance. Ordinary JVM class/JAR data returns
+`UNAVAILABLE` (or `IncompleteAnalysisError` in strict mode), never mislabeled
+Raung. Smali has no annotations, variables, method ranges or original offsets;
+strict text-only requests require `include_annotations=False`. Native aliases
+and comments do not rewrite DEX instructions. The generated response now uses
+the string enum `DecompileResultRepresentation` (`JAVA` / `SMALI`), rather than
+the former Java-only literal. Low-level operation name `decompile_java` is
+retained for compatibility. See [scope, proof and qualification limits](../docs/phase-7-smali.md).
+
 **Edits never autosave.** Call `project.save()` after a native path has been
 established, or explicitly request `client.shutdown(policy="save")`. A first
 save from raw input needs a target. `shutdown("discard")` is explicit too;

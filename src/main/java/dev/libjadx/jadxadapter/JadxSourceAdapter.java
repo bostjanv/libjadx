@@ -30,12 +30,38 @@ import jadx.core.dex.attributes.AType;
 import jadx.core.dex.attributes.nodes.JadxCommentsAttr;
 import jadx.core.dex.attributes.nodes.JadxError;
 import jadx.core.dex.attributes.nodes.NotificationAttrNode;
+import jadx.plugins.input.dex.sections.DexClassData;
 
 /** Jadx 1.5.6 source/metadata conversion; all returned values are immutable. */
 public final class JadxSourceAdapter {
 	private static final int MAX_SOURCE_BYTES = 4 * 1024 * 1024;
 	private static final int MAX_ANNOTATIONS = 20_000;
 	private JadxSourceAdapter() { }
+
+	public static SourceData extractSmali(JavaClass cls, String sessionId, long revision,
+			long publicationEpoch, String settingsFingerprint) {
+		// getSmali() also returns JVM/Raung and concatenates inner/inlined classes.
+		// Admit the pinned DEX reader instead, without running Java decompilation.
+		if (!(cls.getClassNode().getClsData() instanceof DexClassData data))
+			return SourceData.unavailable("Smali requires loaded DEX class data; JVM/Raung and generated classes are not supported");
+		String source;
+		try {
+			source = data.getDisassembledCode();
+		} catch (RuntimeException failure) {
+			return SourceData.unavailable("Loaded DEX class disassembly failed");
+		}
+		// Pinned SmaliUtils can swallow an exception and append its stack trace.
+		if (source == null || source.isBlank() || source.contains("Error generating smali code: ")
+				&& source.contains("\tat "))
+			return SourceData.unavailable("Loaded DEX class disassembly failed");
+		requireSourceWithinLimit(source);
+		SymbolRef owner = JadxSymbolAdapter.originalRef(cls);
+		String snapshot = SourceSnapshot.id(sessionId, revision, publicationEpoch, settingsFingerprint,
+				"SMALI:" + owner.originalClassDescriptor(), source);
+		return new SourceData(owner, source, snapshot, null, null, List.of(), List.of(),
+				List.of("Disassembly describes loaded DEX data; conversion and original-input provenance are unverified"),
+				DecompileResult.Status.COMPLETE, DecompileResult.Availability.UNAVAILABLE, DecompileResult.Availability.UNAVAILABLE);
+	}
 
 	public static SourceData extract(JadxDecompiler jadx, JavaClass declaringClass, SymbolRef requested,
 			boolean includeAnnotations, String sessionId, long revision, long publicationEpoch, String settingsFingerprint) {

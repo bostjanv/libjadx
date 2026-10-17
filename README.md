@@ -11,6 +11,10 @@ identifies the exact qualified source HEAD and source SHA-256; the
 commands, results and limits. PR #22 reports are immutable historical evidence.
 Publication remains a separate explicit action.
 
+The current source adds a Phase 7 [class-level loaded-DEX Smali slice](docs/phase-7-smali.md).
+That extension is not covered by PR #24's release qualification; its slice
+validation is separate and full clean-source qualification is required before publication.
+
 ## Inspiration
 
 LibJadx is inspired by [libghidra](https://github.com/0xeb/libghidra) and is modeled in spirit after its goal of making a reverse-engineering engine accessible through typed, scriptable APIs and client libraries. LibJadx applies that general product idea to Jadx.
@@ -23,6 +27,7 @@ LibJadx is an independent implementation. It does not copy or implement libghidr
 - Loopback-only REST/JSON with immediate liveness, load progress and readiness reporting.
 - Jadx-visible class enumeration and original class/method/field identities, separate from aliases.
 - Java decompilation, source snapshots, verified token metadata and method excerpts where available.
+- Class-level Smali for loaded DEX data, with representation-scoped snapshots and explicit non-DEX unavailability.
 - Basic references with explicit partial coverage, incremental search and complete-index jobs.
 - Process-local jobs with polling, cooperative cancellation and SSE progress.
 - Declaration renames/comments, strict Tiny v2 mapping import/export, snapshot-bound parameter renames and a conservative related-method propagation subset.
@@ -34,7 +39,7 @@ LibJadx is an independent implementation. It does not copy or implement libghidr
 
 The [public capability snapshot](openapi/examples/capabilities.json) is authoritative for formal statuses; see the [support summary](docs/README.md#compatibility-and-capabilities).
 
-References, method excerpts, member/source search, native save and related propagation are `PARTIAL` within their documented boundaries. Exact input provenance and original debug-line/bytecode mappings are unverified. Local-variable rename and the public Smali representation are `UNSUPPORTED`. CFG and resource query APIs are not implemented; they remain Phase 7 work.
+References, method excerpts, member/source search, native save, related propagation and Smali are `PARTIAL` within their documented boundaries. Smali is class-level loaded-DEX disassembly only: ordinary JVM class/JAR inputs return `UNAVAILABLE`, not mislabeled JVM/Raung text. Smali has no Java annotations, method ranges or original-offset mappings. Exact input provenance and original debug-line/bytecode mappings remain unverified. Local-variable rename is `UNSUPPORTED`. CFG and resource query APIs are not implemented; they remain Phase 7 work.
 
 Multiple clients are supported. Primary Jadx reads are serialized, and conflicting primary-read admission fails with `PROJECT_BUSY`; parallel primary reads are `UNSUPPORTED`. Cancellation is `PARTIAL` and cooperative: `CANCELLING` remains until work stops. Client deadlines and stream closure do not request cancellation or guarantee hard interruption of arbitrary Jadx work.
 
@@ -109,7 +114,13 @@ All routes use `/api/v1`. These families cover the **22 implemented operations**
 | Search and edits | `POST /search`, `POST /search/build-index`, `POST /edits/batch` |
 | Jobs | `GET /jobs/{jobId}`, `POST /jobs/{jobId}/cancel`, `GET /jobs/{jobId}/events` |
 
-Planned Phase 7 routes include `/project/export`, `/analysis/cfg` and `/resources/query`; a public Smali representation also requires a reviewed contract. These are outside the current operation inventory. Unknown paths return `NOT_FOUND`; recognized planned routes return `OPERATION_NOT_IMPLEMENTED` after readiness.
+`POST /decompile` also accepts `"representation":"SMALI"` with a CLASS ref.
+For strict text-only Smali, set `"includeAnnotations":false`; requested Smali
+metadata is unavailable. The Python equivalent is
+`project.decompile(ref, representation="SMALI", include_annotations=False, strict=True)`.
+Smali reflects loaded DEX instructions, not unsaved aliases/comments, and never enters Java source search.
+
+Planned Phase 7 routes include `/project/export`, `/analysis/cfg` and `/resources/query`. These are outside the current operation inventory. Unknown paths return `NOT_FOUND`; recognized planned routes return `OPERATION_NOT_IMPLEMENTED` after readiness.
 
 ## Persistence and editing
 
@@ -149,7 +160,7 @@ See the [release runbook](docs/phase-6-release-qualification.md) for cached tool
 
 ## Roadmap
 
-Phases 0–6 are complete for v0.1. Phase 7 covers deeper reference provenance and offsets, raw/transformed CFGs, Smali and richer representations, advanced annotations, resources/external classpaths, portable native export, optional isolated analysis workers and separately reviewed filesystem deletion. Each needs proof against the pinned Jadx release. One project per process, native persistence, explicit save and filesystem-only inputs remain architectural invariants.
+Phases 0–6 are complete for v0.1. Phase 7's class-level loaded-DEX Smali slice is implemented; broader representation support remains open. Phase 7 also covers deeper reference provenance and offsets, raw/transformed CFGs, advanced annotations, resources/external classpaths, portable native export, optional isolated analysis workers and separately reviewed filesystem deletion. Each needs proof against the pinned Jadx release. One project per process, native persistence, explicit save and filesystem-only inputs remain architectural invariants.
 
 See [Phase 7](IMPLEMENTATION.md#8-phase-7--extended-capabilities-post-initial-release--roadmap); the long-term roadmap is not complete.
 

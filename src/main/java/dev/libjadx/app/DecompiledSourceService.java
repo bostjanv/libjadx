@@ -39,7 +39,7 @@ public final class DecompiledSourceService {
 							throw new SourceModeChangedException();
 						DecompileResult result = execute(context.decompiler(), catalogs.primary(context), request, context.revisions().sessionId(),
 								context.revisions().logicalRevision(), context.publicationEpoch(), context.settings());
-						if (result.outcome() == SymbolResolution.Outcome.RESOLVED) {
+						if ("JAVA".equals(result.representation()) && result.outcome() == SymbolResolution.Outcome.RESOLVED) {
 							try {
 								var cls = JadxSymbolAdapter.visibleClass(context.decompiler(), request.ref().originalClassDescriptor(), 0);
 								if (cls != null) search.ingest(context, result, JadxSearchAdapter.members(cls));
@@ -77,25 +77,32 @@ public final class DecompiledSourceService {
 		});
 		DecompileResult.EffectiveSettings effective = new DecompileResult.EffectiveSettings(
 				settings.decompilationMode(), settings.fingerprint());
+		boolean smali = "SMALI".equals(request.representation());
 		if (resolved.outcome() != SymbolResolution.Outcome.RESOLVED) {
 			if (request.expectedSourceSnapshotId() != null) throw new StaleSourceException();
 			return new DecompileResult(resolved.outcome(), ref, null, resolved.candidates(), sessionId, revision,
-					null, effective, DecompileResult.Status.UNAVAILABLE, "JAVA", null, null, null, null,
-					List.of(), List.of(), null, null, resolved.diagnostics(), unavailableCapabilities());
+					null, effective, DecompileResult.Status.UNAVAILABLE, request.representation(), null, null, null, null,
+					List.of(), List.of(), null, null, resolved.diagnostics(), unavailableCapabilities(smali));
 		}
 		SymbolCatalog.Entry entry = catalog.matching(ref.originalClassDescriptor()).getFirst();
 		var cls = JadxSymbolAdapter.visibleClass(jadx, ref.originalClassDescriptor(), entry.occurrence());
 		if (cls == null) throw new IllegalStateException("Visible class vanished during leased source lookup");
-		JadxSourceAdapter.SourceData data = JadxSourceAdapter.extract(jadx, cls, ref, request.includeAnnotations(),
-				sessionId, revision, epoch, settings.fingerprint());
+		JadxSourceAdapter.SourceData data = smali
+				? JadxSourceAdapter.extractSmali(cls, sessionId, revision, epoch, settings.fingerprint())
+				: JadxSourceAdapter.extract(jadx, cls, ref, request.includeAnnotations(),
+						sessionId, revision, epoch, settings.fingerprint());
 		if (request.expectedSourceSnapshotId() != null
 				&& !request.expectedSourceSnapshotId().equals(data.sourceSnapshotId())) throw new StaleSourceException();
 		boolean method = ref.kind() == SymbolRef.Kind.METHOD;
 		List<String> diagnostics = new ArrayList<>(resolved.diagnostics());
 		diagnostics.addAll(data.diagnostics());
-		if (request.includeAnnotations()) diagnostics.add("Jadx does not certify complete declaration or reference coverage");
-		if (request.includeRawDebugLines()) diagnostics.add("Original debug-line mapping is unverified for pinned Jadx 1.5.6");
-		if (!request.includeAnnotations()) diagnostics.add("Source annotations were omitted by request");
+		if (smali) {
+			diagnostics.add("Smali annotations, variable metadata, method ranges and original mappings are unavailable");
+		} else {
+			if (request.includeAnnotations()) diagnostics.add("Jadx does not certify complete declaration or reference coverage");
+			if (request.includeRawDebugLines()) diagnostics.add("Original debug-line mapping is unverified for pinned Jadx 1.5.6");
+			if (!request.includeAnnotations()) diagnostics.add("Source annotations were omitted by request");
+		}
 		List<String> boundedDiagnostics = List.copyOf(diagnostics.subList(0, Math.min(16, diagnostics.size())));
 		if (request.strict() && (data.status() != DecompileResult.Status.COMPLETE
 				|| method && data.methodRange() == null || request.includeRawDebugLines()
@@ -108,25 +115,26 @@ public final class DecompiledSourceService {
 				data.declarationAvailability(), data.referenceAvailability(),
 				method && data.methodRange() != null ? DecompileResult.Availability.EXACT : DecompileResult.Availability.UNAVAILABLE,
 				DecompileResult.Availability.UNAVAILABLE, DecompileResult.Availability.UNAVAILABLE,
-				DecompileResult.Availability.UNKNOWN);
+				smali ? DecompileResult.Availability.UNAVAILABLE : DecompileResult.Availability.UNKNOWN);
 		return new DecompileResult(resolved.outcome(), ref, data.ownerRef(), resolved.candidates(), sessionId,
-				revision, data.sourceSnapshotId(), effective, data.status(), "JAVA", data.source(),
+				revision, data.sourceSnapshotId(), effective, data.status(), request.representation(), data.source(),
 				method ? data.methodRange() != null : null, data.methodRange(), data.methodSource(),
 				data.annotations(), data.variables(), null, null, boundedDiagnostics, capabilities);
 	}
 
-	private static DecompileResult.Capabilities unavailableCapabilities() {
+	private static DecompileResult.Capabilities unavailableCapabilities(boolean smali) {
 		return new DecompileResult.Capabilities(DecompileResult.Availability.UNAVAILABLE,
 				DecompileResult.Availability.UNAVAILABLE, DecompileResult.Availability.UNAVAILABLE,
 				DecompileResult.Availability.UNAVAILABLE, DecompileResult.Availability.UNAVAILABLE,
-				DecompileResult.Availability.UNAVAILABLE, DecompileResult.Availability.UNKNOWN);
+				DecompileResult.Availability.UNAVAILABLE,
+				smali ? DecompileResult.Availability.UNAVAILABLE : DecompileResult.Availability.UNKNOWN);
 	}
 
 	public static final class StaleSourceException extends RuntimeException { }
 	public static final class IncompleteAnalysisException extends RuntimeException {
 		private final List<String> diagnostics;
 		public IncompleteAnalysisException(List<String> diagnostics) {
-			super("Requested Java source or metadata coverage is unavailable");
+			super("Requested source or metadata coverage is unavailable");
 			this.diagnostics = diagnostics;
 		}
 		public List<String> diagnostics() { return diagnostics; }

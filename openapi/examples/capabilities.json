@@ -52,9 +52,9 @@
     },
     {
       "name": "code.smali",
-      "status": "UNSUPPORTED",
-      "evidence": "NO_PUBLIC_SMALI_REPRESENTATION",
-      "persistence": "UNAVAILABLE"
+      "status": "PARTIAL",
+      "evidence": "CLASS_ONLY_LOADED_DEX_BAKSMALI_NO_JAVA_METADATA",
+      "persistence": "READ_ONLY"
     },
     {
       "name": "references.method_uses",

@@ -49,7 +49,9 @@ paths:
       summary: Read server and pinned-Jadx capability evidence
       description: >-
         Status describes the public service behavior, not an internal Jadx probe.
-        code.smali is UNSUPPORTED because no public Smali representation exists.
+        code.smali is PARTIAL: class-level loaded-DEX disassembly only, without
+        Java metadata or verified original-input provenance. JVM/Raung output
+        is not exposed as Smali.
         analysis.concurrent_reads describes parallel primary Jadx reads: it is
         UNSUPPORTED because those reads are serialized and conflicting admission
         fails fast with PROJECT_BUSY. Multiple HTTP clients remain supported.
@@ -601,15 +603,26 @@ paths:
     post:
       tags: [Analysis]
       operationId: decompileJava
-      summary: Get Jadx Java for one original class or method identity
+      summary: Get Java for a class or method, or Smali for a loaded DEX class
       description: >-
-        A method request returns its containing class source. A method excerpt
+        Java is the default representation. A Java method request returns its containing class source. A method excerpt
         is present only when its original declaration and complete boundary
         are independently verified. Source offsets index UTF-16 code units in
         the exact returned Java string; ranges are half-open. Lines are 1-based
         and columns are 0-based Unicode code points. Source coordinates are not
         bytecode offsets or original debug-source line numbers. Strict mode
         returns INCOMPLETE_ANALYSIS when requested coverage is unavailable.
+        SMALI accepts CLASS refs only and returns exact single-class Baksmali
+        text from loaded DEX data without Java decompilation or inner-class
+        concatenation. Non-DEX/generated data and disassembly failures return
+        UNAVAILABLE, not JVM/Raung text or exception traces. Conversion and
+        original-input provenance remain unverified. Native renames/comments
+        do not rewrite DEX text. Annotations, variables, method ranges, debug
+        mappings and original offsets are unavailable; strict text-only Smali
+        requires includeAnnotations false. Decompilation mode retains existing
+        isolated-engine routing/provenance but does not transform DEX text.
+        Smali does not enter Java source search. Snapshot preconditions are
+        representation-scoped; the operation ID is retained for compatibility.
       requestBody:
         required: true
         content:
@@ -617,7 +630,7 @@ paths:
             schema: { $ref: '#/components/schemas/DecompileRequest' }
       responses:
         '200':
-          description: Original-symbol outcome and bounded Java source, if available.
+          description: Original-symbol outcome and bounded representation text, if available.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/DecompileResult' }
@@ -632,6 +645,8 @@ paths:
                   description: Schema example for multiple Jadx-visible definitions; the owned two-JAR fixture collapses to one.
                   externalValue: ./examples/decompile-ambiguous.json
                 unavailable: { externalValue: ./examples/decompile-unavailable.json }
+                smali: { externalValue: ./examples/decompile-smali.json }
+                smaliUnavailable: { externalValue: ./examples/decompile-smali-unavailable.json }
         '400': { $ref: '#/components/responses/ApiErrorResponse' }
         '409': { $ref: '#/components/responses/ApiErrorResponse' }
         '415': { $ref: '#/components/responses/ApiErrorResponse' }
@@ -1374,8 +1389,12 @@ components:
         expectedSourceSnapshotId: { type: string, pattern: '^sha256:[0-9a-f]{64}$' }
       description: >-
         Only CLASS and METHOD refs are accepted. Revision preconditions must
-        occur together. Only JAVA is currently supported; other representations
-        return 422 UNSUPPORTED_CAPABILITY. Requests are limited to 64 KiB.
+        occur together. JAVA is the default; SMALI requires a CLASS ref.
+        Unknown representations and SMALI METHOD requests return 422
+        UNSUPPORTED_CAPABILITY. SMALI is available only for loaded DEX class
+        data. includeAnnotations and includeRawDebugLines request unavailable
+        Smali metadata: non-strict responses disclose omission and strict
+        requests fail INCOMPLETE_ANALYSIS. Requests are limited to 64 KiB.
     SourcePoint:
       type: object
       additionalProperties: false
@@ -1473,8 +1492,8 @@ components:
         sourceSnapshotId: { type: [string, 'null'], pattern: '^sha256:[0-9a-f]{64}$' }
         effectiveSettings: { $ref: '#/components/schemas/EffectiveSourceSettings' }
         status: { type: string, enum: [COMPLETE, PARTIAL, UNAVAILABLE] }
-        representation: { const: JAVA }
-        source: { type: [string, 'null'], description: Exact Jadx getCodeStr text, capped at 4 MiB UTF-8. }
+        representation: { type: string, enum: [JAVA, SMALI] }
+        source: { type: [string, 'null'], description: Exact Jadx Java getCodeStr or single-class loaded-DEX Baksmali text, capped at 4 MiB UTF-8. Not a guarantee of original-input provenance. }
         methodRangeAvailable: { type: [boolean, 'null'] }
         methodRange:
           oneOf:

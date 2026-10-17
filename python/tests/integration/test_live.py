@@ -1,6 +1,8 @@
 import json
+from pathlib import Path
 from uuid import uuid4
 
+import httpx
 import pytest
 
 from libjadx import (
@@ -41,11 +43,67 @@ def test_generated_lowlevel_real_service(service):
         assert result.outcome == "RESOLVED" and result.symbol.ref == METHOD
         code = decompile_java.sync(client=client.lowlevel, body=m.DecompileRequest(REF))
         assert isinstance(code, m.DecompileResult) and "42" in code.source
-        # Stable unsupported 422 exercised through generated endpoint too.
-        error = decompile_java.sync_detailed(
+        unavailable = decompile_java.sync(
             client=client.lowlevel, body=m.DecompileRequest(REF, representation="SMALI")
         )
+        assert isinstance(unavailable, m.DecompileResult)
+        assert (
+            unavailable.representation == "SMALI"
+            and unavailable.status == "UNAVAILABLE"
+        )
+        assert unavailable.source is None
+        # Unknown representations still exercise the stable unsupported 422.
+        error = decompile_java.sync_detailed(
+            client=client.lowlevel,
+            body=m.DecompileRequest(REF, representation="UNKNOWN"),
+        )
         assert error.status_code == 422 and isinstance(error.parsed, m.ErrorEnvelope)
+
+
+async def test_smali_parity_on_raw_generated_and_handwritten_clients(service):
+    fixture = (
+        Path(__file__).resolve().parents[3] / "tests/fixtures/smali/Disassembly.smali"
+    )
+    ref = SymbolRef.class_("Lprobe/Disassembly;")
+    with service(input_path=fixture) as (url, root), Client(url) as sync:
+        before = sync.project.snapshot()
+        raw = httpx.post(
+            url + "/api/v1/decompile",
+            json={"ref": ref.to_dict(), "representation": "SMALI"},
+            trust_env=False,
+        )
+        assert raw.status_code == 200
+        expected = raw.json()
+        generated = decompile_java.sync(
+            client=sync.lowlevel, body=m.DecompileRequest(ref, representation="SMALI")
+        )
+        assert isinstance(generated, m.DecompileResult)
+        assert generated.to_dict() == expected
+        result = sync.project.decompile(ref, representation="SMALI")
+        assert result.raw.to_dict() == expected
+        assert result.representation == "SMALI" and result.status == "COMPLETE"
+        assert "const/16 v0, 0x2a" in result.source
+        assert not result.annotations and not result.variables
+        with pytest.raises(IncompleteAnalysisError):
+            sync.project.decompile(ref, representation="SMALI", strict=True)
+        assert (
+            sync.project.decompile(
+                ref, representation="SMALI", strict=True, include_annotations=False
+            ).source
+            == result.source
+        )
+        async with AsyncClient(url) as asynchronous:
+            generated_async = await decompile_java.asyncio(
+                client=asynchronous.lowlevel,
+                body=m.DecompileRequest(ref, representation="SMALI"),
+            )
+            assert generated_async.to_dict() == expected
+            assert (
+                await asynchronous.project.decompile(ref, representation="SMALI")
+            ).raw.to_dict() == expected
+        after = sync.project.snapshot()
+        assert after.revisions.logical_revision == before.revisions.logical_revision
+        assert not after.dirty and not list(root.glob("*.jadx"))
 
 
 def test_sync_workflow_save_restart(service):

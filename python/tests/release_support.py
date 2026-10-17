@@ -433,7 +433,6 @@ class Surface:
             and any(
                 k in body
                 for k in (
-                    "representation",
                     "expectedSourceSnapshotId",
                     "expectedSessionId",
                 )

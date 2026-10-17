@@ -23,6 +23,14 @@ async def test_real_input_analysis_save_restart(factory, kind):
             ] == "RESOLVED"
             code = await api.call("decompileJava", body={"ref": ref}, expected=200)
             assert code["source"] and code["sourceSnapshotId"]
+            smali = await api.call(
+                "decompileJava",
+                body={"ref": ref, "representation": "SMALI"},
+                expected=200,
+            )
+            assert smali["representation"] == "SMALI"
+            assert smali["status"] == ("COMPLETE" if kind == "dex" else "UNAVAILABLE")
+            assert bool(smali["source"]) == (kind == "dex")
             search = await api.call(
                 "search",
                 body={
@@ -61,6 +69,14 @@ async def test_real_input_analysis_save_restart(factory, kind):
             restored = await api.call("decompileJava", body={"ref": ref})
             assert restored["source"] == code["source"]
             assert restored["sessionId"] != snapshot["revisions"]["sessionId"]
+            restored_smali = await api.call(
+                "decompileJava",
+                body={"ref": ref, "representation": "SMALI"},
+                expected=200,
+            )
+            assert restored_smali["source"] == smali["source"]
+            if kind == "dex":
+                assert restored_smali["sourceSnapshotId"] != smali["sourceSnapshotId"]
             assert (
                 await api.call(
                     "search",

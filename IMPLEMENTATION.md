@@ -10,6 +10,9 @@ Publication remains a separate explicit action.
 **Status:** Phases 0–6 are complete for the defined v0.1 experimental scope. PR #24 freshly qualified the Apache-2.0 candidate locally; it is not published or tagged. Phase 7 is the active extended-capability roadmap. Completed-phase instructions below are historical acceptance criteria from the original 2026-09-24 plan; current support is governed by OpenAPI and the capability matrix.
 **Read first:** [AGENTS.md](AGENTS.md), then [DESIGN.md](DESIGN.md). If feasibility findings contradict a required feature, implement the documented capability/error path and escalate the smallest genuinely blocking design change; do not invent API support.
 
+Phase 7's [class-level loaded-DEX Smali slice](docs/phase-7-smali.md) is now
+implemented. Slice validation does not extend PR #24's source qualification.
+
 ## 0. Execution rules and definition of done
 
 Preserve the completed baseline and work in reviewable maintenance slices or approved Phase 7 milestones. Each new milestone requires executable feasibility tests and a review report before dependent work. Maintain `docs/compatibility.md`, `docs/feasibility-matrix.md` and decision records. Do not implement GUI plugin support, multi-project management, HTTP uploads, SQLite/other custom project stores, autosave or unapproved libghidra compatibility.
@@ -299,7 +302,7 @@ The v0.1 vertical slice has passed. The following are post-v0.1 roadmap items:
 
 1. **Instruction-level references:** verified original offsets and per-reference provenance; unresolved references remain first-class.
 2. **CFGs:** independently report raw/original and transformed graphs with availability, block/edge IDs, edge kinds and method/settings provenance. Test try/catch, loops, switch, obfuscation and failed decompilations. A DOT dump is not a sufficient runtime API by itself.
-3. **Richer representations:** Smali and versioned internal representations only where verified. Do not expose unversioned internal Jadx objects or misleading AST promises.
+3. **Richer representations:** class-level loaded-DEX Smali is implemented with PARTIAL capability and explicit non-DEX unavailability; see [scope and evidence](docs/phase-7-smali.md). JVM/Raung, method-level disassembly metadata and further versioned internal representations remain open. Do not expose unversioned internal Jadx objects or misleading AST promises.
 4. **Advanced annotations:** parameters/locals with snapshot-scoped identities, source-line and bytecode mapping precision, native persistability per operation.
 5. **Resources and dependencies:** manifest/components/permissions, decoded and raw XML/assets, resolved resource relationships, configurable external classpaths and explicit unresolved symbols.
 6. **Portable export:** ZIP with native `.jadx`, original inputs, native mappings and explicitly configured redistributable dependencies; rewrite supported relative links; report missing/non-redistributable entries. Test extraction/opening in actual matching jadx-gui. Export is an explicit artifact, never a new persistent workspace format.

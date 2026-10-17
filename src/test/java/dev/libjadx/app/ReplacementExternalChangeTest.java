@@ -51,7 +51,7 @@ class ReplacementExternalChangeTest {
 				var catalogs = new SymbolCatalogProvider(SymbolCatalog.newCursorKey());
 				var search = new SearchService(runtime, catalogs, SymbolCatalog.newCursorKey());
 				var sources = new DecompiledSourceService(runtime, catalogs, search);
-				var sourceRequest = new DecompileRequest(OWNER, null, true, false, false, null, null, null);
+				var sourceRequest = new DecompileRequest(OWNER, "JAVA", null, true, false, false, null, null, null);
 				var source = sources.decompile(sourceRequest);
 				Page page = (Page) search.query(query(null));
 				assertNotNull(page.nextCursor());

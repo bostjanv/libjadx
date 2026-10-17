@@ -94,7 +94,9 @@ edits and Python sync/async clients are implemented. The
 records fresh v0.1 qualification; the [feasibility matrix](feasibility-matrix.md)
 distinguishes public capabilities from internal Jadx probes.
 
-Local rename and public Smali are UNSUPPORTED. References and related propagation
+Local rename is UNSUPPORTED. Phase 7 adds PARTIAL [class-level loaded-DEX
+Smali](phase-7-smali.md), outside PR #24 qualification. Ordinary JVM class/JAR
+data is UNAVAILABLE, not relabeled Raung. References and related propagation
 are PARTIAL. Primary Jadx reads remain serialized/fail-fast PROJECT_BUSY;
 multiple clients are supported. Cancellation is PARTIAL/cooperative and remains
 CANCELLING until work stops, with no hard arbitrary-Jadx interruption guarantee.

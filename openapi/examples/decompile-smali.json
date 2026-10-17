@@ -1,0 +1,22 @@
+{
+  "outcome": "RESOLVED",
+  "queriedRef": {"kind":"CLASS","originalClassDescriptor":"Lprobe/Disassembly;","inputIdentity":null,"originalName":null,"originalDescriptor":null},
+  "sourceOwnerRef": {"kind":"CLASS","originalClassDescriptor":"Lprobe/Disassembly;","inputIdentity":null,"originalName":null,"originalDescriptor":null},
+  "candidates": [],
+  "sessionId": "00000000-0000-4000-8000-000000000000",
+  "logicalRevision": 0,
+  "sourceSnapshotId": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "effectiveSettings": {"decompilationMode":"AUTO","fingerprint":"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},
+  "status": "COMPLETE",
+  "representation": "SMALI",
+  "source": ".class public Lprobe/Disassembly;\n.super Ljava/lang/Object;\n\n.method public static answer()I\n    .registers 1\n    const/16 v0, 0x2a\n    return v0\n.end method\n",
+  "methodRangeAvailable": null,
+  "methodRange": null,
+  "methodSource": null,
+  "annotations": [],
+  "variables": [],
+  "rawDebugLines": null,
+  "classErrorCount": null,
+  "diagnostics": ["Disassembly describes loaded DEX data; conversion and original-input provenance are unverified", "Smali annotations, variable metadata, method ranges and original mappings are unavailable"],
+  "capabilities": {"source":"EXACT","declarationPositions":"UNAVAILABLE","referenceTargets":"UNAVAILABLE","methodRange":"UNAVAILABLE","rawDebugLines":"UNAVAILABLE","originalBytecodeOffsets":"UNAVAILABLE","classErrors":"UNAVAILABLE"}
+}

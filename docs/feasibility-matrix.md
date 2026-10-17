@@ -8,15 +8,17 @@ exact qualified source HEAD; the candidate is not published or tagged. [Public c
 and [OpenAPI](../openapi/openapi.yaml) govern service support; internal feasibility
 and historical investigations are explicitly separated below. See [docs index](README.md).
 
-Internal `JavaClass.getSmali()` retrieval was observed in pinned Jadx, but
-`code.smali = UNSUPPORTED` (`NO_PUBLIC_SMALI_REPRESENTATION`) in LibJadx v0.1.
-Phase 7 may investigate a public representation contract.
+Phase 7 adds `code.smali = PARTIAL` for [class-level loaded-DEX
+disassembly](phase-7-smali.md). Ordinary JVM class/JAR data is UNAVAILABLE:
+`JavaClass.getSmali()` returns Raung for that input, not Smali. The current
+extension is outside PR #24's recorded source qualification.
 
 Evidence is tied to Jadx `1.5.6` source commit `28ff15e4ae69950aebea110a13e5ab895d234dfc` (annotated tag object `4c0ac37699aa8c9803f1c73cfaacd9205acb044b`). Capabilities are reported at the precision actually exercised; UNKNOWN entries include bounded follow-up probes.
 
 | Capability | Status | Evidence / next probe |
 |---|---|---|
-| Pinned Jadx Java loading/decompilation and internal Smali feasibility | SUPPORTED for a small JAR | `JadxSmokeProbeTest` loads a generated JAR, resolves an aliased class, reads Java, non-empty code metadata and `JavaClass.getSmali()`. This does not establish behavior for every input type. |
+| Pinned Jadx Java loading/decompilation and public-facade disassembly feasibility | SUPPORTED for a small JAR | `JadxSmokeProbeTest` loads a generated JAR, resolves an aliased class, reads Java, non-empty code metadata and `JavaClass.getSmali()`. That JAR disassembly is Raung, not Smali; a `.class` directive alone does not prove the format. |
+| Public class-level Smali | PARTIAL, loaded DEX only | `JadxSmaliProbeTest` proves DEX/Baksmali versus JVM/Raung and availability despite real Java failure. `DecompileEndpointsTest` covers separate inner ownership/snapshots, native alias independence, strict metadata failures, sanitized disassembly faults, serialized admission and no Java search ingestion. Python live/release tests cover all five surfaces and save/restart. No original-input offset/provenance or metadata guarantee. See [pinned source and slice validation](phase-7-smali.md). |
 | Basic method, field and class references | PARTIAL | `JadxReferenceProbeTest` verifies distinct incoming/outgoing method pairs, field user methods, class dependencies and missing external method descriptors. `ReferenceEndpointsTest` verifies source sites and real graph-content changes at unchanged revision. READ/WRITE, original offsets, exhaustive coverage and multidex provenance remain unverified. |
 | Headless native `.jadx` parsing and relative input paths | SUPPORTED for the pinned simple project | `NativeProjectModelProbeTest` calls `JadxProject.loadProjectData(Path)` under headless test execution and checks project-relative input resolution. The service codec does not invoke GUI windows. |
 | Multiple input and native mapping references | SUPPORTED for two JAR inputs and a Tiny v2 class mapping | The native fixture references two relative JARs and `sample.tiny`. `NativeGuiFixtureRoundTripProbeTest` resolves both inputs, passes the mapping path through `JadxArgs.setUserRenamesMappingsPath`, and verifies the mapped class alias. The matching GUI log reported two classes loaded. |

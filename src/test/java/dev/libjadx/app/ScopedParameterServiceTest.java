@@ -35,7 +35,7 @@ class ScopedParameterServiceTest {
 	static DecompileResult source(ProjectRuntime runtime, String mode, SymbolRef owner) throws Exception {
 		var catalogs = new SymbolCatalogProvider(new byte[32]);
 		return new DecompiledSourceService(runtime, catalogs, new SearchService(runtime, catalogs, new byte[32]))
-				.decompile(new DecompileRequest(owner, mode, true, false, false, null, null, null));
+				.decompile(new DecompileRequest(owner, "JAVA", mode, true, false, false, null, null, null));
 	}
 	static EditDtos.Operation rename(DecompileResult source, SymbolRef method, int index, String name) {
 		return new EditDtos.Operation(EditDtos.Kind.RENAME_PARAMETER, method, name, null, null, index, source.sourceSnapshotId());

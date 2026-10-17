@@ -11,6 +11,9 @@ Publication remains a separate explicit action.
 **Original design prepared:** 2026-09-24.
 **Current implementation pin:** Jadx 1.5.6 / source `28ff15e4ae69950aebea110a13e5ab895d234dfc`, JDK 21. [OpenAPI](openapi/openapi.yaml) is authoritative for the implemented HTTP contract; illustrative models and Phase 7 goals below are not additional public guarantees.
 
+The current source additionally implements the Phase 7 [class-level loaded-DEX
+Smali slice](docs/phase-7-smali.md), outside PR #24's recorded qualification.
+
 [Agent rules](AGENTS.md) · [Detailed implementation instructions](IMPLEMENTATION.md)
 
 ## 1. Purpose, boundaries and success criteria
@@ -31,7 +34,7 @@ The qualified v0.1 baseline enables a Python or REST client to start a fixed-pro
 | Persistence | **Only native Jadx project, mapping and supported cache formats**. No separate project DB, job journal, custom persistent search indexes or proprietary additions to `.jadx`. Edits are saved **explicitly**. |
 | Close and shutdown | No HTTP project-switch operation. Normal close/disposal discards unsaved edits by default. Shutdown policy: `discard` (default), `save`, `refuse_if_dirty`. Reject incompatible lifecycle changes while work is active. |
 | Search | Incremental in-memory class/member/emitted-Java indexing; partial coverage reported; complete-index async option; only reuse caches already understood by the pinned Jadx release. |
-| Analysis | Java class source, verified method excerpts/token metadata and partial basic references. No public Smali, CFG or resource query API. Deeper analysis/classpath work is Phase 7. |
+| Analysis | Java class source, verified method excerpts/token metadata and partial basic references. Phase 7 adds class-level loaded-DEX Smali; CFG/resource query APIs and deeper analysis/classpath work remain planned. |
 | Editing | Native declaration renames/LINE comments, strict Tiny v2 import/export, a snapshot-bound parameter subset and PARTIAL related propagation. Local rename is UNSUPPORTED; validated batches expose unexpected partial application rather than unproved rollback. |
 | Versioning | Experimental external API before 1.0. Generated typed transport and handwritten sync/async Python access are implemented and locally qualified. |
 | Delivery | Standalone Java archive and launch scripts; no official Docker requirement for the initial release. |
@@ -163,7 +166,8 @@ All routes have prefix `/api/v1`. There are **no HTTP uploads or dynamic project
 | Scope | Route families / representations |
 | --- | --- |
 | Implemented v0.1 | Liveness/status/capabilities/shutdown; native project/settings/save/reload/pending edits; Tiny v2 import/export; classes/symbol resolution; Java decompile/basic references; search/build-index; edit batches; job polling/cancellation/SSE |
-| Planned Phase 7 | Portable `/project/export`, `/analysis/cfg`, `/resources/query`, public Smali and richer representations. No current schema or support guarantee is implied. |
+| Phase 7 implemented subset | Class-level loaded-DEX Smali through `/decompile`; no Java metadata, method excerpts or original-offset guarantee. |
+| Planned Phase 7 | Portable `/project/export`, `/analysis/cfg`, `/resources/query` and richer representations. No current schema or support guarantee is implied. |
 
 Class/member lookup uses structured original descriptors. Contract changes must update server, OpenAPI, generated SDK, fixtures and release matrices in one change. Recognized planned operations return `OPERATION_NOT_IMPLEMENTED` after readiness and are outside the current OpenAPI inventory.
 
@@ -214,7 +218,16 @@ SSE events include `job.queued`, `job.started`, `job.progress`, `job.completed`,
 
 ### 6.1 Current Java source and Phase 7 representations
 
-Support class- and method-oriented requests. Since Jadx generally generates Java at class scope, method-level Java excerpts must be extracted with verified declaration/source mapping, not regenerated as if methods were independent. Return class source metadata and method range, and report absence when Jadx inlining obscures a precise method span. The public Smali representation is UNSUPPORTED in v0.1 despite successful internal retrieval probes. A separately requested Smali representation and additional versioned IR are Phase 7 goals requiring their own reviewed contracts.
+Support class- and method-oriented Java requests. Since Jadx generally generates Java at class scope, method-level Java excerpts must be extracted with verified declaration/source mapping, not regenerated as if methods were independent. Return class source metadata and method range, and report absence when Jadx inlining obscures a precise method span.
+
+The Phase 7 Smali slice accepts CLASS refs backed by loaded DEX data. It returns
+one class's exact Baksmali text, without Java decompilation, nested-class
+concatenation or alias/comment rewriting. Non-DEX/generated data and failed
+disassembly report UNAVAILABLE; JVM/Raung text is never labeled Smali.
+Metadata/original-offset capabilities are unavailable. Snapshots include the
+representation, and Smali never enters emitted-Java search. Conversion and
+original-input provenance are unverified. See [the contract and pinned-source
+decision](docs/phase-7-smali.md). Further versioned IR remains roadmap work.
 
 ### 6.2 Cross-references and graph analysis
 

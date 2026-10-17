@@ -1,5 +1,24 @@
 # Experimental API changelog
 
+## 2026-10-17 — Phase 7 class-level loaded-DEX Smali
+
+- `/decompile` accepts `representation: SMALI` for CLASS refs; the operation
+  inventory and legacy `decompileJava` operation ID are unchanged. Java remains
+  the default. Loaded DEX returns one class's exact Baksmali text; ordinary JVM
+  class/JAR data and failed disassembly return UNAVAILABLE. No silent conversion,
+  JVM/Raung relabeling, Java decompilation or inner-class concatenation.
+- `code.smali` changes UNSUPPORTED → PARTIAL with read-only persistence status.
+  Snapshots are representation-scoped; no Java metadata/original offsets,
+  alias/comment rewriting, Java search ingestion or persistence changes.
+- Generated typed transport and handwritten sync/async `decompile` accept the
+  representation. The generated result's Java-only literal becomes the string
+  enum `DecompileResultRepresentation` (`JAVA`, `SMALI`); regenerate downstream
+  clients together with this experimental contract update.
+- [Pinned-source probes, validation and limitations](phase-7-smali.md) distinguish
+  slice verification from release qualification. PR #24 evidence is preserved;
+  artifacts containing this extension need full clean-source requalification
+  before publication. No commit/tag/publication is implied by local validation.
+
 ## PR #24 review fix — Current alpha qualification status (2026-10-05)
 
 Addressed review #5418946904: current docs now identify PR #24 qualification

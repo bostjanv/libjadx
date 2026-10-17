@@ -1,18 +1,13 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Literal,
-    TypeVar,
-    cast,
-)
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 from uuid import UUID
 
 from attrs import define as _attrs_define
 
 from ..models.decompile_result_outcome import DecompileResultOutcome
+from ..models.decompile_result_representation import DecompileResultRepresentation
 from ..models.decompile_result_status import DecompileResultStatus
 
 if TYPE_CHECKING:
@@ -45,8 +40,8 @@ class DecompileResult:
         source_snapshot_id (None | str):
         effective_settings (EffectiveSourceSettings):
         status (DecompileResultStatus):
-        representation (Literal['JAVA']):
-        source (None | str): Exact Jadx getCodeStr text
+        representation (DecompileResultRepresentation):
+        source (None | str): Exact Jadx Java getCodeStr or single-class loaded-DEX Baksmali text
         method_range_available (bool | None):
         method_range (None | SourceRange):
         method_source (None | str):
@@ -67,7 +62,7 @@ class DecompileResult:
     source_snapshot_id: None | str
     effective_settings: EffectiveSourceSettings
     status: DecompileResultStatus
-    representation: Literal["JAVA"]
+    representation: DecompileResultRepresentation
     source: None | str
     method_range_available: bool | None
     method_range: None | SourceRange
@@ -109,7 +104,7 @@ class DecompileResult:
 
         status = self.status.value
 
-        representation = self.representation
+        representation = self.representation.value
 
         source: None | str
         source = self.source
@@ -229,11 +224,7 @@ class DecompileResult:
 
         status = DecompileResultStatus(d.pop("status"))
 
-        representation = cast(Literal["JAVA"], d.pop("representation"))
-        if representation != "JAVA":
-            raise ValueError(
-                f"representation must match const 'JAVA', got '{representation}'"
-            )
+        representation = DecompileResultRepresentation(d.pop("representation"))
 
         def _parse_source(data: object) -> None | str:
             if data is None:

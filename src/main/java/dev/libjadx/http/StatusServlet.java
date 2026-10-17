@@ -107,7 +107,7 @@ public final class StatusServlet extends HttpServlet {
 					new Capability("code.method_excerpt", "PARTIAL", "DECLARATION_LEXER_AND_END_MARKER_VERIFIED", "READ_ONLY"),
 					new Capability("code.original_debug_lines", "UNKNOWN", "ORIGIN_NOT_VERIFIED", "UNAVAILABLE"),
 					new Capability("code.original_bytecode_offsets", "UNKNOWN", "ORIGIN_NOT_VERIFIED", "UNAVAILABLE"),
-					new Capability("code.smali", "UNSUPPORTED", "NO_PUBLIC_SMALI_REPRESENTATION", "UNAVAILABLE"),
+					new Capability("code.smali", "PARTIAL", "CLASS_ONLY_LOADED_DEX_BAKSMALI_NO_JAVA_METADATA", "READ_ONLY"),
 					new Capability("references.method_uses", "PARTIAL", "METHOD_FIELD_CLASS_AND_UNRESOLVED_JAR_PROBED", "READ_ONLY"),
 					new Capability("search.class_names", "SUPPORTED", "JADX_VISIBLE_CATALOG", "MEMORY_ONLY"),
 					new Capability("search.member_names", "PARTIAL", "PINNED_ORIGINAL_MEMBER_SIGNATURES", "MEMORY_ONLY"),
@@ -717,8 +717,9 @@ public final class StatusServlet extends HttpServlet {
 			SymbolRef ref = parseSymbolRef(body.get("ref"));
 			if (ref.kind() == SymbolRef.Kind.FIELD) throw new IllegalArgumentException("Decompile ref must be CLASS or METHOD");
 			String representation = textOption(body, "representation", "JAVA");
-			if (!"JAVA".equals(representation)) {
-				writeError(response, 422, "UNSUPPORTED_CAPABILITY", "Only JAVA source is supported by this endpoint");
+			if (!Set.of("JAVA", "SMALI").contains(representation)
+					|| "SMALI".equals(representation) && ref.kind() != SymbolRef.Kind.CLASS) {
+				writeError(response, 422, "UNSUPPORTED_CAPABILITY", "Supported representations are JAVA for CLASS/METHOD and SMALI for CLASS");
 				return;
 			}
 			String mode = textOption(body, "decompilationMode", null);
@@ -746,7 +747,7 @@ public final class StatusServlet extends HttpServlet {
 			String expectedSnapshot = textOption(body, "expectedSourceSnapshotId", null);
 			if (expectedSnapshot != null && !expectedSnapshot.matches("sha256:[0-9a-f]{64}"))
 				throw new IllegalArgumentException("Invalid expectedSourceSnapshotId");
-			write(response, 200, sourceService.decompile(new DecompileRequest(ref, mode, includeAnnotations,
+			write(response, 200, sourceService.decompile(new DecompileRequest(ref, representation, mode, includeAnnotations,
 					includeDebug, strict, expectedSession, expectedRevision, expectedSnapshot)));
 		} catch (DecompiledSourceService.StaleSourceException stale) {
 			writeError(response, 409, "STALE_REVISION", "Source precondition belongs to a previous class snapshot");
@@ -766,7 +767,7 @@ public final class StatusServlet extends HttpServlet {
 			writeError(response, 400, "INVALID_REQUEST", invalid.getMessage());
 		} catch (Exception failure) {
 			failure.printStackTrace(System.err);
-			writeError(response, 500, "INTERNAL_ERROR", "Java decompilation failed; inspect the local service log");
+			writeError(response, 500, "INTERNAL_ERROR", "Code retrieval failed; inspect the local service log");
 		}
 	}
 

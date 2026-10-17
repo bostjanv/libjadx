@@ -18,6 +18,7 @@ from .decompile_request import DecompileRequest
 from .decompile_request_decompilation_mode import DecompileRequestDecompilationMode
 from .decompile_result import DecompileResult
 from .decompile_result_outcome import DecompileResultOutcome
+from .decompile_result_representation import DecompileResultRepresentation
 from .decompile_result_status import DecompileResultStatus
 from .edit_batch_request import EditBatchRequest
 from .edit_batch_result import EditBatchResult
@@ -152,6 +153,7 @@ __all__ = (
     "DecompileRequestDecompilationMode",
     "DecompileResult",
     "DecompileResultOutcome",
+    "DecompileResultRepresentation",
     "DecompileResultStatus",
     "EditBatchRequest",
     "EditBatchResult",
