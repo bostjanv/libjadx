@@ -1,5 +1,16 @@
 # Experimental API changelog
 
+## 2026-10-17 — Java completeness maintenance
+
+- Java `/decompile` preserves source but reports PARTIAL for verified Jadx
+  failures after code-generation unload, including the source owner's raw
+  methods and inner/inlined classes. Strict mode returns 409 INCOMPLETE_ANALYSIS.
+  Failure detection uses pinned Jadx's retained node identities, not generated
+  Java text or the process-wide error count. Unrelated healthy code stays COMPLETE.
+- Error counts remain null/UNKNOWN; no endpoint, schema shape or persistence
+  changes. Generated transport documentation is regenerated from OpenAPI.
+- [Pinned-source diagnosis, regression and validation](java-completeness.md).
+
 ## 2026-10-17 — Phase 7 class-level loaded-DEX Smali
 
 - `/decompile` accepts `representation: SMALI` for CLASS refs; the operation

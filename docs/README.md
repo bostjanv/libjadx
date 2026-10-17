@@ -23,6 +23,8 @@ slice validation is separate from that recorded release qualification.
 - [Completed acceptance criteria and active Phase 7 roadmap](../IMPLEMENTATION.md).
 - [Domain vocabulary](../CONTEXT.md).
 - [Python SDK architecture](phase-6-python-sdk.md): current generator/handwritten boundaries, with PR #21 validation history distinguished from current PR #24 qualification.
+- [Java completeness maintenance](java-completeness.md): retained Jadx failures,
+  PARTIAL/strict reporting, healthy controls and cross-client regression evidence.
 
 ## Compatibility and capabilities
 
@@ -79,6 +81,10 @@ and [analysis goals](../DESIGN.md#6-analysis-capabilities): deeper references an
 original offsets, independently verified CFGs, Smali/richer representations,
 advanced annotations, resources/external classpaths, portable native export,
 optional isolated workers and separately reviewed filesystem deletion.
+
+The [DEX instruction-reference feasibility gate](phase-7-instruction-references.md)
+starts the next substantive slice after Java completeness maintenance. Its
+loaded-DEX offset/provenance probes do not yet add a public reference capability.
 
 ## Historical milestone evidence
 

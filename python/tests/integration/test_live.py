@@ -106,6 +106,111 @@ async def test_smali_parity_on_raw_generated_and_handwritten_clients(service):
         assert not after.dirty and not list(root.glob("*.jadx"))
 
 
+@pytest.mark.parametrize(
+    "failed,mode",
+    [(True, mode) for mode in ("AUTO", "RESTRUCTURE", "SIMPLE")]
+    + [(False, mode) for mode in ("AUTO", "RESTRUCTURE", "SIMPLE", "FALLBACK")],
+)
+async def test_java_completeness_and_strict_parity(service, mode, failed):
+    fixture = (
+        Path(__file__).resolve().parents[3] / "tests/fixtures/smali/Disassembly.smali"
+    )
+    ref = SymbolRef.class_("Lprobe/Disassembly;") if failed else REF
+    with (
+        service(input_path=fixture if failed else None) as (url, root),
+        Client(url) as sync,
+    ):
+        request = m.DecompileRequest(
+            ref,
+            include_annotations=False,
+            decompilation_mode=m.DecompileRequestDecompilationMode(mode),
+        )
+        raw = httpx.post(
+            url + "/api/v1/decompile",
+            json={
+                "ref": ref.to_dict(),
+                "includeAnnotations": False,
+                "decompilationMode": mode,
+            },
+            trust_env=False,
+        )
+        assert raw.status_code == 200
+        expected = raw.json()
+        generated = decompile_java.sync(client=sync.lowlevel, body=request)
+        assert isinstance(generated, m.DecompileResult)
+        assert generated.to_dict() == expected
+        result = sync.project.decompile(
+            ref, include_annotations=False, decompilation_mode=mode
+        )
+        assert result.raw.to_dict() == expected
+        assert result.status == ("PARTIAL" if failed else "COMPLETE"), expected
+        assert "42" in result.source and result.source_snapshot_id
+        assert generated.class_error_count is None
+        assert generated.capabilities.class_errors == "UNKNOWN"
+
+        request.strict = True
+        strict_raw = httpx.post(
+            url + "/api/v1/decompile", json=request.to_dict(), trust_env=False
+        )
+        strict_generated = decompile_java.sync_detailed(
+            client=sync.lowlevel, body=request
+        )
+        assert strict_generated.status_code == strict_raw.status_code
+        if failed:
+            assert strict_raw.status_code == 409
+            assert strict_raw.json()["error"]["code"] == "INCOMPLETE_ANALYSIS"
+            assert strict_generated.parsed.error.code == "INCOMPLETE_ANALYSIS"
+            with pytest.raises(IncompleteAnalysisError) as caught:
+                sync.project.decompile(
+                    ref, include_annotations=False, decompilation_mode=mode, strict=True
+                )
+            assert caught.value.http_status == 409
+        else:
+            assert strict_raw.status_code == 200
+            assert strict_generated.parsed.to_dict() == expected
+            assert (
+                sync.project.decompile(
+                    ref, include_annotations=False, decompilation_mode=mode, strict=True
+                ).raw.to_dict()
+                == expected
+            )
+
+        async with AsyncClient(url) as asynchronous:
+            request.strict = False
+            assert (
+                await decompile_java.asyncio(client=asynchronous.lowlevel, body=request)
+            ).to_dict() == expected
+            assert (
+                await asynchronous.project.decompile(
+                    ref, include_annotations=False, decompilation_mode=mode
+                )
+            ).raw.to_dict() == expected
+            request.strict = True
+            strict_async = await decompile_java.asyncio_detailed(
+                client=asynchronous.lowlevel, body=request
+            )
+            assert strict_async.status_code == strict_raw.status_code
+            if failed:
+                assert strict_async.parsed.error.code == "INCOMPLETE_ANALYSIS"
+                with pytest.raises(IncompleteAnalysisError):
+                    await asynchronous.project.decompile(
+                        ref,
+                        include_annotations=False,
+                        decompilation_mode=mode,
+                        strict=True,
+                    )
+            else:
+                assert (
+                    await asynchronous.project.decompile(
+                        ref,
+                        include_annotations=False,
+                        decompilation_mode=mode,
+                        strict=True,
+                    )
+                ).raw.to_dict() == expected
+        assert not sync.project.snapshot().dirty and not list(root.glob("*.jadx"))
+
+
 def test_sync_workflow_save_restart(service):
     with service() as (url, root), Client(url) as client:
         client.wait_ready()

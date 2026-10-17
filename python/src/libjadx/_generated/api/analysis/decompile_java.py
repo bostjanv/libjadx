@@ -102,15 +102,18 @@ def sync_detailed(
     verified. Source offsets index UTF-16 code units in the exact returned Java string; ranges are half-
     open. Lines are 1-based and columns are 0-based Unicode code points. Source coordinates are not
     bytecode offsets or original debug-source line numbers. Strict mode returns INCOMPLETE_ANALYSIS when
-    requested coverage is unavailable. SMALI accepts CLASS refs only and returns exact single-class
-    Baksmali text from loaded DEX data without Java decompilation or inner-class concatenation. Non-
-    DEX/generated data and disassembly failures return UNAVAILABLE, not JVM/Raung text or exception
-    traces. Conversion and original-input provenance remain unverified. Native renames/comments do not
-    rewrite DEX text. Annotations, variables, method ranges, debug mappings and original offsets are
-    unavailable; strict text-only Smali requires includeAnnotations false. Decompilation mode retains
-    existing isolated-engine routing/provenance but does not transform DEX text. Smali does not enter
-    Java source search. Snapshot preconditions are representation-scoped; the operation ID is retained
-    for compatibility.
+    requested coverage is unavailable. Verified Jadx failures in the Java source owner's class/method
+    tree, including retained failure nodes after code-generation unload, report PARTIAL while preserving
+    useful Java. Strict requests reject these results with 409 INCOMPLETE_ANALYSIS. Class-local error
+    counts remain unavailable; COMPLETE is not proof of semantic correctness. SMALI accepts CLASS refs
+    only and returns exact single-class Baksmali text from loaded DEX data without Java decompilation or
+    inner-class concatenation. Non-DEX/generated data and disassembly failures return UNAVAILABLE, not
+    JVM/Raung text or exception traces. Conversion and original-input provenance remain unverified.
+    Native renames/comments do not rewrite DEX text. Annotations, variables, method ranges, debug
+    mappings and original offsets are unavailable; strict text-only Smali requires includeAnnotations
+    false. Decompilation mode retains existing isolated-engine routing/provenance but does not transform
+    DEX text. Smali does not enter Java source search. Snapshot preconditions are representation-scoped;
+    the operation ID is retained for compatibility.
 
     Args:
         body (DecompileRequest): Only CLASS and METHOD refs are accepted. Revision preconditions
@@ -151,15 +154,18 @@ def sync(
     verified. Source offsets index UTF-16 code units in the exact returned Java string; ranges are half-
     open. Lines are 1-based and columns are 0-based Unicode code points. Source coordinates are not
     bytecode offsets or original debug-source line numbers. Strict mode returns INCOMPLETE_ANALYSIS when
-    requested coverage is unavailable. SMALI accepts CLASS refs only and returns exact single-class
-    Baksmali text from loaded DEX data without Java decompilation or inner-class concatenation. Non-
-    DEX/generated data and disassembly failures return UNAVAILABLE, not JVM/Raung text or exception
-    traces. Conversion and original-input provenance remain unverified. Native renames/comments do not
-    rewrite DEX text. Annotations, variables, method ranges, debug mappings and original offsets are
-    unavailable; strict text-only Smali requires includeAnnotations false. Decompilation mode retains
-    existing isolated-engine routing/provenance but does not transform DEX text. Smali does not enter
-    Java source search. Snapshot preconditions are representation-scoped; the operation ID is retained
-    for compatibility.
+    requested coverage is unavailable. Verified Jadx failures in the Java source owner's class/method
+    tree, including retained failure nodes after code-generation unload, report PARTIAL while preserving
+    useful Java. Strict requests reject these results with 409 INCOMPLETE_ANALYSIS. Class-local error
+    counts remain unavailable; COMPLETE is not proof of semantic correctness. SMALI accepts CLASS refs
+    only and returns exact single-class Baksmali text from loaded DEX data without Java decompilation or
+    inner-class concatenation. Non-DEX/generated data and disassembly failures return UNAVAILABLE, not
+    JVM/Raung text or exception traces. Conversion and original-input provenance remain unverified.
+    Native renames/comments do not rewrite DEX text. Annotations, variables, method ranges, debug
+    mappings and original offsets are unavailable; strict text-only Smali requires includeAnnotations
+    false. Decompilation mode retains existing isolated-engine routing/provenance but does not transform
+    DEX text. Smali does not enter Java source search. Snapshot preconditions are representation-scoped;
+    the operation ID is retained for compatibility.
 
     Args:
         body (DecompileRequest): Only CLASS and METHOD refs are accepted. Revision preconditions
@@ -195,15 +201,18 @@ async def asyncio_detailed(
     verified. Source offsets index UTF-16 code units in the exact returned Java string; ranges are half-
     open. Lines are 1-based and columns are 0-based Unicode code points. Source coordinates are not
     bytecode offsets or original debug-source line numbers. Strict mode returns INCOMPLETE_ANALYSIS when
-    requested coverage is unavailable. SMALI accepts CLASS refs only and returns exact single-class
-    Baksmali text from loaded DEX data without Java decompilation or inner-class concatenation. Non-
-    DEX/generated data and disassembly failures return UNAVAILABLE, not JVM/Raung text or exception
-    traces. Conversion and original-input provenance remain unverified. Native renames/comments do not
-    rewrite DEX text. Annotations, variables, method ranges, debug mappings and original offsets are
-    unavailable; strict text-only Smali requires includeAnnotations false. Decompilation mode retains
-    existing isolated-engine routing/provenance but does not transform DEX text. Smali does not enter
-    Java source search. Snapshot preconditions are representation-scoped; the operation ID is retained
-    for compatibility.
+    requested coverage is unavailable. Verified Jadx failures in the Java source owner's class/method
+    tree, including retained failure nodes after code-generation unload, report PARTIAL while preserving
+    useful Java. Strict requests reject these results with 409 INCOMPLETE_ANALYSIS. Class-local error
+    counts remain unavailable; COMPLETE is not proof of semantic correctness. SMALI accepts CLASS refs
+    only and returns exact single-class Baksmali text from loaded DEX data without Java decompilation or
+    inner-class concatenation. Non-DEX/generated data and disassembly failures return UNAVAILABLE, not
+    JVM/Raung text or exception traces. Conversion and original-input provenance remain unverified.
+    Native renames/comments do not rewrite DEX text. Annotations, variables, method ranges, debug
+    mappings and original offsets are unavailable; strict text-only Smali requires includeAnnotations
+    false. Decompilation mode retains existing isolated-engine routing/provenance but does not transform
+    DEX text. Smali does not enter Java source search. Snapshot preconditions are representation-scoped;
+    the operation ID is retained for compatibility.
 
     Args:
         body (DecompileRequest): Only CLASS and METHOD refs are accepted. Revision preconditions
@@ -242,15 +251,18 @@ async def asyncio(
     verified. Source offsets index UTF-16 code units in the exact returned Java string; ranges are half-
     open. Lines are 1-based and columns are 0-based Unicode code points. Source coordinates are not
     bytecode offsets or original debug-source line numbers. Strict mode returns INCOMPLETE_ANALYSIS when
-    requested coverage is unavailable. SMALI accepts CLASS refs only and returns exact single-class
-    Baksmali text from loaded DEX data without Java decompilation or inner-class concatenation. Non-
-    DEX/generated data and disassembly failures return UNAVAILABLE, not JVM/Raung text or exception
-    traces. Conversion and original-input provenance remain unverified. Native renames/comments do not
-    rewrite DEX text. Annotations, variables, method ranges, debug mappings and original offsets are
-    unavailable; strict text-only Smali requires includeAnnotations false. Decompilation mode retains
-    existing isolated-engine routing/provenance but does not transform DEX text. Smali does not enter
-    Java source search. Snapshot preconditions are representation-scoped; the operation ID is retained
-    for compatibility.
+    requested coverage is unavailable. Verified Jadx failures in the Java source owner's class/method
+    tree, including retained failure nodes after code-generation unload, report PARTIAL while preserving
+    useful Java. Strict requests reject these results with 409 INCOMPLETE_ANALYSIS. Class-local error
+    counts remain unavailable; COMPLETE is not proof of semantic correctness. SMALI accepts CLASS refs
+    only and returns exact single-class Baksmali text from loaded DEX data without Java decompilation or
+    inner-class concatenation. Non-DEX/generated data and disassembly failures return UNAVAILABLE, not
+    JVM/Raung text or exception traces. Conversion and original-input provenance remain unverified.
+    Native renames/comments do not rewrite DEX text. Annotations, variables, method ranges, debug
+    mappings and original offsets are unavailable; strict text-only Smali requires includeAnnotations
+    false. Decompilation mode retains existing isolated-engine routing/provenance but does not transform
+    DEX text. Smali does not enter Java source search. Snapshot preconditions are representation-scoped;
+    the operation ID is retained for compatibility.
 
     Args:
         body (DecompileRequest): Only CLASS and METHOD refs are accepted. Revision preconditions

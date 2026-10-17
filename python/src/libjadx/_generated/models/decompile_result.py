@@ -39,7 +39,10 @@ class DecompileResult:
         logical_revision (int):
         source_snapshot_id (None | str):
         effective_settings (EffectiveSourceSettings):
-        status (DecompileResultStatus):
+        status (DecompileResultStatus): For Java, PARTIAL preserves source with a verified Jadx failure in the source
+            owner's class/method tree (including inner/inlined and hidden methods), even after code-generation unload.
+            COMPLETE means no failure was found by these checks, not certified semantic correctness or exhaustive error
+            coverage. UNAVAILABLE has no source.
         representation (DecompileResultRepresentation):
         source (None | str): Exact Jadx Java getCodeStr or single-class loaded-DEX Baksmali text
         method_range_available (bool | None):

@@ -143,6 +143,10 @@ not a Smali regression; its cause was not established and Java status behavior
 was deliberately left unchanged. A separate maintenance change should investigate
 and correct that contract limitation.
 
+The subsequent [Java completeness maintenance](java-completeness.md) establishes
+the unload/retained-error-node cause and repairs this result. The baseline
+observations above remain historical evidence from the Smali slice.
+
 ## Delivery and remaining work
 
 This slice adds no persistence format or save policy and enables no parallel

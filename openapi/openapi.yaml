@@ -612,6 +612,11 @@ paths:
         and columns are 0-based Unicode code points. Source coordinates are not
         bytecode offsets or original debug-source line numbers. Strict mode
         returns INCOMPLETE_ANALYSIS when requested coverage is unavailable.
+        Verified Jadx failures in the Java source owner's class/method tree,
+        including retained failure nodes after code-generation unload, report
+        PARTIAL while preserving useful Java. Strict requests reject these
+        results with 409 INCOMPLETE_ANALYSIS. Class-local error counts remain
+        unavailable; COMPLETE is not proof of semantic correctness.
         SMALI accepts CLASS refs only and returns exact single-class Baksmali
         text from loaded DEX data without Java decompilation or inner-class
         concatenation. Non-DEX/generated data and disassembly failures return
@@ -1491,7 +1496,15 @@ components:
         logicalRevision: { type: integer, format: int64, minimum: 0 }
         sourceSnapshotId: { type: [string, 'null'], pattern: '^sha256:[0-9a-f]{64}$' }
         effectiveSettings: { $ref: '#/components/schemas/EffectiveSourceSettings' }
-        status: { type: string, enum: [COMPLETE, PARTIAL, UNAVAILABLE] }
+        status:
+          type: string
+          enum: [COMPLETE, PARTIAL, UNAVAILABLE]
+          description: >-
+            For Java, PARTIAL preserves source with a verified Jadx failure in
+            the source owner's class/method tree (including inner/inlined and
+            hidden methods), even after code-generation unload. COMPLETE means
+            no failure was found by these checks, not certified semantic
+            correctness or exhaustive error coverage. UNAVAILABLE has no source.
         representation: { type: string, enum: [JAVA, SMALI] }
         source: { type: [string, 'null'], description: Exact Jadx Java getCodeStr or single-class loaded-DEX Baksmali text, capped at 4 MiB UTF-8. Not a guarantee of original-input provenance. }
         methodRangeAvailable: { type: [boolean, 'null'] }

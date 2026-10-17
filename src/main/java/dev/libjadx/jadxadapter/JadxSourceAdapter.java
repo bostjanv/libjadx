@@ -30,6 +30,7 @@ import jadx.core.dex.attributes.AType;
 import jadx.core.dex.attributes.nodes.JadxCommentsAttr;
 import jadx.core.dex.attributes.nodes.JadxError;
 import jadx.core.dex.attributes.nodes.NotificationAttrNode;
+import jadx.core.dex.nodes.ClassNode;
 import jadx.plugins.input.dex.sections.DexClassData;
 
 /** Jadx 1.5.6 source/metadata conversion; all returned values are immutable. */
@@ -146,8 +147,7 @@ public final class JadxSourceAdapter {
 		if (omitted > 0) diagnostics.add("Some Jadx annotations were omitted because their target or source token could not be verified");
 		if (requested.kind() == SymbolRef.Kind.METHOD && methodRange == null)
 			diagnostics.add("Method declaration or complete boundary could not be verified in emitted class source");
-		boolean knownError = appendNodeDiagnostics(owner.getClassNode(), diagnostics);
-		for (JavaMethod method : owner.getMethods()) knownError |= appendNodeDiagnostics(method.getMethodNode(), diagnostics);
+		boolean knownError = appendClassDiagnostics(owner.getClassNode(), new HashSet<>(), diagnostics);
 		if (knownError && diagnostics.stream().noneMatch(value -> value.startsWith("Jadx error:")))
 			diagnostics.add("Jadx recorded a class or method decompilation error; available Java may be partial");
 		diagnostics.add("Class-local error count and original debug-line origin are not verified in pinned Jadx");
@@ -160,11 +160,24 @@ public final class JadxSourceAdapter {
 				references > 0 ? DecompileResult.Availability.PARTIAL : DecompileResult.Availability.UNKNOWN);
 	}
 
+	private static boolean appendClassDiagnostics(ClassNode cls, Set<ClassNode> visited, List<String> diagnostics) {
+		if (!visited.add(cls)) return false;
+		boolean knownError = appendNodeDiagnostics(cls, diagnostics);
+		// Raw nodes include methods hidden by the Java facade and nested/inlined code.
+		for (var method : cls.getMethods()) knownError |= appendNodeDiagnostics(method, diagnostics);
+		for (var inner : cls.getInnerClasses()) knownError |= appendClassDiagnostics(inner, visited, diagnostics);
+		for (var inlined : cls.getInlinedClasses()) knownError |= appendClassDiagnostics(inlined, visited, diagnostics);
+		return knownError;
+	}
+
 	private static boolean appendNodeDiagnostics(NotificationAttrNode node, List<String> diagnostics) {
 		List<JadxError> errors = node.getAll(AType.JADX_ERROR);
+		// ProcessClass unloads JADX_ERROR attributes after codegen in 1.5.6,
+		// but ErrorsCounter retains the failed node identities. Never use its global count.
+		boolean knownError = !errors.isEmpty() || node.root().getErrorsCounter().getErrorNodes().contains(node);
 		TreeSet<String> selected = new TreeSet<>();
 		int remaining = Math.max(0, 12 - diagnostics.size());
-		if (remaining == 0) return !errors.isEmpty();
+		if (remaining == 0) return knownError;
 		for (JadxError error : errors) {
 			select(selected, "Jadx error: " + sanitize(error.getError()), remaining);
 		}
@@ -175,7 +188,7 @@ public final class JadxSourceAdapter {
 			}
 		}
 		diagnostics.addAll(selected);
-		return !errors.isEmpty();
+		return knownError;
 	}
 
 	private static void select(TreeSet<String> values, String value, int limit) {

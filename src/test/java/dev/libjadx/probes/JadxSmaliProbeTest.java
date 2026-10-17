@@ -12,6 +12,8 @@ import java.util.Map;
 
 import jadx.api.JadxArgs;
 import jadx.api.JadxDecompiler;
+import jadx.core.dex.attributes.AType;
+import jadx.core.dex.nodes.ProcessState;
 import jadx.plugins.input.dex.sections.DexClassData;
 import jadx.plugins.input.java.data.JavaClassData;
 import org.junit.jupiter.api.Test;
@@ -40,6 +42,12 @@ class JadxSmaliProbeTest {
 			assertTrue(smali.contains(".method public static broken()I"), smali);
 			cls.getCode();
 			assertTrue(jadx.getErrorsCount() > 0, "Owned invalid register must exercise failed Java decoding");
+			assertEquals(ProcessState.GENERATED_AND_UNLOADED, cls.getClassNode().getState());
+			var broken = cls.getClassNode().getMethods().stream()
+					.filter(method -> method.getName().equals("broken")).findFirst().orElseThrow();
+			assertTrue(broken.getAll(AType.JADX_ERROR).isEmpty(), "Codegen unload discards error attributes");
+			assertTrue(jadx.getRoot().getErrorsCounter().getErrorNodes().contains(broken),
+					"Pinned counter retains failed node identities after codegen");
 			assertEquals(smali, data.getDisassembledCode());
 		}
 	}

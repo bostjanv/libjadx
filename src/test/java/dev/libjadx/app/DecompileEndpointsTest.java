@@ -42,6 +42,51 @@ class DecompileEndpointsTest {
 	@TempDir Path dir;
 
 	@Test
+	void realJavaFailuresRemainPartialAfterCodegenWithoutPoisoningHealthyOwners() throws Exception {
+		String invalid = Files.readString(Path.of("tests/fixtures/smali/Disassembly.smali"));
+		Path dex = HierarchyFixture.dex(dir, "invalid.dex", invalid);
+		Path nested = HierarchyFixture.dex(dir, "nested.dex",
+				invalid.replace("Lprobe/Disassembly;", "Lprobe/Holder$Broken;"));
+		Path jar = HierarchyFixture.javaJar(dir, "healthy.jar", java.util.Map.of(
+				"probe/Holder.java", "package probe; public class Holder {}",
+				"probe/Healthy.java", """
+						package probe;
+						public class Healthy {
+						    public static String message() { return "Method not decompiled"; }
+						    public static int answer() { return 17; }
+						}
+						"""));
+		ProjectRuntime runtime = new ProjectRuntime(null, List.of(dex, nested, jar), List.of(dir));
+		try (HttpApiServer server = new HttpApiServer("127.0.0.1", 0, runtime)) {
+			server.start(); runtime.initializeAsync(null).get(20, TimeUnit.SECONDS);
+			for (String mode : List.of("AUTO", "RESTRUCTURE", "SIMPLE")) {
+				for (String target : List.of(ref("CLASS", "Lprobe/Disassembly;", null, null),
+						ref("METHOD", "Lprobe/Disassembly;", "answer", "()I"),
+						ref("CLASS", "Lprobe/Holder;", null, null))) {
+					String request = "{\"ref\":" + target + ",\"includeAnnotations\":false,\"decompilationMode\":\"" + mode + "\"";
+					JsonNode result = body(post(server, request + "}"));
+					assertEquals("PARTIAL", result.path("status").asText(), result.toPrettyString());
+					assertTrue(result.path("source").asText().contains("answer"));
+					assertFalse(result.path("sourceSnapshotId").isNull());
+					assertTrue(result.path("classErrorCount").isNull());
+					assertEquals("UNKNOWN", result.path("capabilities").path("classErrors").asText());
+					assertTrue(result.path("diagnostics").toString().contains("Jadx recorded"), result.toPrettyString());
+					assertError(post(server, request + ",\"strict\":true}"), 409, "INCOMPLETE_ANALYSIS");
+					assertEquals("PARTIAL", body(post(server, request + "}")).path("status").asText());
+				}
+				String healthy = "{\"ref\":" + ref("CLASS", "Lprobe/Healthy;", null, null)
+						+ ",\"includeAnnotations\":false,\"strict\":true,\"decompilationMode\":\"" + mode + "\"}";
+				JsonNode result = body(post(server, healthy));
+				assertEquals("COMPLETE", result.path("status").asText(), result.toPrettyString());
+				assertTrue(result.path("source").asText().contains("Method not decompiled"));
+				assertTrue(result.path("classErrorCount").isNull());
+			}
+			assertFalse(runtime.projectSnapshot().dirty());
+			assertEquals(0, runtime.projectSnapshot().revisions().logicalRevision());
+		} finally { runtime.close(); }
+	}
+
+	@Test
 	void smaliIsSingleClassDexTextWithSeparateSnapshotsAndNoJavaSearchIngestion() throws Exception {
 		Path dex = HierarchyFixture.dex(dir, "sample.dex",
 				Files.readString(Path.of("tests/fixtures/smali/Disassembly.smali")));
