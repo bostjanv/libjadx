@@ -35,6 +35,13 @@ It is an opt-in outgoing-method view of loaded DEX readers, not an original-inpu
 offset/provenance guarantee. Pair-level references and native persistence remain
 unchanged; the recorded PR #24 qualification does not qualify this later source.
 
+The [CFG feasibility gate](phase-7-cfg-feasibility.md) adds only owned probes and
+documentation against the same pins. Loaded-DEX branch/switch/try metadata is
+distinct from Jadx's normalized/transformed block graphs; graph state unloads
+after Java and synthetic handler links are not exhaustive exception transfers.
+Public `analysis.cfg` and its reserved route remain unchanged. No GUI or release
+qualification is claimed by this investigation.
+
 ## Jadx pin
 
 | Component | Pin | Evidence |

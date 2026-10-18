@@ -83,9 +83,13 @@ original offsets, independently verified CFGs, Smali/richer representations,
 advanced annotations, resources/external classpaths, portable native export,
 optional isolated workers and separately reviewed filesystem deletion.
 
-The [DEX instruction-reference feasibility gate](phase-7-instruction-references.md)
-starts the next substantive slice after Java completeness maintenance. Its
-loaded-DEX offset/provenance probes do not yet add a public reference capability.
+The [outgoing loaded-DEX instruction-reference slice](phase-7-instruction-references.md)
+is implemented. The [per-method CFG feasibility gate](phase-7-cfg-feasibility.md)
+is complete locally: loaded-DEX flow facts are recoverable without Java passes,
+but Jadx block graphs are normalized, transient and not exhaustive exception-flow
+graphs. It recommends bounded control-flow facts first, not a dual raw/transformed
+CFG API. Public `analysis.cfg` remains UNKNOWN; no CFG implementation or capability
+upgrade is included in this gate.
 
 ## Historical milestone evidence
 
