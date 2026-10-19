@@ -41,9 +41,11 @@ inputs can extend PROJECT_BUSY admission time. No runtime/heap bound is added.
    [owned DEX input and aggregate-admission gate](phase-7-owned-dex-admission.md).
    Its BLOCKED/DEGRADED result proves structural admission and consumed-byte
    binding on a small subset, but inputless loading skips native renames.
-2. Resolve inputless initialization, accepted-baseline access and same-owned-data
-   census integration in a separately reviewed design. Production ownership and
-   independent public graph publication/content provenance remain unimplemented.
+2. Review the [initialization and integration design](phase-7-owned-input-initialization.md),
+   whose test-only native replay candidate passes fresh-engine comparisons.
+   Implement accepted-baseline access and same-owned-data census only after
+   review; production ownership and independent public graph publication/content
+   provenance remain unimplemented.
 3. Only after those gates, prepare an OpenAPI-first normalized CFG slice.
 4. Other Phase 7 work remains: deeper references/representations, annotations,
    resources/classpaths and portable native export. Local rename remains

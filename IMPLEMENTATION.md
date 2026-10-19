@@ -316,9 +316,12 @@ or authorize a public graph endpoint. The test-only
 [owned DEX input and aggregate-admission gate](docs/phase-7-owned-dex-admission.md)
 is complete locally with a **BLOCKED/DEGRADED** decision: admitted buffers feed
 real loading and structural limits precede graph passes, but inputless Jadx skips
-native declaration rename initialization. Next requires review of inputless
-initialization, accepted-baseline access and same-owned-data census integration,
-not a public CFG endpoint or an unreviewed production loading change.
+native declaration rename initialization. The follow-on
+[initialization and integration design](docs/phase-7-owned-input-initialization.md)
+adds passing test-only native replay comparisons and specifies accepted-baseline
+access and same-owned-data census integration. Production adoption requires review
+of the pin-specific private-method adapter and implementation of that internal
+integration gate; a public CFG endpoint remains deferred.
 
 ## 9. Current regression matrix and future fixtures
 

@@ -23,6 +23,8 @@ import java.util.function.Consumer;
 import dev.libjadx.core.EffectiveAnalysisConfig;
 import dev.libjadx.core.RevisionState;
 import dev.libjadx.core.symbols.SymbolRef;
+import dev.libjadx.jadxadapter.JadxEngineFactory;
+import dev.libjadx.jadxadapter.JadxInputCensusAdapter;
 import dev.libjadx.jadxadapter.JadxSymbolAdapter;
 import dev.libjadx.probes.HierarchyFixture;
 import dev.libjadx.project.FileFingerprint;
@@ -31,17 +33,25 @@ import dev.libjadx.scheduler.ProjectBusyException;
 import jadx.api.JadxDecompiler;
 import jadx.api.data.impl.JadxCodeComment;
 import jadx.api.data.impl.JadxCodeData;
+import jadx.api.data.impl.JadxCodeRef;
 import jadx.api.data.impl.JadxCodeRename;
 import jadx.api.data.impl.JadxNodeRef;
 import jadx.api.plugins.input.data.IClassData;
 import jadx.api.plugins.input.data.IFieldData;
 import jadx.api.plugins.input.data.IMethodData;
 import jadx.api.plugins.input.data.ISeqConsumer;
+import jadx.api.plugins.pass.JadxPassInfo;
+import jadx.api.plugins.pass.impl.OrderedJadxPassInfo;
+import jadx.api.plugins.pass.types.JadxPreparePass;
+import jadx.core.dex.nodes.RootNode;
+import jadx.core.dex.visitors.rename.RenameVisitor;
 import jadx.plugins.input.dex.*;
 import jadx.plugins.input.dex.insns.DexInsnData;
 import jadx.plugins.input.dex.sections.DexCodeReader;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /** Test-only ownership/admission experiment. The production path and its counterexamples stay unchanged. */
 class OwnedDexAdmissionTest {
@@ -89,6 +99,8 @@ class OwnedDexAdmissionTest {
         BiConsumer<Path, Long> read = (ignored, count) -> { };
         Runnable afterCapture = () -> { };
         Runnable beforeLoad = () -> { };
+        Consumer<JadxDecompiler> configure = ignored -> { };
+        Consumer<JadxDecompiler> loaded = ignored -> { };
         boolean failClassLoad;
     }
 
@@ -299,7 +311,9 @@ class OwnedDexAdmissionTest {
                             }
                         });
                         hooks.beforeLoad.run();
+                        hooks.configure.accept(jadx);
                         loads.incrementAndGet(); jadx.load();
+                        hooks.loaded.accept(jadx);
                     }
                     @Override public JadxDecompiler decompiler() { return jadx; }
                     // Deliberately no path-based census/bind: this prototype does not authorize propagated edits.
@@ -578,6 +592,222 @@ class OwnedDexAdmissionTest {
             assertEquals(old.graphContent(), next.graphContent()); assertNotEquals(old.revisions(), next.revisions()); assertNotEquals(old.settings(), next.settings());
             assertEquals(nativeHash, FileFingerprint.of(project)); assertEquals(inputHash, FileFingerprint.of(dex)); assertTrue(runtime.projectSnapshot().dirty());
             System.out.println("BLOCKER: owned inputless engine retains oldLoop/newLoop records and comments, but emits branchLoop; path-based primary emits newLoop");
+        }
+        h.balanced();
+    }
+
+    /** Review candidate only: invoke the whole pinned native pipeline, never patch individual aliases.
+     * The public prepare-pass hook preserves ordering, but access to process is version-sensitive.
+     * Jadx logs/swallow prepare exceptions, so successful load alone is not initialization proof. */
+    static final class NativeInitialization implements JadxPreparePass {
+        final java.lang.reflect.Method process;
+        final Runnable beforeInit;
+        int completed;
+        RuntimeException failure;
+
+        NativeInitialization(JadxDecompiler jadx, Runnable beforeInit) throws Exception {
+            if (!jadx.getArgs().getInputFiles().isEmpty()
+                    || !Set.of("AUTO", "RESTRUCTURE").contains(jadx.getArgs().getDecompilationMode().name()))
+                throw new Refusal("Inputless AUTO/RESTRUCTURE only");
+            process = RenameVisitor.class.getDeclaredMethod("process", RootNode.class);
+            process.setAccessible(true);
+            this.beforeInit = beforeInit;
+            jadx.addCustomPass(this);
+        }
+        @Override public JadxPassInfo getInfo() {
+            return new OrderedJadxPassInfo("OwnedNativeInitialization", "Pinned inputless native initialization")
+                    .after("RenameVisitor").before("SaveDeobfMapping");
+        }
+        @Override public void init(RootNode root) {
+            try {
+                beforeInit.run();
+                if (completed != 0 || !root.getArgs().getInputFiles().isEmpty()) throw new Refusal("Initialization state");
+                apply(root);
+                root.registerCodeDataUpdateListener(ignored -> apply(root));
+                completed++;
+            } catch (RuntimeException caught) { failure = caught; throw caught; }
+        }
+        void apply(RootNode root) {
+            try { process.invoke(new RenameVisitor(), root); }
+            catch (ReflectiveOperationException caught) { throw new IllegalStateException("Native rename initialization failed", caught); }
+        }
+        void verify(JadxDecompiler jadx) {
+            if (failure != null || completed != 1) throw new Refusal("Native initialization incomplete");
+            var names = jadx.getRoot().getPreDecompilePasses().stream().map(p -> p.getName()).toList();
+            int at = names.indexOf(getInfo().getName());
+            if (at < 1 || !names.get(at - 1).equals("RenameVisitor")
+                    || at + 1 >= names.size() || !names.get(at + 1).equals("SaveDeobfMapping"))
+                throw new Refusal("Native initialization ordering");
+        }
+    }
+
+    void initializeNatively(Harness h, Runnable beforeInit) {
+        NativeInitialization[] initialization = {null};
+        h.hooks.configure = jadx -> {
+            try { initialization[0] = new NativeInitialization(jadx, beforeInit); }
+            catch (Exception failure) { throw new IllegalStateException(failure); }
+        };
+        h.hooks.loaded = jadx -> initialization[0].verify(jadx);
+    }
+
+    Path initializationFixture() throws Exception {
+        return HierarchyFixture.dex(dir, "initialization.dex", """
+                .class public Lprobe/Init;
+                .super Ljava/lang/Object;
+                .field public count:I
+                .method public static calculate(IJ)J
+                .registers 5
+                int-to-long v0, p0
+                add-long/2addr v0, p1
+                return-wide v0
+                .end method
+                .method public static value()I
+                .registers 1
+                const/16 v0, 37
+                return v0
+                .end method
+                .method public static value()Ljava/lang/String;
+                .registers 1
+                const-string v0, "different return"
+                return-object v0
+                .end method
+                """);
+    }
+
+    static JadxCodeData initializationEdits(String prefix) {
+        var data = new JadxCodeData();
+        var cls = JadxNodeRef.forCls("probe.Init");
+        var method = new JadxNodeRef(jadx.api.data.IJavaNodeRef.RefType.METHOD, "probe.Init", "calculate(IJ)J");
+        var field = new JadxNodeRef(jadx.api.data.IJavaNodeRef.RefType.FIELD, "probe.Init", "count:I");
+        data.setRenames(List.of(new JadxCodeRename(cls, prefix + "Class"), new JadxCodeRename(method, prefix + "Method"),
+                new JadxCodeRename(field, prefix + "Field"), new JadxCodeRename(method, JadxCodeRef.forMthArg(0), prefix + "Narrow"),
+                new JadxCodeRename(method, JadxCodeRef.forMthArg(1), prefix + "Wide"),
+                new JadxCodeRename(new JadxNodeRef(jadx.api.data.IJavaNodeRef.RefType.METHOD, "probe.Init", "value()I"), prefix + "Value")));
+        data.setComments(List.of(new JadxCodeComment(cls, prefix + " class comment"),
+                new JadxCodeComment(method, prefix + " method comment"), new JadxCodeComment(field, prefix + " field comment")));
+        return data;
+    }
+
+    static Map<String, String> initializationSemantics(JadxDecompiler jadx) {
+        var result = new TreeMap<String, String>();
+        var cls = jadx.searchJavaClassByOrigFullName("probe.Init");
+        // Reader labels are deliberately descriptive, not original-input provenance. Normalize only this header.
+        result.put("java", cls.getCode().replace("/* JADX INFO: loaded from: " + cls.getClassNode().getInputFileName() + " */",
+                "/* JADX INFO: loaded from: <input-label> */"));
+        result.put("class", cls.getFullName());
+        for (var m : cls.getClassNode().getMethods()) result.put(m.getMethodInfo().getShortId(), m.getAlias());
+        for (var f : cls.getClassNode().getFields()) result.put(f.getFieldInfo().getShortId(), f.getAlias());
+        assertTrue(jadx.getRoot().getErrorsCounter().getErrorNodes().isEmpty());
+        return Map.copyOf(result);
+    }
+
+    @ParameterizedTest @ValueSource(strings = {"AUTO", "RESTRUCTURE"})
+    void nativeInitializationMatchesFreshPathsIncludingScopedEditsAndAutomaticAliases(String mode) throws Exception {
+        Path dex = initializationFixture(); var h = new Harness(List.of(dex));
+        var config = new EffectiveAnalysisConfig(mode); var data = initializationEdits("old");
+        initializeNatively(h, () -> { });
+        try (var runtime = h.open(null)) {
+            var fingerprint = FileFingerprint.of(dex);
+            for (var code : List.of(new JadxCodeData(), data)) {
+                if (!code.getRenames().isEmpty()) runtime.replaceCodeData(code, runtime.projectSnapshot().revisions().logicalRevision());
+                var before = runtime.projectSnapshot(); var search = runtime.searchIdentity();
+                try (var fresh = new JadxDecompiler(JadxEngineFactory.arguments(List.of(dex), null, code, config))) {
+                    fresh.load(); var expected = initializationSemantics(fresh);
+                    // Empty data separately tests automatic return-only collision names, not just explicit renames.
+                    if (code.getRenames().isEmpty()) assertNotEquals(expected.get("value()I"), expected.get("value()Ljava/lang/String;"));
+                    else assertEquals("value", expected.get("value()Ljava/lang/String;"), "Unedited alias is recomputed after explicit rename");
+                    h.temporary(runtime, config, context -> {
+                        assertNotSame(runtime.decompiler().getArgs().getCodeData(), context.decompiler().getArgs().getCodeData());
+                        assertEquals(expected, initializationSemantics(context.decompiler()));
+                        return null;
+                    });
+                }
+                assertEquals(before, runtime.projectSnapshot()); assertEquals(search, runtime.searchIdentity());
+            }
+            String java = h.temporary(runtime, config, ctx -> initializationSemantics(ctx.decompiler()).get("java")).value();
+            for (String token : List.of("oldClass", "oldMethod", "oldField", "oldNarrow", "oldWide",
+                    "old class comment", "old method comment", "old field comment")) assertTrue(java.contains(token), java);
+            assertEquals(fingerprint, FileFingerprint.of(dex)); assertFalse(Files.exists(dir.resolve("initialization.dex.jadx")));
+        }
+        h.balanced();
+    }
+
+    @Test void initializedOwnedCfgReplaysDeclarationEditsWithoutChangingCopiedTopology() throws Exception {
+        Path dex = fixture(); var h = new Harness(List.of(dex)); initializeNatively(h, () -> { });
+        try (var runtime = h.open(null)) {
+            var unedited = h.capture(runtime, ref("branchLoop"));
+            runtime.replaceCodeData(edits("renamedLoop", "unsaved graph comment"), 0);
+            var edited = h.capture(runtime, ref("branchLoop"));
+            assertEquals("renamedLoop", edited.observation().alias());
+            assertEquals(List.of("unsaved graph comment"), edited.observation().comments());
+            assertEquals(unedited.graphContent(), edited.graphContent());
+            loopBranches(edited.observation().graph(), "LE");
+        }
+        h.balanced();
+    }
+
+    @Test void initializedOwnedSnapshotKeepsOldEditsAndListenerReplaysNewDataWithoutPaths() throws Exception {
+        Path dex = initializationFixture(); var h = new Harness(List.of(dex)); initializeNatively(h, () -> { });
+        try (var runtime = h.open(null)) {
+            runtime.replaceCodeData(initializationEdits("old"), 0); var before = runtime.projectSnapshot();
+            CountDownLatch entered = new CountDownLatch(1), release = new CountDownLatch(1);
+            var pending = CompletableFuture.supplyAsync(() -> {
+                try {
+                    return h.temporary(runtime, AUTO, context -> {
+                        entered.countDown(); await(release);
+                        return initializationSemantics(context.decompiler());
+                    });
+                } catch (Exception failure) { throw new RuntimeException(failure); }
+            });
+            try {
+                assertTrue(entered.await(30, TimeUnit.SECONDS));
+                runtime.replaceCodeData(initializationEdits("new"), before.revisions().logicalRevision());
+            } finally { release.countDown(); }
+            var old = pending.get(30, TimeUnit.SECONDS);
+            assertEquals(before.revisions(), old.revisions());
+            assertEquals("probe.oldClass", old.value().get("class"));
+            assertTrue(old.value().get("java").contains("oldWide")); assertFalse(old.value().get("java").contains("newWide"));
+            h.temporary(runtime, AUTO, context -> {
+                assertEquals("probe.newClass", initializationSemantics(context.decompiler()).get("class"));
+                context.decompiler().getArgs().setCodeData(initializationEdits("listener"));
+                context.decompiler().reloadCodeData();
+                assertEquals("probe.listenerClass", context.decompiler().searchJavaClassByOrigFullName("probe.Init").getFullName());
+                assertEquals("listenerMethod", context.decompiler().searchJavaClassByOrigFullName("probe.Init").getClassNode()
+                        .searchMethodByShortId("calculate(IJ)J").getAlias());
+                return null;
+            });
+            assertEquals("probe.newClass", runtime.decompiler().searchJavaClassByOrigFullName("probe.Init").getFullName());
+        }
+        h.balanced();
+    }
+
+    @Test void swallowedInitializationFailureOrSkippedPassRefusesAndReleasesTemporaryAdmission() throws Exception {
+        Path dex = initializationFixture(); var h = new Harness(List.of(dex));
+        try (var runtime = h.open(null)) {
+            initializeNatively(h, () -> { throw new IllegalStateException("Injected native initialization failure"); });
+            assertEquals("Native initialization incomplete", assertThrows(Refusal.class,
+                    () -> h.temporary(runtime, AUTO, ctx -> fail("Must not publish incomplete initialization"))).getMessage());
+            initializeNatively(h, () -> { });
+            var configure = h.hooks.configure;
+            h.hooks.configure = engine -> { configure.accept(engine); engine.getArgs().setDecompilationMode(jadx.api.DecompilationMode.SIMPLE); };
+            assertThrows(Refusal.class, () -> h.temporary(runtime, AUTO, ctx -> fail("Skipped prepare pass must refuse")));
+            initializeNatively(h, () -> { });
+            assertEquals("probe.Init", h.temporary(runtime, AUTO, ctx -> initializationSemantics(ctx.decompiler()).get("class")).value());
+        }
+        h.balanced();
+    }
+
+    @Test void existingPathCensusBindingCannotCertifyAnInputlessOwnedEngine() throws Exception {
+        Path dex = fixture(); var h = new Harness(List.of(dex));
+        var census = JadxInputCensusAdapter.capture(List.of(dex), dev.libjadx.core.hierarchy.CensusLimits.defaults());
+        assertEquals(dev.libjadx.core.hierarchy.RelatedHierarchyVerifier.Status.COMPLETE, census.status());
+        try (var runtime = h.open(null)) {
+            h.temporary(runtime, AUTO, ctx -> {
+                var verification = census.bind(ctx.decompiler()).verify(ref("branchLoop"),
+                        dev.libjadx.core.hierarchy.RelatedHierarchyVerifier.VerificationBudget.defaults());
+                assertEquals(dev.libjadx.core.hierarchy.RelatedHierarchyVerifier.Status.UNSUPPORTED_INPUT, verification.status());
+                return null;
+            });
         }
         h.balanced();
     }

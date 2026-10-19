@@ -289,6 +289,12 @@ repository access to immutable accepted fingerprints and same-owned-data census
 binding. Do not weaken snapshot semantics, manually patch individual aliases,
 change the upstream version, or implement a public CFG while these are unproved.
 
+The subsequent [initialization and integration design](phase-7-owned-input-initialization.md)
+adds an opt-in test-only native-pipeline candidate and passing fresh-engine
+comparisons while retaining this counterexample unchanged. Baseline access and
+same-owned-data census are specified for review, not implemented in production.
+That follow-on does not retroactively change this gate's recorded decision.
+
 ## Residual limits, security and persistence
 
 - This is a Linux `SecureDirectoryStream` experiment, not a portable filesystem
