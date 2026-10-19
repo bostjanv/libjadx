@@ -411,6 +411,9 @@ class Surface:
                     if k != "ref"
                 },
             ),
+            "getControlFlowFacts": lambda: p.control_flow(
+                ref, strict=body.get("strict", False), **pre
+            ),
             "search": lambda: p.search(
                 **{
                     re.sub(r"(?<!^)(?=[A-Z])", "_", k).lower(): v

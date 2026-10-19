@@ -30,6 +30,7 @@ LibJadx is an independent implementation. It does not copy or implement libghidr
 - Class-level Smali for loaded DEX data, with representation-scoped snapshots and explicit non-DEX unavailability.
 - Basic references with explicit partial coverage, incremental search and complete-index jobs.
 - Opt-in outgoing loaded-DEX instruction references with per-occurrence code-unit coordinates, field read/write direction and explicit scan availability; [scope and limits](docs/phase-7-instruction-references.md).
+- Bounded per-method loaded-DEX control-flow facts (branches, switches, payload extents and try tables), not a CFG; [contract and limits](docs/phase-7-control-flow-facts.md).
 - Process-local jobs with polling, cooperative cancellation and SSE progress.
 - Declaration renames/comments, strict Tiny v2 mapping import/export, snapshot-bound parameter renames and a conservative related-method propagation subset.
 - Explicit native save, reload, pending-edit export and external-modification conflict detection.
@@ -120,6 +121,11 @@ For strict text-only Smali, set `"includeAnnotations":false`; requested Smali
 metadata is unavailable. The Python equivalent is
 `project.decompile(ref, representation="SMALI", include_annotations=False, strict=True)`.
 Smali reflects loaded DEX instructions, not unsaved aliases/comments, and never enters Java source search.
+
+`POST /api/v1/analysis/control-flow` accepts an original METHOD `ref`, optional
+`strict` and paired revision preconditions. It returns bounded loaded-DEX facts,
+not blocks/edges or exhaustive exception flow. Coverage is PARTIAL; resolved
+strict requests reject. See [the complete contract](docs/phase-7-control-flow-facts.md).
 
 Planned Phase 7 routes include `/project/export`, `/analysis/cfg` and `/resources/query`. These are outside the current operation inventory. Unknown paths return `NOT_FOUND`; recognized planned routes return `OPERATION_NOT_IMPLEMENTED` after readiness.
 

@@ -529,6 +529,61 @@ paths:
           $ref: '#/components/responses/ApiErrorResponse'
         '500':
           $ref: '#/components/responses/ApiErrorResponse'
+  /analysis/control-flow:
+    post:
+      tags: [Analysis]
+      operationId: getControlFlowFacts
+      summary: Observe bounded loaded-DEX method control-flow facts (not a CFG)
+      description: >-
+        One original METHOD under the serialized primary-read lease, without Java
+        generation or graph passes. Coordinates are method-relative DEX_CODE_UNIT_16
+        from LOADED_METHOD_INSNS_START, not original-input addresses or verified
+        input/archive provenance (conversion plugins may supply DEX). Instructions
+        include NOPs without inferring intent; payloads are separate non-executable
+        records. Branch nextOffset is the sequential boundary, not an inferred
+        feasible edge. Switch destinations are absolute loaded-method positions,
+        computed relative to the switch, not its payload. Try intervals are
+        half-open; ordered typed handlers followed by optional catchall are table
+        facts, not exhaustive exception dispatch. Coverage is always PARTIAL.
+        AVAILABLE includes straight-line methods with no branches; UNAVAILABLE
+        means no unique loaded DEX code; FAILED means malformed traversal with all
+        fact arrays empty. Precision is EXACT only for AVAILABLE loaded operands.
+        Resolution misses remain 200 even with strict. After readiness, validation,
+        admission and paired revision checks, resolved strict requests reject with
+        INCOMPLETE_ANALYSIS; materialization RESOURCE_LIMIT takes precedence.
+        Fixed inclusive limits: 4096 code units, 1024 records including payloads,
+        1024 aggregate switch cases, 256 tries, 1024 handler entries (including
+        catchalls, counted across ranges and encoded lists), 1024 UTF-16 units per
+        handler type, and 2097152 actual UTF-8 JSON response bytes. Oversize refuses
+        atomically with RESOURCE_LIMIT, never truncates. Malformed counts/extents
+        fail atomically before upstream variable-size decode. Bounds do not cover
+        upstream loading, JVM heap, deadlines or hostile-input isolation.
+        Snapshot binds method, representation, observed content, session, revision,
+        publication and settings; explicit save may rebind without a logical edit.
+        Unknown/repeated fields, incompatible refs/options and invalid paired
+        preconditions reject with INVALID_REQUEST. No overrides, cursor or jobs.
+        analysis.cfg remains UNKNOWN; /analysis/cfg remains unimplemented.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ControlFlowRequest' }
+            examples:
+              method: { externalValue: ./examples/control-flow-query.json }
+      responses:
+        '200':
+          description: Resolution and atomic loaded-reader facts; not a graph.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ControlFlowResult' }
+              examples:
+                method: { externalValue: ./examples/control-flow.json }
+        '400': { $ref: '#/components/responses/ApiErrorResponse' }
+        '409': { $ref: '#/components/responses/ApiErrorResponse' }
+        '415': { $ref: '#/components/responses/ApiErrorResponse' }
+        '429': { $ref: '#/components/responses/ApiErrorResponse' }
+        '503': { $ref: '#/components/responses/ApiErrorResponse' }
+        '500': { $ref: '#/components/responses/ApiErrorResponse' }
   /classes:
     get:
       tags: [Symbols]
@@ -1301,6 +1356,143 @@ components:
           type: array
           maxItems: 16
           items: { type: string }
+    ControlFlowRequest:
+      type: object
+      additionalProperties: false
+      required: [ref]
+      dependentRequired:
+        expectedSessionId: [expectedLogicalRevision]
+        expectedLogicalRevision: [expectedSessionId]
+      properties:
+        ref: { $ref: '#/components/schemas/MethodSymbolRef' }
+        strict: { type: boolean, default: false }
+        expectedSessionId: { type: string, format: uuid }
+        expectedLogicalRevision: { type: integer, format: int64, minimum: 0 }
+    ControlFlowInstruction:
+      type: object
+      additionalProperties: false
+      required: [offset, length, opcode]
+      properties:
+        offset: { type: integer, minimum: 0, maximum: 4095 }
+        length: { type: integer, minimum: 1, maximum: 4096 }
+        opcode: { type: string, maxLength: 64 }
+    ControlFlowPayload:
+      type: object
+      additionalProperties: false
+      required: [offset, length, kind]
+      properties:
+        offset: { type: integer, minimum: 0, maximum: 4095 }
+        length: { type: integer, minimum: 2, maximum: 4096 }
+        kind: { type: string, enum: [PACKED_SWITCH, SPARSE_SWITCH, ARRAY_DATA] }
+    ControlFlowBranch:
+      type: object
+      additionalProperties: false
+      required: [offset, opcode, target, nextOffset]
+      properties:
+        offset: { type: integer, minimum: 0, maximum: 4095 }
+        opcode: { type: string, maxLength: 64 }
+        target: { type: integer, minimum: 0, maximum: 4095 }
+        nextOffset: { type: integer, minimum: 1, maximum: 4096 }
+    ControlFlowCase:
+      type: object
+      additionalProperties: false
+      required: [key, target]
+      properties:
+        key: { type: integer, minimum: -2147483648, maximum: 2147483647 }
+        target: { type: integer, minimum: 0, maximum: 4095 }
+    ControlFlowSwitch:
+      type: object
+      additionalProperties: false
+      required: [offset, opcode, payloadOffset, defaultOffset, cases]
+      properties:
+        offset: { type: integer, minimum: 0, maximum: 4095 }
+        opcode: { type: string, maxLength: 64 }
+        payloadOffset: { type: integer, minimum: 0, maximum: 4095 }
+        defaultOffset: { type: integer, minimum: 0, maximum: 4095 }
+        cases:
+          type: array
+          maxItems: 1024
+          items: { $ref: '#/components/schemas/ControlFlowCase' }
+    ControlFlowArrayData:
+      type: object
+      additionalProperties: false
+      required: [offset, payloadOffset]
+      properties:
+        offset: { type: integer, minimum: 0, maximum: 4095 }
+        payloadOffset: { type: integer, minimum: 0, maximum: 4095 }
+    ControlFlowHandler:
+      type: object
+      additionalProperties: false
+      required: [type, target]
+      properties:
+        type:
+          type: [string, 'null']
+          maxLength: 1024
+          description: Original DEX type descriptor; null denotes catchall.
+        target: { type: integer, minimum: 0, maximum: 4095 }
+    ControlFlowTry:
+      type: object
+      additionalProperties: false
+      required: [start, endExclusive, handlers]
+      properties:
+        start: { type: integer, minimum: 0, maximum: 4095 }
+        endExclusive: { type: integer, minimum: 1, maximum: 4096 }
+        handlers:
+          type: array
+          maxItems: 1024
+          items: { $ref: '#/components/schemas/ControlFlowHandler' }
+    ControlFlowResult:
+      type: object
+      additionalProperties: false
+      required: [outcome, queriedRef, candidates, sessionId, logicalRevision, publicationEpoch, effectiveSettingsHash, snapshotId, representation, unit, base, availability, precision, coverage, reason, codeUnits, instructions, payloads, branches, switches, arrayData, tries, diagnostics]
+      properties:
+        outcome: { type: string, enum: [RESOLVED, NOT_FOUND, AMBIGUOUS, PROVENANCE_UNAVAILABLE] }
+        queriedRef: { $ref: '#/components/schemas/SymbolRef' }
+        candidates:
+          type: array
+          maxItems: 16
+          items: { $ref: '#/components/schemas/SymbolInfo' }
+        sessionId: { type: string, format: uuid }
+        logicalRevision: { type: integer, format: int64, minimum: 0 }
+        publicationEpoch: { type: integer, format: int64, minimum: 0 }
+        effectiveSettingsHash: { type: string }
+        snapshotId: { type: [string, 'null'] }
+        representation: { const: LOADED_DEX_CONTROL_FLOW_FACTS_V1 }
+        unit: { const: DEX_CODE_UNIT_16 }
+        base: { const: LOADED_METHOD_INSNS_START }
+        availability: { type: string, enum: [AVAILABLE, UNAVAILABLE, FAILED] }
+        precision: { type: string, enum: [EXACT, UNAVAILABLE] }
+        coverage: { const: PARTIAL }
+        reason: { type: string, maxLength: 1024 }
+        codeUnits: { type: [integer, 'null'], minimum: 0, maximum: 4096 }
+        instructions:
+          type: array
+          maxItems: 1024
+          items: { $ref: '#/components/schemas/ControlFlowInstruction' }
+        payloads:
+          type: array
+          maxItems: 1024
+          items: { $ref: '#/components/schemas/ControlFlowPayload' }
+        branches:
+          type: array
+          maxItems: 1024
+          items: { $ref: '#/components/schemas/ControlFlowBranch' }
+        switches:
+          type: array
+          maxItems: 1024
+          items: { $ref: '#/components/schemas/ControlFlowSwitch' }
+        arrayData:
+          type: array
+          maxItems: 1024
+          items: { $ref: '#/components/schemas/ControlFlowArrayData' }
+        tries:
+          type: array
+          maxItems: 256
+          items: { $ref: '#/components/schemas/ControlFlowTry' }
+        diagnostics:
+          type: array
+          maxItems: 16
+          items: { type: string, maxLength: 1024 }
     ReferenceQuery:
       type: object
       additionalProperties: false

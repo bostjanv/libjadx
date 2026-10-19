@@ -1,0 +1,87 @@
+{
+  "outcome" : "RESOLVED",
+  "queriedRef" : {
+    "kind" : "METHOD",
+    "originalClassDescriptor" : "Lprobe/CfgCases;",
+    "inputIdentity" : null,
+    "originalName" : "branchLoop",
+    "originalDescriptor" : "(I)I"
+  },
+  "candidates" : [ ],
+  "sessionId" : "86fa14c2-de01-4297-8c4a-3e5d669cd7c7",
+  "logicalRevision" : 0,
+  "publicationEpoch" : 0,
+  "effectiveSettingsHash" : "sha256:6ea56fae9eacbb0ebed74bbbe731cf1179b7d41146162fe9b8c26cf0615c2367",
+  "snapshotId" : "sha256:649d8c918c7843d3a7adfea821d905a54f0aff53df10e8fddb52a26889a6b487",
+  "representation" : "LOADED_DEX_CONTROL_FLOW_FACTS_V1",
+  "unit" : "DEX_CODE_UNIT_16",
+  "base" : "LOADED_METHOD_INSNS_START",
+  "availability" : "AVAILABLE",
+  "precision" : "EXACT",
+  "coverage" : "PARTIAL",
+  "reason" : "Complete bounded loaded-reader traversal; semantic coverage remains PARTIAL",
+  "codeUnits" : 14,
+  "instructions" : [ {
+    "offset" : 0,
+    "length" : 1,
+    "opcode" : "const/4"
+  }, {
+    "offset" : 1,
+    "length" : 2,
+    "opcode" : "if-lez"
+  }, {
+    "offset" : 3,
+    "length" : 2,
+    "opcode" : "if-eqz"
+  }, {
+    "offset" : 5,
+    "length" : 2,
+    "opcode" : "add-int/lit8"
+  }, {
+    "offset" : 7,
+    "length" : 1,
+    "opcode" : "goto"
+  }, {
+    "offset" : 8,
+    "length" : 2,
+    "opcode" : "add-int/lit8"
+  }, {
+    "offset" : 10,
+    "length" : 2,
+    "opcode" : "add-int/lit8"
+  }, {
+    "offset" : 12,
+    "length" : 1,
+    "opcode" : "goto"
+  }, {
+    "offset" : 13,
+    "length" : 1,
+    "opcode" : "return"
+  } ],
+  "payloads" : [ ],
+  "branches" : [ {
+    "offset" : 1,
+    "opcode" : "if-lez",
+    "target" : 13,
+    "nextOffset" : 3
+  }, {
+    "offset" : 3,
+    "opcode" : "if-eqz",
+    "target" : 8,
+    "nextOffset" : 5
+  }, {
+    "offset" : 7,
+    "opcode" : "goto",
+    "target" : 10,
+    "nextOffset" : 8
+  }, {
+    "offset" : 12,
+    "opcode" : "goto",
+    "target" : 1,
+    "nextOffset" : 13
+  } ],
+  "switches" : [ ],
+  "arrayData" : [ ],
+  "tries" : [ ],
+  "diagnostics" : [ "Loaded DEX only; configured input/archive identity and conversion lineage are unverified", "No blocks, feasible successor edges, exhaustive exception dispatch or Java correspondence", "Current primary settings only; no Java generation, native edits or autosave" ]
+}

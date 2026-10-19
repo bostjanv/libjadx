@@ -213,6 +213,12 @@
       "persistence": "READ_ONLY"
     },
     {
+      "name": "analysis.loaded_dex_control_flow",
+      "status": "PARTIAL",
+      "evidence": "BOUNDED_LOADED_DEX_BRANCH_SWITCH_PAYLOAD_TRY_FACTS_NOT_CFG",
+      "persistence": "READ_ONLY"
+    },
+    {
       "name": "analysis.cfg",
       "status": "UNKNOWN",
       "evidence": "NOT_PROBED",

@@ -61,6 +61,7 @@ public final class StatusServlet extends HttpServlet {
 	private final MappingExportService mappingExportService;
 	private final MappingImportService mappingImportService;
 	private final dev.libjadx.app.ReferenceQueryService referenceService;
+	private final dev.libjadx.app.ControlFlowService controlFlowService;
 	private final ShutdownRequester shutdown;
 	private final AtomicBoolean shutdownRequestInProgress = new AtomicBoolean();
 	private final byte[] cursorKey = CursorSigningKey.loadDefault();
@@ -81,6 +82,7 @@ public final class StatusServlet extends HttpServlet {
 		this.mappingImportService = new MappingImportService(runtime);
 		this.sourceService = new DecompiledSourceService(runtime, catalogs, searchService);
 		this.referenceService = new dev.libjadx.app.ReferenceQueryService(runtime, catalogs, cursorKey);
+		this.controlFlowService = new dev.libjadx.app.ControlFlowService(runtime, catalogs);
 	}
 
 	@Override
@@ -134,6 +136,7 @@ public final class StatusServlet extends HttpServlet {
 					new Capability("edit.related_propagation", "PARTIAL", "INDEPENDENT_CLOSED_INPUT_FAMILY_GUI_VERIFIED", "MEMORY_ONLY_UNTIL_EXPLICIT_NATIVE_SAVE"),
 					new Capability("project.revisions", "PARTIAL", "CONTENT_HASH_AND_SESSION_TOKENS", "PROCESS_LOCAL_COUNTERS"),
 					new Capability("analysis.temporary_override", "PARTIAL", "ISOLATED_DECOMPILATION_MODE_WITH_UNSAVED_EDITS", "READ_ONLY"),
+					new Capability("analysis.loaded_dex_control_flow", "PARTIAL", "BOUNDED_LOADED_DEX_BRANCH_SWITCH_PAYLOAD_TRY_FACTS_NOT_CFG", "READ_ONLY"),
 					new Capability("analysis.cfg", "UNKNOWN", "NOT_PROBED", "UNAVAILABLE"),
 					new Capability("analysis.concurrent_reads", "UNSUPPORTED", "SERIALIZED_PRIMARY_READS_FAIL_FAST_PROJECT_BUSY", "UNAVAILABLE"),
 					new Capability("analysis.cancellation", "PARTIAL", "COOPERATIVE_JOBS_CANCELLING_UNTIL_WORK_STOPS_NO_HARD_JADX_INTERRUPTION", "MEMORY_ONLY"))));
@@ -237,6 +240,10 @@ public final class StatusServlet extends HttpServlet {
 		}
 		if ("/api/v1/references/query".equals(path)) {
 			handleReferences(request, response);
+			return;
+		}
+		if ("/api/v1/analysis/control-flow".equals(path)) {
+			handleControlFlow(request, response);
 			return;
 		}
 		if ("/api/v1/decompile".equals(path)) {
@@ -643,6 +650,48 @@ public final class StatusServlet extends HttpServlet {
 		}
 	}
 
+	private void handleControlFlow(HttpServletRequest request, HttpServletResponse response) throws IOException {
+		try {
+			runtime.assertReady();
+			if (!isJsonContentType(request.getContentType())) {
+				writeError(response, 415, "INVALID_REQUEST", "Content-Type must be application/json"); return;
+			}
+			JsonNode body = readBody(request);
+			requireFields(body, Set.of("ref", "strict", "expectedSessionId", "expectedLogicalRevision"));
+			if (!body.has("ref") || !body.get("ref").isObject()) throw new IllegalArgumentException("ref object is required");
+			Long revision = null;
+			if (body.has("expectedLogicalRevision")) {
+				if (!body.get("expectedLogicalRevision").isIntegralNumber() || !body.get("expectedLogicalRevision").canConvertToLong())
+					throw new IllegalArgumentException("expectedLogicalRevision must be an integer");
+				revision = body.get("expectedLogicalRevision").longValue();
+			}
+			var query = new dev.libjadx.app.ControlFlowService.Request(parseSymbolRef(body.get("ref")), booleanOption(body, "strict", false),
+					textOption(body, "expectedSessionId", null), revision);
+			// Check the actual server encoding before committing response headers or bytes.
+			byte[] bytes = json.writeValueAsBytes(controlFlowService.query(query));
+			if (bytes.length > 2 * 1024 * 1024) throw new dev.libjadx.core.flow.ControlFlowFacts.LimitException();
+			response.setStatus(200); response.setContentType("application/json"); response.setCharacterEncoding("UTF-8");
+			response.getOutputStream().write(bytes);
+		} catch (dev.libjadx.core.flow.ControlFlowFacts.StaleException stale) {
+			writeError(response, 409, "STALE_REVISION", "Control-flow precondition belongs to obsolete state");
+		} catch (dev.libjadx.core.flow.ControlFlowFacts.IncompleteException incomplete) {
+			writeError(response, 409, "INCOMPLETE_ANALYSIS", "Loaded DEX facts do not prove complete control-flow analysis");
+		} catch (dev.libjadx.core.flow.ControlFlowFacts.LimitException | JadxSymbolAdapter.CatalogLimitException limit) {
+			writeError(response, 429, "RESOURCE_LIMIT", "Control-flow facts exceed synchronous limits");
+		} catch (ProjectRuntime.ProjectNotReadyException notReady) {
+			writeLifecycleError(response, notReady.status());
+		} catch (ServiceShuttingDownException stopping) {
+			writeError(response, 503, "SERVICE_SHUTTING_DOWN", stopping.getMessage());
+		} catch (ProjectBusyException busy) {
+			writeError(response, 409, "PROJECT_BUSY", busy.getMessage());
+		} catch (IllegalArgumentException invalid) {
+			writeError(response, 400, "INVALID_REQUEST", "Malformed or incompatible control-flow request");
+		} catch (Exception failure) {
+			failure.printStackTrace(System.err);
+			writeError(response, 500, "INTERNAL_ERROR", "Control-flow query failed; inspect the local service log");
+		}
+	}
+
 	private void handleReferences(HttpServletRequest request, HttpServletResponse response) throws IOException {
 		try {
 			runtime.assertReady();
@@ -967,6 +1016,7 @@ public final class StatusServlet extends HttpServlet {
 					|| "/api/v1/project/mappings/export".equals(request.getRequestURI())
 					|| "/api/v1/project/mappings/import".equals(request.getRequestURI())
 					|| "/api/v1/references/query".equals(request.getRequestURI())
+					|| "/api/v1/analysis/control-flow".equals(request.getRequestURI())
 					|| "/api/v1/search".equals(request.getRequestURI())
 					|| "/api/v1/search/build-index".equals(request.getRequestURI())) {
 				try (var parser = json.getFactory().createParser(bytes)) {
@@ -1124,6 +1174,7 @@ public final class StatusServlet extends HttpServlet {
 				|| "/api/v1/project/export".equals(path) || "/api/v1/project/pending-edits/export".equals(path)
 				|| "/api/v1/symbols/resolve".equals(path) || "/api/v1/decompile".equals(path)
 				|| "/api/v1/references/query".equals(path) || "/api/v1/analysis/cfg".equals(path)
+				|| "/api/v1/analysis/control-flow".equals(path)
 				|| "/api/v1/search".equals(path) || "/api/v1/search/build-index".equals(path)
 				|| "/api/v1/edits/batch".equals(path) || "/api/v1/resources/query".equals(path)
 				|| "/api/v1/shutdown".equals(path) || path.matches("/api/v1/jobs/[^/]+/cancel")) {

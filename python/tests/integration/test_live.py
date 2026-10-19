@@ -14,7 +14,7 @@ from libjadx import (
     SearchCursor,
     SymbolRef,
 )
-from libjadx._generated.api.analysis import decompile_java
+from libjadx._generated.api.analysis import decompile_java, get_control_flow_facts
 from libjadx._generated.api.service import get_capabilities, get_liveness
 from libjadx._generated.api.symbols import (
     list_classes,
@@ -205,6 +205,83 @@ async def test_instruction_reference_five_surface_parity(
             sync.project.snapshot().revisions.logical_revision
             == before.revisions.logical_revision
         )
+        assert not sync.project.snapshot().dirty and not list(root.glob("*.jadx"))
+
+
+@pytest.mark.parametrize(
+    "name,descriptor,availability",
+    [
+        ("branchLoop", "(I)I", "AVAILABLE"),
+        ("packed", "(I)I", "AVAILABLE"),
+        ("sparse", "(I)I", "AVAILABLE"),
+        ("array", "()I", "AVAILABLE"),
+        ("catches", "(Ljava/lang/RuntimeException;[I)I", "AVAILABLE"),
+        ("straight", "()I", "AVAILABLE"),
+        ("absent", "()V", "UNAVAILABLE"),
+    ],
+)
+async def test_control_flow_five_surface_and_method_object_parity(
+    service, name, descriptor, availability
+):
+    fixture = Path(__file__).resolve().parents[3] / "build/control-flow-fixture/cfg.dex"
+    ref = SymbolRef.method("Lprobe/CfgCases;", name, descriptor)
+    query = m.ControlFlowRequest(m.MethodSymbolRef.from_dict(ref.to_dict()))
+    with service(input_path=fixture) as (url, root), Client(url) as sync:
+        before = sync.project.snapshot()
+        raw = httpx.post(
+            url + "/api/v1/analysis/control-flow", json=query.to_dict(), trust_env=False
+        )
+        assert raw.status_code == 200
+        expected = raw.json()
+        assert (
+            expected["availability"] == availability
+            and expected["coverage"] == "PARTIAL"
+        )
+        assert expected["precision"] == (
+            "EXACT" if availability == "AVAILABLE" else "UNAVAILABLE"
+        )
+        generated = get_control_flow_facts.sync(client=sync.lowlevel, body=query)
+        assert (
+            isinstance(generated, m.ControlFlowResult)
+            and generated.to_dict() == expected
+        )
+        assert sync.project.control_flow(ref).to_dict() == expected
+        method = sync.project.resolve_object(ref)
+        assert method.control_flow().to_dict() == expected
+        if name == "branchLoop":
+            assert [b.target for b in generated.branches] == [13, 8, 10, 1]
+            assert [b.next_offset for b in generated.branches] == [3, 5, 8, 13]
+        if name in ("packed", "sparse"):
+            switch = generated.switches[0]
+            assert (switch.offset, switch.payload_offset, switch.default_offset) == (
+                1,
+                14,
+                4,
+            )
+            assert [(c.key, c.target) for c in switch.cases] == (
+                [(4, 7), (5, 10)] if name == "packed" else [(-5, 7), (1000, 10)]
+            )
+        with pytest.raises(IncompleteAnalysisError):
+            method.control_flow(strict=True)
+        async with AsyncClient(url) as asynchronous:
+            generated_async = await get_control_flow_facts.asyncio(
+                client=asynchronous.lowlevel, body=query
+            )
+            assert (
+                isinstance(generated_async, m.ControlFlowResult)
+                and generated_async.to_dict() == expected
+            )
+            assert (await asynchronous.project.control_flow(ref)).to_dict() == expected
+            async_method = await asynchronous.project.resolve_object(ref)
+            assert (await async_method.control_flow()).to_dict() == expected
+            with pytest.raises(IncompleteAnalysisError):
+                await async_method.control_flow(strict=True)
+            stale = dict(expected_session_id=str(uuid4()), expected_logical_revision=0)
+            with pytest.raises(StaleRevisionError):
+                await async_method.control_flow(**stale)
+        with pytest.raises(StaleRevisionError):
+            method.control_flow(**stale)
+        assert sync.project.snapshot().revisions == before.revisions
         assert not sync.project.snapshot().dirty and not list(root.glob("*.jadx"))
 
 

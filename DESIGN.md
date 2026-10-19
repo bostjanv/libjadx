@@ -161,7 +161,7 @@ Distinguish `shutdown/close` from filesystem deletion. Since the final design ha
 
 ## 5. Implemented external API contract
 
-All routes have prefix `/api/v1`. There are **no HTTP uploads or dynamic project-open/switch routes**. [OpenAPI](openapi/openapi.yaml) defines the exact 22-operation inventory, schemas and examples; the [README route families](README.md#api) provide a compact map.
+All routes have prefix `/api/v1`. There are **no HTTP uploads or dynamic project-open/switch routes**. [OpenAPI](openapi/openapi.yaml) defines the current 23-operation inventory, schemas and examples; the [README route families](README.md#api) provide a compact map. Historical PR #24 qualification covers its recorded 22 operations, not later additions.
 
 | Scope | Route families / representations |
 | --- | --- |
@@ -241,7 +241,17 @@ verified original-input offsets or Java-source sites. Coverage remains PARTIAL
 and strict queries reject it. Pair-level behavior, serialized reads and native
 persistence are unchanged. See [contract and slice evidence](docs/phase-7-instruction-references.md).
 
-For Phase 7, expose raw/original and transformed/decompiled CFG independently, with `availability`, representation-specific block/edge IDs, provenance and diagnostics. Verify how the pinned Jadx release exposes its original and transformed graphs. A DOT export alone does not prove a stable in-memory CFG API. Do not infer an "exact original CFG" by parsing decompiled Java. Capability reporting may vary per method.
+The Phase 7 [bounded loaded-DEX control-flow facts](docs/phase-7-control-flow-facts.md)
+operation copies branch/switch/payload/try-table operands without graph passes.
+Coordinates are exact loaded-method code units, but semantic coverage is PARTIAL;
+these are not blocks, feasible edges or exhaustive exception dispatch.
+`analysis.cfg` remains UNKNOWN and `/analysis/cfg` unimplemented.
+
+For a future graph API, expose original and transformed CFG independently only
+where proved. The [feasibility gate](docs/phase-7-cfg-feasibility.md) found no
+exposed original graph and a transient normalized/transformed graph. A separately
+proved capture/ownership boundary is required; a DOT export or parsed Java is
+not an exact original CFG. Capability reporting may vary per method.
 
 ### 6.3 Resources and classpath — Phase 7 roadmap
 

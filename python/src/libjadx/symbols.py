@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Unpack
 
 from ._generated.models.class_info import ClassInfo
+from ._generated.models.control_flow_result import ControlFlowResult
 from ._generated.models.edit_batch_result import EditBatchResult
 from ._generated.models.reference_page import ReferencePage
 from ._generated.models.reference_query_direction import ReferenceQueryDirection
@@ -103,6 +104,11 @@ class JavaMethod(_BoundSymbol):
     def decompile(self, *, strict: bool = False) -> SourceResult:
         return self._project.decompile(self.ref, strict=strict)
 
+    def control_flow(
+        self, *, strict: bool = False, **options: Unpack[Preconditions]
+    ) -> ControlFlowResult:
+        return self._project.control_flow(self.ref, strict=strict, **options)
+
 
 class JavaField(_BoundSymbol):
     pass
@@ -149,6 +155,11 @@ class AsyncJavaClass(_AsyncBoundSymbol):
 class AsyncJavaMethod(_AsyncBoundSymbol):
     async def decompile(self, *, strict: bool = False) -> SourceResult:
         return await self._project.decompile(self.ref, strict=strict)
+
+    async def control_flow(
+        self, *, strict: bool = False, **options: Unpack[Preconditions]
+    ) -> ControlFlowResult:
+        return await self._project.control_flow(self.ref, strict=strict, **options)
 
 
 class AsyncJavaField(_AsyncBoundSymbol):

@@ -42,6 +42,12 @@ after Java and synthetic handler links are not exhaustive exception transfers.
 Public `analysis.cfg` and its reserved route remain unchanged. No GUI or release
 qualification is claimed by this investigation.
 
+The follow-on [loaded-DEX control-flow facts](phase-7-control-flow-facts.md) slice
+adds a bounded per-method reader operation and `analysis.loaded_dex_control_flow
+= PARTIAL`. It is not a block graph or original-input/exception-dispatch guarantee.
+All pins and native persistence remain unchanged; PR #24 evidence is historical
+for this newer source, not renewed qualification.
+
 ## Jadx pin
 
 | Component | Pin | Evidence |

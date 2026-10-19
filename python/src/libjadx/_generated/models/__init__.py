@@ -12,6 +12,20 @@ from .capability_status import CapabilityStatus
 from .class_info import ClassInfo
 from .class_info_provenance import ClassInfoProvenance
 from .class_page import ClassPage
+from .control_flow_array_data import ControlFlowArrayData
+from .control_flow_branch import ControlFlowBranch
+from .control_flow_case import ControlFlowCase
+from .control_flow_handler import ControlFlowHandler
+from .control_flow_instruction import ControlFlowInstruction
+from .control_flow_payload import ControlFlowPayload
+from .control_flow_payload_kind import ControlFlowPayloadKind
+from .control_flow_request import ControlFlowRequest
+from .control_flow_result import ControlFlowResult
+from .control_flow_result_availability import ControlFlowResultAvailability
+from .control_flow_result_outcome import ControlFlowResultOutcome
+from .control_flow_result_precision import ControlFlowResultPrecision
+from .control_flow_switch import ControlFlowSwitch
+from .control_flow_try import ControlFlowTry
 from .coverage import Coverage
 from .coverage_status import CoverageStatus
 from .decompile_request import DecompileRequest
@@ -154,6 +168,20 @@ __all__ = (
     "ClassInfo",
     "ClassInfoProvenance",
     "ClassPage",
+    "ControlFlowArrayData",
+    "ControlFlowBranch",
+    "ControlFlowCase",
+    "ControlFlowHandler",
+    "ControlFlowInstruction",
+    "ControlFlowPayload",
+    "ControlFlowPayloadKind",
+    "ControlFlowRequest",
+    "ControlFlowResult",
+    "ControlFlowResultAvailability",
+    "ControlFlowResultOutcome",
+    "ControlFlowResultPrecision",
+    "ControlFlowSwitch",
+    "ControlFlowTry",
     "Coverage",
     "CoverageStatus",
     "DecompileRequest",

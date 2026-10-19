@@ -142,6 +142,17 @@ async def test_operation_inventory_and_vertical_slice(factory, surface):
                 body={"ref": FAN, "direction": "OUTGOING", "strict": True},
                 expected=409,
             )
+            flow = await api.call(
+                "getControlFlowFacts", body={"ref": METHOD}, expected=200
+            )
+            assert (
+                flow["availability"] == "UNAVAILABLE" and flow["coverage"] == "PARTIAL"
+            )
+            await api.call(
+                "getControlFlowFacts",
+                body={"ref": METHOD, "strict": True},
+                expected=409,
+            )
             smali = await api.call(
                 "decompileJava",
                 body={"ref": CLASS, "representation": "SMALI"},
@@ -551,6 +562,112 @@ async def test_loaded_dex_instruction_references(factory, surface):
             assert before["revisions"] == after["revisions"] and not after["dirty"]
         finally:
             await api.close()
+
+
+@pytest.mark.parametrize("surface", SURFACES)
+async def test_control_flow_admission_failures_limits_and_strict(factory, surface):
+    from concurrent.futures import ThreadPoolExecutor
+
+    ref = {
+        "kind": "METHOD",
+        "originalClassDescriptor": "Lprobe/CfgCases;",
+        "originalName": "packed",
+        "originalDescriptor": "(I)I",
+    }
+    operation = "getControlFlowFacts"
+    with factory(kind="flow", holds=("startup",), ready=False) as service:
+        service.entered("startup")
+        api = Surface(service, surface)
+        try:
+            assert (await api.call(operation, body={"ref": ref}, expected=503))[
+                "error"
+            ]["code"] == "PROJECT_NOT_READY"
+            service.release("startup")
+            service.ready()
+            page = await api.call(operation, body={"ref": ref}, expected=200)
+            assert page["availability"] == "AVAILABLE" and page["precision"] == "EXACT"
+            assert page["switches"][0]["cases"] == [
+                {"key": 4, "target": 7},
+                {"key": 5, "target": 10},
+            ]
+            assert (
+                await api.call(
+                    operation, body={"ref": ref, "strict": True}, expected=409
+                )
+            )["error"]["code"] == "INCOMPLETE_ANALYSIS"
+            assert (
+                await api.call(
+                    operation,
+                    body={
+                        "ref": ref,
+                        "expectedSessionId": str(uuid4()),
+                        "expectedLogicalRevision": 0,
+                    },
+                    expected=409,
+                )
+            )["error"]["code"] == "STALE_REVISION"
+            assert (
+                await api.call(
+                    operation,
+                    body={
+                        "ref": ref,
+                        "expectedSessionId": str(uuid4()),
+                        "expectedLogicalRevision": -1,
+                    },
+                    expected=400,
+                )
+            )["error"]["code"] == "INVALID_REQUEST"
+            service.hold("primary-read")
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                held = pool.submit(
+                    service.http.post,
+                    "/api/v1/analysis/control-flow",
+                    json={"ref": ref},
+                )
+                try:
+                    service.entered("primary-read")
+                    assert (await api.call(operation, body={"ref": ref}, expected=409))[
+                        "error"
+                    ]["code"] == "PROJECT_BUSY"
+                finally:
+                    service.release("primary-read")
+                assert held.result(timeout=10).status_code == 200
+        finally:
+            await api.close()
+    for kind, status in (("flow_failed", 200), ("flow_limit", 429)):
+        with factory(kind=kind) as service:
+            api = Surface(service, surface)
+            try:
+                result = await api.call(operation, body={"ref": ref}, expected=status)
+                if kind == "flow_failed":
+                    assert (
+                        result["availability"] == "FAILED"
+                        and result["precision"] == "UNAVAILABLE"
+                    )
+                    assert not any(
+                        result[key]
+                        for key in (
+                            "instructions",
+                            "payloads",
+                            "branches",
+                            "switches",
+                            "arrayData",
+                            "tries",
+                        )
+                    )
+                    strict = await api.call(
+                        operation, body={"ref": ref, "strict": True}, expected=409
+                    )
+                    assert strict["error"]["code"] == "INCOMPLETE_ANALYSIS"
+                else:
+                    assert result["error"]["code"] == "RESOURCE_LIMIT"
+                    assert (
+                        await api.call(
+                            operation, body={"ref": ref, "strict": True}, expected=429
+                        )
+                    )["error"]["code"] == "RESOURCE_LIMIT"
+            finally:
+                await api.close()
 
 
 def test_wrong_methods_fixed_project_and_wire_validation(factory):

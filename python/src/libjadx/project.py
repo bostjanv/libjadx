@@ -5,7 +5,12 @@ from typing import TYPE_CHECKING, TypedDict, Unpack
 from uuid import UUID
 
 from ._common import RevisionCache
-from ._generated.api.analysis import build_search_index, decompile_java, search
+from ._generated.api.analysis import (
+    build_search_index,
+    decompile_java,
+    get_control_flow_facts,
+    search,
+)
 from ._generated.api.project import (
     apply_edit_batch,
     export_mappings,
@@ -20,6 +25,8 @@ from ._generated.api.project import (
 from ._generated.api.symbols import list_classes, query_references, resolve_symbol
 from ._generated.models import (
     ClassPage,
+    ControlFlowRequest,
+    ControlFlowResult,
     DecompileRequest,
     DecompileRequestDecompilationMode,
     DecompileResult,
@@ -368,6 +375,28 @@ class Project(_ProjectBase):
             )
         )
 
+    def control_flow(
+        self,
+        ref: SymbolRef | _Symbol,
+        *,
+        strict: bool = False,
+        **options: Unpack[Preconditions],
+    ) -> ControlFlowResult:
+        """Bounded loaded-DEX facts, not a CFG; no hidden Java generation or save."""
+        method_ref = reference(ref)
+        if method_ref.kind != SymbolRefKind.METHOD:
+            raise ValueError("control_flow requires an original METHOD")
+        session, revision = self._expected(options)
+        body = ControlFlowRequest(
+            MethodSymbolRef.from_dict(method_ref.to_dict()),
+            strict=strict,
+            expected_session_id=session,
+            expected_logical_revision=revision,
+        )
+        return self._client._invoke(
+            get_control_flow_facts, ControlFlowResult, body=body
+        )
+
     def references(
         self,
         ref: SymbolRef | _Symbol,
@@ -704,6 +733,28 @@ class AsyncProject(_ProjectBase):
                     include_raw_debug_lines=include_raw_debug_lines,
                 ),
             )
+        )
+
+    async def control_flow(
+        self,
+        ref: SymbolRef | _Symbol,
+        *,
+        strict: bool = False,
+        **options: Unpack[Preconditions],
+    ) -> ControlFlowResult:
+        """Bounded loaded-DEX facts, not a CFG; no hidden Java generation or save."""
+        method_ref = reference(ref)
+        if method_ref.kind != SymbolRefKind.METHOD:
+            raise ValueError("control_flow requires an original METHOD")
+        session, revision = self._expected(options)
+        body = ControlFlowRequest(
+            MethodSymbolRef.from_dict(method_ref.to_dict()),
+            strict=strict,
+            expected_session_id=session,
+            expected_logical_revision=revision,
+        )
+        return await self._client._invoke(
+            get_control_flow_facts, ControlFlowResult, body=body
         )
 
     async def references(

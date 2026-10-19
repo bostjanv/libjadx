@@ -14,7 +14,7 @@ slice validation is separate from that recorded release qualification.
 - [Project overview, build/run and quick start](../README.md).
 - [Configuration, paths, readiness and shutdown](configuration.md).
 - [Python SDK usage, revisions and explicit save](../python/README.md).
-- [Authoritative 22-operation OpenAPI contract](../openapi/openapi.yaml).
+- [Authoritative 23-operation OpenAPI contract](../openapi/openapi.yaml).
 
 ## Current developer and architecture documentation
 
@@ -54,6 +54,7 @@ versioned PR #24 snapshot remains unchanged.
 | Local rename / `edit.local_rename` | UNSUPPORTED |
 | Smali representation / `code.smali` | PARTIAL; class-level loaded DEX only, no Java metadata/original offsets; non-DEX is UNAVAILABLE |
 | CFG / `analysis.cfg` | UNKNOWN; no public API, Phase 7 |
+| Loaded-DEX control-flow facts / `analysis.loaded_dex_control_flow` | PARTIAL; bounded reader facts, not a CFG; [contract and validation](phase-7-control-flow-facts.md) |
 | Resource query API | Not implemented; Phase 7, no formal resource capability in v0.1 |
 | Parallel primary Jadx reads / `analysis.concurrent_reads` | UNSUPPORTED; serialized, conflicting admission fails PROJECT_BUSY; multiple clients supported |
 | Cancellation / `analysis.cancellation` | PARTIAL/cooperative; CANCELLING remains until work stops, no hard interruption guarantee |
@@ -90,6 +91,11 @@ but Jadx block graphs are normalized, transient and not exhaustive exception-flo
 graphs. It recommends bounded control-flow facts first, not a dual raw/transformed
 CFG API. Public `analysis.cfg` remains UNKNOWN; no CFG implementation or capability
 upgrade is included in this gate.
+
+The implemented follow-on is
+[bounded loaded-DEX control-flow facts](phase-7-control-flow-facts.md): one method,
+reader-only facts, explicit limits and availability, and contract/SDK validation.
+It does not implement a block-graph CFG or upgrade original-input provenance.
 
 ## Historical milestone evidence
 

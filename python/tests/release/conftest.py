@@ -181,6 +181,9 @@ def factory(tmp_path):
             "dex": ROOT / "build/release-fixtures/owned.dex",
             "catch": ROOT / "build/release-fixtures/unused-catch.dex",
             "instruction_refs": ROOT / "build/instruction-reference-fixture/refs.dex",
+            "flow": ROOT / "build/control-flow-fixture/cfg.dex",
+            "flow_failed": ROOT / "build/control-flow-fixture/unknown.dex",
+            "flow_limit": ROOT / "build/control-flow-fixture/unitsLimit.dex",
             "class": ROOT / "build/release-fixtures/small/classes/probe/Unicode.class",
         }
         if kind == "native":

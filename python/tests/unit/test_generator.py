@@ -65,7 +65,7 @@ def test_all_operations_import_sync_async():
         for v in path.values()
         if isinstance(v, dict) and "operationId" in v
     ]
-    assert len(operations) == 22
+    assert len(operations) == 23
     for op in operations:
         name = re.sub(r"(?<!^)(?=[A-Z])", "_", op["operationId"]).lower()
         module = importlib.import_module(

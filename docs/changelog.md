@@ -1,5 +1,21 @@
 # Experimental API changelog
 
+## 2026-10-18 — Bounded loaded-DEX control-flow facts
+
+- New `POST /analysis/control-flow` (`getControlFlowFacts`): one original METHOD,
+  immutable instruction/branch/switch/payload/half-open try-table facts under the
+  serialized primary-read lease. No Java generation or graph passes. Exact
+  loaded-method coordinates are distinct from PARTIAL semantic coverage.
+- AVAILABLE / UNAVAILABLE / FAILED are separate from precision. Malformed scans
+  publish no arrays; fixed resource limits refuse atomically. Resolved strict
+  requests reject PARTIAL coverage. Paired revision preconditions and snapshots
+  bind session, logical revision, publication, settings and observed facts.
+- Generated sync/async transport and handwritten `project.control_flow(ref)` /
+  method-object `control_flow()` access. `analysis.loaded_dex_control_flow` is
+  PARTIAL; `analysis.cfg` remains UNKNOWN and `/analysis/cfg` unimplemented.
+- [Contract, pinned source audit, executed checks and limits](phase-7-control-flow-facts.md).
+  Historical release evidence is unchanged; this slice does not qualify a release.
+
 ## 2026-10-17 — Java completeness maintenance
 
 - Java `/decompile` preserves source but reports PARTIAL for verified Jadx

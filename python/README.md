@@ -99,6 +99,25 @@ cannot be requested in this view. Generated `ReferenceQuery(view=INSTRUCTIONS)`
 also works with existing sync/async `reference_pages` iterators. See the
 [instruction contract and validation](../docs/phase-7-instruction-references.md).
 
+For bounded per-method loaded-DEX control-flow facts (not a CFG):
+
+```python
+ref = SymbolRef.method("Lprobe/CfgCases;", "sparse", "(I)I")
+facts = client.project.control_flow(ref)
+print(facts.availability, facts.precision, facts.coverage)
+method = client.project.resolve_object(ref)
+assert method.control_flow().switches == facts.switches
+# Async: await client.project.control_flow(ref), await method.control_flow().
+```
+
+Generated `get_control_flow_facts.sync` / `.asyncio` return `ControlFlowResult`.
+Handwritten calls accept `strict` and paired `expected_session_id` /
+`expected_logical_revision`, defaulting to the client's observed revision.
+No-code/non-DEX is UNAVAILABLE, malformed scans are atomically FAILED, and limits
+raise `ResourceLimitError`. Exact loaded DEX coordinates do not make semantic
+coverage complete: resolved strict queries raise `IncompleteAnalysisError`.
+See [scope, coordinates and bounds](../docs/phase-7-control-flow-facts.md).
+
 **Edits never autosave.** Call `project.save()` after a native path has been
 established, or explicitly request `client.shutdown(policy="save")`. A first
 save from raw input needs a target. `shutdown("discard")` is explicit too;
