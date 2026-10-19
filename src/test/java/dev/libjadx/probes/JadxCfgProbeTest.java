@@ -36,7 +36,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 /** Evidence-only pinned internal observations, not an implementation of a raw CFG engine. */
-class JadxCfgProbeTest {
+public class JadxCfgProbeTest {
     @TempDir Path dir;
 
     private Path fixture() throws Exception {
@@ -337,12 +337,13 @@ class JadxCfgProbeTest {
         });
     }
 
-    private record Limits(int instructions, int blocks, int edges, long bytes) {
-        static final Limits DEFAULT = new Limits(1024, 512, 2048, 2 * 1024 * 1024);
+    public record Limits(int instructions, int blocks, int edges, long bytes) {
+        public static final Limits DEFAULT = new Limits(1024, 512, 2048, 2 * 1024 * 1024);
     }
     // Pure copied values: no BlockNode, MethodNode, instruction, input visitor, mutable array or collection escapes.
-    private record Node(String id, int start, List<Integer> offsets, List<String> types, boolean synthetic) { }
-    private record Graph(List<Node> nodes, List<String> edges, List<String> cleanEdges, List<String> temporaryEdges,
+    // start/offsets are normalized hints (including synthetic collisions), NOT original ranges.
+    public record Node(String id, int start, List<Integer> offsets, List<String> types, boolean synthetic) { }
+    public record Graph(List<Node> nodes, List<String> edges, List<String> cleanEdges, List<String> temporaryEdges,
                          List<String> branches, List<String> switches, List<String> handlers) {
         List<Integer> offsets() { return nodes.stream().flatMap(n -> n.offsets().stream()).toList(); }
         List<String> types() { return nodes.stream().flatMap(n -> n.types().stream()).toList(); }
@@ -356,7 +357,7 @@ class JadxCfgProbeTest {
         return block.contains(AFlag.SYNTHETIC) ? "S" + block.getCId() : Integer.toString(block.getStartOffset());
     }
 
-    private static Graph graph(MethodNode method, Limits limits) {
+    public static Graph graph(MethodNode method, Limits limits) {
         var blocks = method.getBasicBlocks();
         if (blocks == null) throw new IllegalArgumentException("Graph unavailable");
         long insns = 0, edges = 0;

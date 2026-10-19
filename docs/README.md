@@ -97,9 +97,11 @@ The implemented follow-on is
 reader-only facts, explicit limits and availability, and contract/SDK validation.
 It does not implement a block-graph CFG or upgrade original-input provenance.
 
-Next is the [isolated normalized CFG capture integration gate](phase-7-normalized-cfg-isolation.md).
-It must prove temporary-engine ownership, unsaved/input snapshot validity,
-admission, cleanup and processing-cost limits before any public graph contract.
+The [isolated normalized CFG capture integration gate](phase-7-normalized-cfg-isolation.md)
+is complete locally with a **BLOCKED/DEGRADED** decision. Immutable copies,
+unsaved edit replay and cleanup work; filesystem input/mapping binding,
+save-publication identity and owner/dependency cost admission need a separately
+reviewed follow-on proof. It does not authorize a public graph endpoint.
 
 ## Historical milestone evidence
 
