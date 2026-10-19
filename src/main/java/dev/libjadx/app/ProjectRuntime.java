@@ -374,6 +374,8 @@ public final class ProjectRuntime implements AutoCloseable {
 		long epoch;
 		try (var lease = admit(OperationRequest.temporaryAnalysis(override.fingerprint()))) {
 			// Capture under the coordinator's brief gate, outside lifecycleLock.
+			// Best-effort admission check only: paths are not frozen bytes for the later load.
+			repository.checkAnalysisBaselines();
 			snapshot = repository.snapshot();
 			args = JadxEngineFactory.arguments(inputPaths, repository.mappingsPath(), repository.codeDataCopy(), override);
 			synchronized (lifecycleLock) { epoch = publicationEpoch; }

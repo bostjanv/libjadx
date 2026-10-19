@@ -35,11 +35,62 @@ import dev.libjadx.scheduler.ProjectBusyException;
 import jadx.api.JadxDecompiler;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class DecompileEndpointsTest {
 	private static final ObjectMapper JSON = new ObjectMapper();
 	private static final HttpClient HTTP = HttpClient.newHttpClient();
 	@TempDir Path dir;
+	@TempDir Path outsideRoot;
+
+	@ParameterizedTest
+	@ValueSource(strings = {"INPUT", "SECOND_INPUT", "MAPPING", "DELETED_INPUT", "DELETED_MAPPING", "INPUT_SYMLINK", "MAPPING_SYMLINK"})
+	void temporaryModeRejectsChangedAnalysisFilesAndRetainsPendingEdits(String change) throws Exception {
+		Path fixture = Path.of("tests/fixtures/native-project").toAbsolutePath();
+		for (String file : List.of("sample.jar.jadx", "sample.jar", "second.jar", "sample.tiny"))
+			Files.copy(fixture.resolve(file), dir.resolve(file));
+		Path path = dir.resolve("sample.jar.jadx");
+		byte[] nativeBefore = Files.readAllBytes(path);
+		NativeProjectDocument document = NativeProjectDocument.open(path);
+		try (var runtime = new ProjectRuntime(path, document.getInputFiles(), List.of(dir));
+				var server = new HttpApiServer("127.0.0.1", 0, runtime)) {
+			server.start(); runtime.initializeAsync(document).get(20, TimeUnit.SECONDS);
+			SymbolRef sample = SymbolRef.classRef("Lprobe/Sample;");
+			new EditBatchService(runtime).apply(new EditDtos.Request(null, null, List.of(
+					new EditDtos.Operation(EditDtos.Kind.RENAME, sample, "PendingAlias", null, null))));
+			String sourceRef = ref("CLASS", "Lprobe/Sample;", null, null);
+			JsonNode primary = success(server, sourceRef);
+			var before = runtime.projectSnapshot();
+			var pending = runtime.pendingEdits();
+			var identity = runtime.searchIdentity();
+			Path changed = dir.resolve(change.contains("MAPPING") ? "sample.tiny"
+					: change.equals("SECOND_INPUT") ? "second.jar" : "sample.jar");
+			byte[] accepted = Files.readAllBytes(changed);
+			boolean symlink = change.endsWith("SYMLINK");
+			if (symlink) {
+				Path outside = Files.copy(changed, outsideRoot.resolve(changed.getFileName()));
+				Files.delete(changed); Files.createSymbolicLink(changed, outside);
+			} else if (change.startsWith("DELETED")) Files.delete(changed);
+			else Files.writeString(changed, "\n", java.nio.file.StandardOpenOption.APPEND);
+			try {
+				assertError(post(server, "{\"ref\":" + sourceRef + ",\"decompilationMode\":\"SIMPLE\"}"),
+						symlink ? 403 : 409, symlink ? "INPUT_SECURITY_REJECTION" : "EXTERNAL_MODIFICATION_CONFLICT");
+				assertEquals(before, runtime.projectSnapshot());
+				assertEquals(pending, runtime.pendingEdits());
+				assertEquals(identity, runtime.searchIdentity());
+				assertEquals(primary, success(server, sourceRef));
+				assertArrayEquals(nativeBefore, Files.readAllBytes(path));
+			} finally { Files.deleteIfExists(changed); Files.write(changed, accepted); }
+			JsonNode restored = body(post(server, "{\"ref\":" + sourceRef + ",\"decompilationMode\":\"SIMPLE\"}"));
+			assertEquals("RESOLVED", restored.path("outcome").asText(), restored.toPrettyString());
+			assertTrue(restored.path("source").asText().contains("PendingAlias"));
+			assertEquals(before, runtime.projectSnapshot());
+			// Temporary analysis uses in-memory native edits, not externally edited project JSON.
+			Files.writeString(path, "\n", java.nio.file.StandardOpenOption.APPEND);
+			assertEquals(restored, body(post(server, "{\"ref\":" + sourceRef + ",\"decompilationMode\":\"SIMPLE\"}")));
+		}
+	}
 
 	@Test
 	void realJavaFailuresRemainPartialAfterCodegenWithoutPoisoningHealthyOwners() throws Exception {

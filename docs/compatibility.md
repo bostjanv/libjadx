@@ -48,6 +48,11 @@ adds a bounded per-method reader operation and `analysis.loaded_dex_control_flow
 All pins and native persistence remain unchanged; PR #24 evidence is historical
 for this newer source, not renewed qualification.
 
+The [temporary-analysis baseline maintenance](temporary-analysis-baselines.md)
+adds admission-time conflict/security refusal before loading a non-primary mode.
+Pins, capability statuses and native persistence are unchanged. This is not
+immutable filesystem ownership or renewed release/GUI qualification.
+
 ## Jadx pin
 
 | Component | Pin | Evidence |

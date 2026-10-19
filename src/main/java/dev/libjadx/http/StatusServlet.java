@@ -814,6 +814,10 @@ public final class StatusServlet extends HttpServlet {
 		} catch (JadxSourceAdapter.SourceLimitException | JadxSourceAdapter.AnnotationLimitException
 				| JadxSymbolAdapter.CatalogLimitException limit) {
 			writeError(response, 429, "RESOURCE_LIMIT", "Source or metadata exceeds synchronous response limits");
+		} catch (NativeProjectRepository.ExternalModificationException conflict) {
+			writeError(response, 409, "EXTERNAL_MODIFICATION_CONFLICT", conflict.getMessage());
+		} catch (SecurityException denied) {
+			writeError(response, 403, "INPUT_SECURITY_REJECTION", denied.getMessage());
 		} catch (IllegalArgumentException invalid) {
 			writeError(response, 400, "INVALID_REQUEST", invalid.getMessage());
 		} catch (Exception failure) {

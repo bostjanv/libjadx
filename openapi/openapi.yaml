@@ -698,6 +698,14 @@ paths:
         isolated-engine routing/provenance but does not transform DEX text.
         Smali does not enter Java source search. Snapshot preconditions are
         representation-scoped; the operation ID is retained for compatibility.
+        Before loading an isolated engine for a non-primary decompilation mode,
+        all configured inputs and attached mappings are checked against the
+        accepted analysis baselines. Changed or removed files return 409
+        EXTERNAL_MODIFICATION_CONFLICT; explicitly reload to accept new bytes.
+        Outside-root references return 403 INPUT_SECURITY_REJECTION. Refusal
+        retains the primary and pending edits. This is admission-time best-effort
+        validation, not frozen filesystem bytes: changes after the check remain
+        possible. Primary-mode reads use already loaded state without this check.
       requestBody:
         required: true
         content:
@@ -723,6 +731,7 @@ paths:
                 smali: { externalValue: ./examples/decompile-smali.json }
                 smaliUnavailable: { externalValue: ./examples/decompile-smali-unavailable.json }
         '400': { $ref: '#/components/responses/ApiErrorResponse' }
+        '403': { $ref: '#/components/responses/ApiErrorResponse' }
         '409': { $ref: '#/components/responses/ApiErrorResponse' }
         '415': { $ref: '#/components/responses/ApiErrorResponse' }
         '422': { $ref: '#/components/responses/ApiErrorResponse' }

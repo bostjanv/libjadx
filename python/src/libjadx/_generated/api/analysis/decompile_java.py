@@ -43,6 +43,11 @@ def _parse_response(
 
         return response_400
 
+    if response.status_code == 403:
+        response_403 = ErrorEnvelope.from_dict(response.json())
+
+        return response_403
+
     if response.status_code == 409:
         response_409 = ErrorEnvelope.from_dict(response.json())
 
@@ -113,7 +118,13 @@ def sync_detailed(
     mappings and original offsets are unavailable; strict text-only Smali requires includeAnnotations
     false. Decompilation mode retains existing isolated-engine routing/provenance but does not transform
     DEX text. Smali does not enter Java source search. Snapshot preconditions are representation-scoped;
-    the operation ID is retained for compatibility.
+    the operation ID is retained for compatibility. Before loading an isolated engine for a non-primary
+    decompilation mode, all configured inputs and attached mappings are checked against the accepted
+    analysis baselines. Changed or removed files return 409 EXTERNAL_MODIFICATION_CONFLICT; explicitly
+    reload to accept new bytes. Outside-root references return 403 INPUT_SECURITY_REJECTION. Refusal
+    retains the primary and pending edits. This is admission-time best-effort validation, not frozen
+    filesystem bytes: changes after the check remain possible. Primary-mode reads use already loaded
+    state without this check.
 
     Args:
         body (DecompileRequest): Only CLASS and METHOD refs are accepted. Revision preconditions
@@ -165,7 +176,13 @@ def sync(
     mappings and original offsets are unavailable; strict text-only Smali requires includeAnnotations
     false. Decompilation mode retains existing isolated-engine routing/provenance but does not transform
     DEX text. Smali does not enter Java source search. Snapshot preconditions are representation-scoped;
-    the operation ID is retained for compatibility.
+    the operation ID is retained for compatibility. Before loading an isolated engine for a non-primary
+    decompilation mode, all configured inputs and attached mappings are checked against the accepted
+    analysis baselines. Changed or removed files return 409 EXTERNAL_MODIFICATION_CONFLICT; explicitly
+    reload to accept new bytes. Outside-root references return 403 INPUT_SECURITY_REJECTION. Refusal
+    retains the primary and pending edits. This is admission-time best-effort validation, not frozen
+    filesystem bytes: changes after the check remain possible. Primary-mode reads use already loaded
+    state without this check.
 
     Args:
         body (DecompileRequest): Only CLASS and METHOD refs are accepted. Revision preconditions
@@ -212,7 +229,13 @@ async def asyncio_detailed(
     mappings and original offsets are unavailable; strict text-only Smali requires includeAnnotations
     false. Decompilation mode retains existing isolated-engine routing/provenance but does not transform
     DEX text. Smali does not enter Java source search. Snapshot preconditions are representation-scoped;
-    the operation ID is retained for compatibility.
+    the operation ID is retained for compatibility. Before loading an isolated engine for a non-primary
+    decompilation mode, all configured inputs and attached mappings are checked against the accepted
+    analysis baselines. Changed or removed files return 409 EXTERNAL_MODIFICATION_CONFLICT; explicitly
+    reload to accept new bytes. Outside-root references return 403 INPUT_SECURITY_REJECTION. Refusal
+    retains the primary and pending edits. This is admission-time best-effort validation, not frozen
+    filesystem bytes: changes after the check remain possible. Primary-mode reads use already loaded
+    state without this check.
 
     Args:
         body (DecompileRequest): Only CLASS and METHOD refs are accepted. Revision preconditions
@@ -262,7 +285,13 @@ async def asyncio(
     mappings and original offsets are unavailable; strict text-only Smali requires includeAnnotations
     false. Decompilation mode retains existing isolated-engine routing/provenance but does not transform
     DEX text. Smali does not enter Java source search. Snapshot preconditions are representation-scoped;
-    the operation ID is retained for compatibility.
+    the operation ID is retained for compatibility. Before loading an isolated engine for a non-primary
+    decompilation mode, all configured inputs and attached mappings are checked against the accepted
+    analysis baselines. Changed or removed files return 409 EXTERNAL_MODIFICATION_CONFLICT; explicitly
+    reload to accept new bytes. Outside-root references return 403 INPUT_SECURITY_REJECTION. Refusal
+    retains the primary and pending edits. This is admission-time best-effort validation, not frozen
+    filesystem bytes: changes after the check remain possible. Primary-mode reads use already loaded
+    state without this check.
 
     Args:
         body (DecompileRequest): Only CLASS and METHOD refs are accepted. Revision preconditions

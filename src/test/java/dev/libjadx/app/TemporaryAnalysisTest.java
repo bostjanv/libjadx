@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import dev.libjadx.core.EffectiveAnalysisConfig;
 import dev.libjadx.project.NativeProjectDocument;
+import dev.libjadx.project.NativeProjectRepository;
 import dev.libjadx.scheduler.ProjectBusyException;
 import jadx.api.data.impl.JadxCodeComment;
 import jadx.api.data.impl.JadxCodeRename;
@@ -26,6 +27,46 @@ import org.junit.jupiter.api.io.TempDir;
 
 class TemporaryAnalysisTest {
 	@TempDir Path dir;
+
+	@Test
+	void rawInputAndUnsavedMappingAttachmentUseAcceptedBaselinesUntilExplicitReload() throws Exception {
+		Path fixture = Path.of("tests/fixtures/native-project").toAbsolutePath();
+		Path input = Files.copy(fixture.resolve("second.jar"), dir.resolve("second.jar"));
+		Path mapping = Files.copy(fixture.resolve("sample.tiny"), dir.resolve("attached.tiny"));
+		AtomicInteger creations = new AtomicInteger();
+		try (var runtime = new ProjectRuntime(null, List.of(input), args -> {
+			creations.incrementAndGet();
+			return new ProjectRuntime.JadxProjectEngine(args);
+		})) {
+			runtime.initializeAsync(null).get(20, TimeUnit.SECONDS);
+			byte[] accepted = Files.readAllBytes(input);
+			Files.writeString(input, "\n", java.nio.file.StandardOpenOption.APPEND);
+			assertThrows(NativeProjectRepository.ExternalModificationException.class,
+					() -> runtime.withTemporaryAnalysis(new EffectiveAnalysisConfig("SIMPLE"), jadx -> "unexpected"));
+			assertEquals(1, creations.get());
+			Files.write(input, accepted);
+			runtime.saveProject(dir.resolve("saved.jadx"), null);
+			var revision = runtime.projectSnapshot().revisions();
+			runtime.updateMappingsPath(mapping, revision.sessionId(), revision.logicalRevision());
+			String renamed = runtime.withTemporaryAnalysis(new EffectiveAnalysisConfig("RESTRUCTURE"), jadx ->
+					jadx.searchJavaClassByOrigFullName("probe.Second").getFullName()).value();
+			assertEquals("probe.RenamedSecond", renamed);
+			var before = runtime.projectSnapshot();
+			int engines = creations.get();
+			Files.writeString(mapping, Files.readString(mapping).replace("RenamedSecond", "ChangedSecond"));
+			assertThrows(NativeProjectRepository.ExternalModificationException.class,
+					() -> runtime.withTemporaryAnalysis(new EffectiveAnalysisConfig("RESTRUCTURE"), jadx -> "unexpected"));
+			assertEquals(engines, creations.get());
+			assertEquals(before, runtime.projectSnapshot());
+			Files.copy(fixture.resolve("sample.tiny"), mapping, StandardCopyOption.REPLACE_EXISTING);
+			runtime.saveProject(dir.resolve("saved.jadx"), null);
+			Files.writeString(mapping, Files.readString(mapping).replace("RenamedSecond", "ChangedSecond"));
+			revision = runtime.projectSnapshot().revisions();
+			runtime.reloadProject(false, revision.sessionId(), revision.logicalRevision());
+			assertEquals("probe.ChangedSecond", runtime.withTemporaryAnalysis(new EffectiveAnalysisConfig("RESTRUCTURE"),
+					jadx -> jadx.searchJavaClassByOrigFullName("probe.Second").getFullName()).value());
+		}
+	}
 
 	@Test
 	void overrideUsesUnsavedDeepSnapshotAndDoesNotChangePrimary() throws Exception {

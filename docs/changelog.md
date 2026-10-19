@@ -1,5 +1,16 @@
 # Experimental API changelog
 
+## 2026-10-19 — Temporary-analysis baseline admission
+
+- Non-primary-mode `/decompile` requests validate all accepted input and attached
+  mapping baselines before temporary snapshot capture. Changed/deleted files
+  return 409 EXTERNAL_MODIFICATION_CONFLICT; outside-root references return 403
+  INPUT_SECURITY_REJECTION. Primary loaded state and pending edits are retained.
+- Generated transport includes the 403 error decoder. No endpoint, model shape,
+  capability, persistence or pin changes. This is best-effort admission validation,
+  not frozen bytes or a fix for changes during loading. Public CFG remains deferred.
+- [Work item, remaining work and executed validation](temporary-analysis-baselines.md).
+
 ## 2026-10-18 — Bounded loaded-DEX control-flow facts
 
 - New `POST /analysis/control-flow` (`getControlFlowFacts`): one original METHOD,

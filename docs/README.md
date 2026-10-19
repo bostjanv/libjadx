@@ -25,6 +25,9 @@ slice validation is separate from that recorded release qualification.
 - [Python SDK architecture](phase-6-python-sdk.md): current generator/handwritten boundaries, with PR #21 validation history distinguished from current PR #24 qualification.
 - [Java completeness maintenance](java-completeness.md): retained Jadx failures,
   PARTIAL/strict reporting, healthy controls and cross-client regression evidence.
+- [Temporary-analysis baseline admission](temporary-analysis-baselines.md):
+  reject already changed input/mapping files while retaining unsaved edits;
+  during-load filesystem races remain a separate ownership-design blocker.
 
 ## Compatibility and capabilities
 

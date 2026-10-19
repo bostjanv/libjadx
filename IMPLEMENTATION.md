@@ -309,6 +309,12 @@ The v0.1 vertical slice has passed. The following are post-v0.1 roadmap items:
 7. **Optional process-isolated analysis:** preserve the internal engine boundary for later worker JVMs if proven necessary. Do not implement process-per-project prematurely; one fixed primary project remains the product contract.
 8. **Optional explicit filesystem deletion:** review separately. There is no managed workspace to remove; any destructive CLI/API operation must preview exact native files, require explicit authorization and never infer deletion of original inputs.
 
+Follow-on maintenance: [temporary-analysis baseline admission](docs/temporary-analysis-baselines.md)
+rejects input/mapping changes already present at temporary snapshot capture.
+This best-effort guard does not solve the CFG gate's during-load filesystem races
+or authorize a public graph endpoint. Owned input bytes, aggregate admission and
+graph identity remain the next proof/design work.
+
 ## 9. Current regression matrix and future fixtures
 
 Maintain **owned** or redistributable fixtures. The completed qualification uses class/JAR/DEX/native fixtures. The list below also retains future APK/resource, malformed/large-input and dependency fixture goals; bundled plugin availability is not release qualification:

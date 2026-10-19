@@ -126,7 +126,38 @@ async def test_external_file_conflict_retains_pending_native_state(factory, surf
                 expected=200,
             )
             before = service.http.get("/api/v1/project").json()
+            request = {"ref": ref, "decompilationMode": "RESTRUCTURE"}
             native = service.root / "sample.jar.jadx"
+            native_before = native.read_bytes()
+            for filename in ("second.jar", "sample.tiny"):
+                path = service.root / filename
+                accepted = path.read_bytes()
+                for outside_root in (False, True):
+                    if outside_root:
+                        outside = service.root.parent / filename
+                        outside.write_bytes(accepted)
+                        path.unlink()
+                        path.symlink_to(outside)
+                    else:
+                        path.write_bytes(accepted + b"\n")
+                    try:
+                        result = await api.call(
+                            "decompileJava",
+                            body=request,
+                            expected=403 if outside_root else 409,
+                        )
+                        assert result["error"]["code"] == (
+                            "INPUT_SECURITY_REJECTION"
+                            if outside_root
+                            else "EXTERNAL_MODIFICATION_CONFLICT"
+                        )
+                        assert service.http.get("/api/v1/project").json() == before
+                        assert native.read_bytes() == native_before
+                    finally:
+                        path.unlink()
+                        path.write_bytes(accepted)
+                restored = await api.call("decompileJava", body=request, expected=200)
+                assert "PendingExternal" in restored["source"]
             external = native.read_bytes() + b"\n"
             native.write_bytes(external)
             result = await api.call("saveProject", body=pre(service), expected=409)
