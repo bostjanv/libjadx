@@ -106,6 +106,14 @@ unsaved edit replay and cleanup work; filesystem input/mapping binding,
 save-publication identity and owner/dependency cost admission need a separately
 reviewed follow-on proof. It does not authorize a public graph endpoint.
 
+The test-only
+[owned DEX input and aggregate-admission gate](phase-7-owned-dex-admission.md)
+is complete locally with a **BLOCKED/DEGRADED** decision. Bounded captured bytes,
+aggregate structural refusal and observation binding work on the small plain-DEX
+subset, but inputless loading skips native declaration renames. Its retained
+counterexample and source audit define the next initialization/baseline/census
+design review. Production loading and public CFG support remain unchanged.
+
 ## Historical milestone evidence
 
 Historical files are retained as evidence of decisions and tests at that point

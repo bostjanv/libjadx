@@ -312,8 +312,13 @@ The v0.1 vertical slice has passed. The following are post-v0.1 roadmap items:
 Follow-on maintenance: [temporary-analysis baseline admission](docs/temporary-analysis-baselines.md)
 rejects input/mapping changes already present at temporary snapshot capture.
 This best-effort guard does not solve the CFG gate's during-load filesystem races
-or authorize a public graph endpoint. Owned input bytes, aggregate admission and
-graph identity remain the next proof/design work.
+or authorize a public graph endpoint. The test-only
+[owned DEX input and aggregate-admission gate](docs/phase-7-owned-dex-admission.md)
+is complete locally with a **BLOCKED/DEGRADED** decision: admitted buffers feed
+real loading and structural limits precede graph passes, but inputless Jadx skips
+native declaration rename initialization. Next requires review of inputless
+initialization, accepted-baseline access and same-owned-data census integration,
+not a public CFG endpoint or an unreviewed production loading change.
 
 ## 9. Current regression matrix and future fixtures
 

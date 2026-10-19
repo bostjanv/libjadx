@@ -53,6 +53,11 @@ adds admission-time conflict/security refusal before loading a non-primary mode.
 Pins, capability statuses and native persistence are unchanged. This is not
 immutable filesystem ownership or renewed release/GUI qualification.
 
+The test-only [owned DEX admission gate](phase-7-owned-dex-admission.md) feeds
+bounded admitted buffers through real 1.5.6 loading, but empty input paths skip
+native declaration rename initialization. Its BLOCKED/DEGRADED outcome does not
+change production loaders, capabilities, persistence, pins or qualification.
+
 ## Jadx pin
 
 | Component | Pin | Evidence |

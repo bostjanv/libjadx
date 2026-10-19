@@ -37,11 +37,13 @@ inputs can extend PROJECT_BUSY admission time. No runtime/heap bound is added.
 
 ## Remaining work
 
-1. Review bounded owned input bytes actually fed to the pinned loader, initially
-   small plain DEX with no external mappings unless equally owned. This ownership
-   adjustment is not implemented or approved by this maintenance item.
-2. Prove aggregate project/owner/dependency admission before normalized graph
-   processing, then define independent graph publication/content provenance.
+1. Review the completed test-only
+   [owned DEX input and aggregate-admission gate](phase-7-owned-dex-admission.md).
+   Its BLOCKED/DEGRADED result proves structural admission and consumed-byte
+   binding on a small subset, but inputless loading skips native renames.
+2. Resolve inputless initialization, accepted-baseline access and same-owned-data
+   census integration in a separately reviewed design. Production ownership and
+   independent public graph publication/content provenance remain unimplemented.
 3. Only after those gates, prepare an OpenAPI-first normalized CFG slice.
 4. Other Phase 7 work remains: deeper references/representations, annotations,
    resources/classpaths and portable native export. Local rename remains
