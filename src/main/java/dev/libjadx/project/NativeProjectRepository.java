@@ -90,6 +90,23 @@ public final class NativeProjectRepository {
 		return document == null ? null : document.getMappingsPath();
 	}
 
+	/** Internal acquisition metadata, not a freshly observed filesystem baseline. No IO here.
+	 * Call alongside the native edit/revision snapshot under the runtime capture lease. */
+	public synchronized AcceptedInputs acceptedInputs() {
+		var accepted = new ArrayList<AcceptedInput>(inputs.size());
+		for (int i = 0; i < inputs.size(); i++) accepted.add(new AcceptedInput(inputs.get(i), inputBaselines.get(i)));
+		return new AcceptedInputs(accepted, allowedRoots, mappingsPath() != null);
+	}
+
+	public record AcceptedInput(Path path, FileFingerprint fingerprint) {
+		public AcceptedInput {
+			if (!fingerprint.present()) throw new IllegalArgumentException("Present accepted input required");
+		}
+	}
+	public record AcceptedInputs(List<AcceptedInput> inputs, List<Path> allowedRoots, boolean mappingsAttached) {
+		public AcceptedInputs { inputs = List.copyOf(inputs); allowedRoots = List.copyOf(allowedRoots); }
+	}
+
 	/** Accepted analysis bytes, independent of the asynchronously refreshed persisted identity.
 	 * Ordinary edits and saves never accept new input bytes; only explicit reload does. */
 	public synchronized void checkAnalysisBaselines() throws IOException {

@@ -114,9 +114,11 @@ subset, but inputless loading skips native declaration renames. Its retained
 counterexample remains unchanged. The follow-on
 [initialization and integration design](phase-7-owned-input-initialization.md)
 proves a test-only pin-specific native replay candidate and specifies immutable
-accepted-baseline access and same-owned-data census integration for review.
-Production loading and public CFG support remain unchanged; internal ownership
-integration and filesystem containment still precede any public graph contract.
+accepted-baseline access and same-owned-data census integration. The approved
+[internal integration gate](phase-7-owned-input-integration.md) now implements
+these boundaries together, off public routes. Primary/path-based Java loading
+and public CFG support remain unchanged. Filesystem-containment review and race
+probes still precede a separately reviewed public graph contract.
 
 ## Historical milestone evidence
 

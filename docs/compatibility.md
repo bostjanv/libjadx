@@ -61,8 +61,11 @@ change production loaders, capabilities, persistence, pins or qualification.
 The follow-on [initialization design](phase-7-owned-input-initialization.md)
 proves test-only native replay parity in AUTO/RESTRUCTURE through a pin-specific
 prepare pass invoking the complete private rename pipeline. Initialization must
-be checked outside Jadx's exception-swallowing boundary. Production baseline/
-census integration remains proposed and requires review; no public CFG upgrade.
+be checked outside Jadx's exception-swallowing boundary. The approved
+[internal owned-input integration](phase-7-owned-input-integration.md) now
+captures accepted repository baselines and supplies the same private readers to
+census and temporary loading. It is not wired to HTTP or existing loading paths;
+filesystem-containment limits remain, with no public CFG or qualification upgrade.
 
 ## Jadx pin
 

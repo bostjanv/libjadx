@@ -396,6 +396,33 @@ public final class ProjectRuntime implements AutoCloseable {
 	record TemporarySourceRead(JadxDecompiler decompiler, dev.libjadx.core.RevisionState revisions,
 			long publicationEpoch, EffectiveAnalysisConfig settings) { }
 
+	/** Internal owned-input integration gate only; deliberately not reachable from HTTP.
+	 * Unlike path-based Java overrides, bounded acquisition itself checks accepted hashes. */
+	<T> T withOwnedDexRead(EffectiveAnalysisConfig override, Function<OwnedDexRead, T> operation) throws Exception {
+		try (var lease = admit(OperationRequest.temporaryAnalysis(override.fingerprint()))) {
+			var accepted = repository.acceptedInputs();
+			var snapshot = repository.snapshot();
+			var args = JadxEngineFactory.arguments(List.of(), null, repository.codeDataCopy(), override);
+			long epoch;
+			synchronized (lifecycleLock) { epoch = publicationEpoch; }
+			lease.finishSnapshotCapture();
+			try (var owned = dev.libjadx.jadxadapter.OwnedDexAnalysis.acquire(accepted)) {
+				owned.load(args);
+				return operation.apply(new OwnedDexRead(owned.decompiler(), owned.census(), snapshot.revisions(),
+						epoch, override, accepted.inputs()));
+			}
+		}
+	}
+
+	/** Borrowed engine; return only immutable copies. Consumed inputs retain ordered, repeated slots.
+	 * Publication identity is not graph identity; callers must bind original method/representation
+	 * and any graph-content digest separately. No owned hierarchy mutation authority is provided. */
+	record OwnedDexRead(JadxDecompiler decompiler, dev.libjadx.core.hierarchy.InputCensus census,
+			dev.libjadx.core.RevisionState revisions, long publicationEpoch, EffectiveAnalysisConfig settings,
+			List<NativeProjectRepository.AcceptedInput> consumedInputs) {
+		OwnedDexRead { consumedInputs = List.copyOf(consumedInputs); }
+	}
+
 	private static String sourceSnapshotId(ProjectSnapshot snapshot, EffectiveAnalysisConfig config) {
 		try {
 			var digest = java.security.MessageDigest.getInstance("SHA-256");

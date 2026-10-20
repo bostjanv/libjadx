@@ -214,11 +214,40 @@ class NativeProjectRepositoryTest {
 		AtomicReference<Runnable> delayedHash = new AtomicReference<>();
 		NativeProjectRepository pending = NativeProjectRepository.open(project, List.of(dir), delayedHash::set);
 		assertEquals("PENDING", pending.snapshot().revisions().persistedIdentityState());
+		var accepted = pending.acceptedInputs();
+		assertEquals(List.of(large.toRealPath()), accepted.inputs().stream().map(NativeProjectRepository.AcceptedInput::path).toList());
+		assertEquals(FileFingerprint.of(large), accepted.inputs().getFirst().fingerprint());
+		assertTrue(accepted.mappingsAttached());
 		pending.commitMappingsPath(pending.stageMappingsPath(secondMapping, 0));
 		assertTrue(pending.snapshot().dirty());
 		delayedHash.get().run();
 		assertEquals("READY", pending.snapshot().revisions().persistedIdentityState());
 		assertEquals(expectedIdentity, pending.snapshot().revisions().persistedIdentity());
+	}
+
+	@Test void acceptedInputMetadataIsOrderedImmutableAndNeverRehashesOrAcceptsChangedFiles() throws Exception {
+		Path first = Files.writeString(dir.resolve("first.dex"), "first accepted");
+		Path second = Files.writeString(dir.resolve("second.dex"), "second accepted");
+		var raw = NativeProjectRepository.fromInputs(List.of(first, second, first), List.of(dir));
+		var accepted = raw.acceptedInputs();
+		assertEquals(List.of(first, second, first), accepted.inputs().stream().map(NativeProjectRepository.AcceptedInput::path).toList());
+		assertFalse(accepted.mappingsAttached());
+		assertThrows(UnsupportedOperationException.class, () -> accepted.inputs().clear());
+		assertThrows(UnsupportedOperationException.class, () -> accepted.allowedRoots().clear());
+		Path project = dir.resolve("inputs.jadx"); raw.save(project, 0L);
+		var nativeRepository = NativeProjectRepository.open(project, List.of(dir));
+		assertEquals(accepted, nativeRepository.acceptedInputs());
+		Files.delete(second);
+		assertEquals(accepted, raw.acceptedInputs(), "Metadata capture performs no filesystem IO, even for deleted inputs");
+		Files.writeString(second, "changed input");
+		assertEquals(accepted, nativeRepository.acceptedInputs());
+		assertThrows(NativeProjectRepository.ExternalModificationException.class, nativeRepository::checkAnalysisBaselines);
+		assertThrows(NativeProjectRepository.ExternalModificationException.class, () -> nativeRepository.save(null, null));
+		var revision = nativeRepository.snapshot().revisions();
+		nativeRepository.commitReload(nativeRepository.prepareReload(false, revision.sessionId(), revision.logicalRevision()));
+		assertEquals(FileFingerprint.of(second), nativeRepository.acceptedInputs().inputs().get(1).fingerprint());
+		assertFalse(accepted.equals(nativeRepository.acceptedInputs()));
+		assertEquals(accepted, raw.acceptedInputs(), "Reload in another repository cannot change a captured baseline");
 	}
 
 	private Path fixture() throws Exception {

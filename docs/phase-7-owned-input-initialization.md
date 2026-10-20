@@ -1,11 +1,12 @@
 # Phase 7 — Owned-input initialization and integration design
 
-**Status:** design proposal with executable initialization probes, completed
-locally on 2026-10-19; **not approved or implemented in production**. This is the
-follow-on to the [owned DEX admission gate](phase-7-owned-dex-admission.md).
-The pin-specific candidate removes that experiment's native-initialization
-blocker on the tested subset. Accepted-baseline access and same-owned-data
-census integration below remain proposed changes, not passed production gates.
+**Status:** original design proposal and executable initialization probes,
+completed locally on 2026-10-19. The subsequent
+[internal integration gate](phase-7-owned-input-integration.md) implements the
+accepted-baseline, owned-census and initialization boundaries after explicit
+[human approval](https://ampcode.com/threads/T-01a15645-d946-74f4-8fe1-51ce4c0d53dc).
+The proposal, proof obligations and validation below retain their original scope
+and delivery state; consult the integration report for current implementation.
 `analysis.cfg` remains UNKNOWN and `/analysis/cfg` unimplemented.
 
 ## Decision proposed for review

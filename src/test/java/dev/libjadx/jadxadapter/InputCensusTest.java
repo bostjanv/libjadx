@@ -20,6 +20,111 @@ import org.junit.jupiter.params.provider.ValueSource;
 class InputCensusTest {
 	@TempDir Path dir;
 
+	private record Owned(List<Path> paths, List<byte[]> bytes, List<jadx.plugins.input.dex.DexReader> readers,
+			List<dev.libjadx.core.hierarchy.InputCensus.InputOrigin> origins, List<Integer> sizes) {
+		JadxInputCensusAdapter.Capture capture(CensusLimits limits) {
+			return JadxInputCensusAdapter.captureOwned(readers, origins, sizes, limits);
+		}
+	}
+	private Owned owned() throws Exception {
+		Path one = HierarchyFixture.dex(dir, "one.dex", HierarchyFixture.smali("Lowned/D;", "Lowned/P;", "public", "first")
+				.replace(".super Lowned/P;", ".super Lowned/P;\n.implements Lowned/I;")
+				+ ".method protected second()V\n.registers 1\nreturn-void\n.end method\n");
+		Path two = HierarchyFixture.dex(dir, "two.dex", HierarchyFixture.smali("Lowned/D;", "Ljava/lang/Object;", "protected final", "other")
+				.replace(".class public", ".class public final"));
+		var paths = List.of(one.toRealPath(), two.toRealPath(), one.toRealPath());
+		var bytes = new ArrayList<byte[]>();
+		var readers = new ArrayList<jadx.plugins.input.dex.DexReader>();
+		var origins = new ArrayList<dev.libjadx.core.hierarchy.InputCensus.InputOrigin>();
+		var options = new jadx.plugins.input.dex.DexInputOptions(); options.setOptions(Map.of());
+		for (int i = 0; i < paths.size(); i++) {
+			bytes.add(Files.readAllBytes(paths.get(i)));
+			readers.addAll(new jadx.plugins.input.dex.DexFileLoader(options).loadDexReaders(paths.get(i).toString(), bytes.get(i)));
+			origins.add(new dev.libjadx.core.hierarchy.InputCensus.InputOrigin(i, paths.get(i).toString()));
+		}
+		return new Owned(paths, bytes, readers, origins, bytes.stream().map(b -> b.length).toList());
+	}
+	private static void refused(JadxInputCensusAdapter.Capture capture, Status status) {
+		assertEquals(status, capture.status(), capture.reason()); assertNull(capture.census());
+		assertTrue(capture.fingerprints().isEmpty());
+	}
+
+	@Test void ownedReadersCopyAllRawDefinitionsWithoutReopeningOrRetainingMutableMetadata() throws Exception {
+		var owned = owned(); var limits = CensusLimits.defaults();
+		var expected = JadxInputCensusAdapter.capture(owned.paths(), limits);
+		assertEquals(Status.COMPLETE, expected.status());
+		for (Path path : owned.paths().stream().distinct().toList()) Files.delete(path);
+		var captured = owned.capture(limits);
+		assertEquals(Status.COMPLETE, captured.status(), captured.reason());
+		assertEquals(expected.census(), captured.census()); assertTrue(captured.fingerprints().isEmpty());
+		var defs = captured.census().classesByDescriptor().get("Lowned/D;");
+		assertEquals(3, defs.size()); assertEquals("Lowned/P;", defs.getFirst().superclass());
+		assertEquals(List.of("Lowned/I;"), defs.getFirst().interfaces());
+		assertNotEquals(defs.get(0).access(), defs.get(1).access());
+		assertEquals(2, defs.getFirst().methods().size());
+		assertEquals("(I)I", defs.getFirst().methods().getFirst().ref().originalDescriptor());
+		assertThrows(UnsupportedOperationException.class, () -> captured.census().inputs().clear());
+		assertThrows(UnsupportedOperationException.class, () -> captured.census().classesByDescriptor().clear());
+		assertThrows(UnsupportedOperationException.class, defs::clear);
+		assertThrows(UnsupportedOperationException.class, () -> defs.getFirst().interfaces().clear());
+		assertThrows(UnsupportedOperationException.class, () -> defs.getFirst().methods().clear());
+		owned.origins().clear(); owned.readers().clear(); owned.bytes().forEach(b -> java.util.Arrays.fill(b, (byte) 0));
+		assertEquals(expected.census(), captured.census());
+	}
+
+	@Test void ownedCensusChecksInclusiveBudgetsIncludingOriginTextAndRawDuplicates() throws Exception {
+		var owned = owned(); var full = owned.capture(CensusLimits.defaults());
+		assertEquals(Status.COMPLETE, full.status());
+		long chars = full.census().inputs().stream().mapToLong(i -> i.canonicalPath().length()).sum();
+		for (var defs : full.census().classesByDescriptor().values()) for (var cls : defs) {
+			chars += cls.descriptor().length() + cls.superclass().length();
+			for (var iface : cls.interfaces()) chars += iface.length();
+			for (var m : cls.methods()) chars += m.ref().originalName().length() + m.ref().originalDescriptor().length();
+		}
+		int fileBytes = owned.sizes().stream().mapToInt(Integer::intValue).max().orElseThrow();
+		long total = owned.sizes().stream().mapToLong(Integer::longValue).sum();
+		for (String field : List.of("inputs", "classes", "methodsPerClass", "methods", "edges", "duplicates", "fileBytes", "totalBytes", "characters")) {
+			for (int delta : List.of(0, 1)) {
+				var limits = new CensusLimits(field.equals("inputs") ? 3 - delta : 3, field.equals("classes") ? 3 - delta : 3,
+						field.equals("methodsPerClass") ? 2 - delta : 2, field.equals("methods") ? 5 - delta : 5,
+						field.equals("edges") ? 5 - delta : 5, field.equals("duplicates") ? 3 - delta : 3,
+						1, field.equals("fileBytes") ? fileBytes - delta : fileBytes,
+						field.equals("totalBytes") ? total - delta : total, field.equals("characters") ? chars - delta : chars);
+				var captured = owned.capture(limits);
+				if (delta == 0) assertEquals(full.census(), captured.census(), field + ": " + captured.reason());
+				else refused(captured, Status.RESOURCE_LIMIT);
+			}
+		}
+	}
+
+	@Test void ownedCensusRefusesMissingExtraReorderedOriginsReadersAndInvalidSizes() throws Exception {
+		var o = owned(); var d = CensusLimits.defaults();
+		refused(JadxInputCensusAdapter.captureOwned(List.of(), List.of(), List.of(), d), Status.UNSUPPORTED_INPUT);
+		for (int count : List.of(2, 4)) {
+			var origins = new ArrayList<>(o.origins()); origins.add(o.origins().getFirst());
+			refused(JadxInputCensusAdapter.captureOwned(o.readers(), origins.subList(0, count), o.sizes(), d), Status.UNSUPPORTED_INPUT);
+			var readers = new ArrayList<>(o.readers()); readers.add(o.readers().getFirst());
+			refused(JadxInputCensusAdapter.captureOwned(readers.subList(0, count), o.origins(), o.sizes(), d), Status.UNSUPPORTED_INPUT);
+			var sizes = new ArrayList<>(o.sizes()); sizes.add(o.sizes().getFirst());
+			refused(JadxInputCensusAdapter.captureOwned(o.readers(), o.origins(), sizes.subList(0, count), d), Status.UNSUPPORTED_INPUT);
+		}
+		var origins = new ArrayList<>(o.origins()); java.util.Collections.swap(origins, 0, 2);
+		refused(JadxInputCensusAdapter.captureOwned(o.readers(), origins, o.sizes(), d), Status.INPUT_CHANGED);
+		var readers = new ArrayList<>(o.readers()); java.util.Collections.swap(readers, 0, 1);
+		refused(JadxInputCensusAdapter.captureOwned(readers, o.origins(), o.sizes(), d), Status.INPUT_CHANGED);
+		for (String path : List.of("relative.dex", dir + "/../unnormalized.dex", dir + "/other.dex")) {
+			origins = new ArrayList<>(o.origins());
+			origins.set(0, new dev.libjadx.core.hierarchy.InputCensus.InputOrigin(0, path));
+			refused(JadxInputCensusAdapter.captureOwned(o.readers(), origins, o.sizes(), d), Status.INPUT_CHANGED);
+		}
+		for (int size : List.of(-1, 0, o.sizes().getFirst() - 1, o.sizes().getFirst() + 1)) {
+			var sizes = new ArrayList<>(o.sizes()); sizes.set(0, size);
+			refused(JadxInputCensusAdapter.captureOwned(o.readers(), o.origins(), sizes, d), Status.FAILED);
+		}
+		Thread.currentThread().interrupt();
+		try { refused(o.capture(d), Status.FAILED); } finally { Thread.interrupted(); }
+	}
+
 	@Test void exactImmutableOriginalDefinitionsHaveConfiguredOriginsAndDoNotWarmOrMutatePrimary() throws Exception {
 		var inputs = RelatedFixture.compile(dir); var capture = JadxInputCensusAdapter.capture(inputs, CensusLimits.defaults());
 		assertEquals(Status.COMPLETE, capture.status());

@@ -30,6 +30,7 @@ import jadx.api.plugins.input.data.ISeqConsumer;
 import jadx.core.dex.instructions.args.ArgType;
 import jadx.plugins.input.dex.DexFileLoader;
 import jadx.plugins.input.dex.DexInputOptions;
+import jadx.plugins.input.dex.DexReader;
 import jadx.plugins.input.java.JavaClassReader;
 import jadx.zip.ZipReader;
 
@@ -44,6 +45,17 @@ public final class JadxInputCensusAdapter {
 		catch (CensusFailure failure) { return new Capture(null, Map.of(), limits, failure.status, failure.getMessage()); }
 		catch (FileFingerprint.LimitExceededException failure) { return new Capture(null, Map.of(), limits, Status.RESOURCE_LIMIT, "Fingerprint byte limit"); }
 		catch (IOException | RuntimeException failure) { return new Capture(null, Map.of(), limits, Status.FAILED, "Raw input parse/read failed"); }
+	}
+
+	/** Copies declarations from the exact privately owned readers, without path IO or hashing.
+	 * Origins must already be canonicalized by acquisition; only their lexical identity is checked
+	 * here. Empty fingerprints are intentional, not a path baseline or authorization to bind an
+	 * owned engine through the path-based Capture.bind contract. Readers/bytes remain caller-owned. */
+	public static Capture captureOwned(List<DexReader> readers, List<InputOrigin> origins,
+			List<Integer> byteCounts, CensusLimits limits) {
+		try { return new Builder(limits).captureOwned(readers, origins, byteCounts); }
+		catch (CensusFailure failure) { return new Capture(null, Map.of(), limits, failure.status, failure.getMessage()); }
+		catch (RuntimeException failure) { return new Capture(null, Map.of(), limits, Status.FAILED, "Owned input parse failed"); }
 	}
 
 	public record Capture(InputCensus census, Map<Path, FileFingerprint> fingerprints,
@@ -101,6 +113,32 @@ public final class JadxInputCensusAdapter {
 		private int classes, methods, edges, entries;
 		private long bytes, characters;
 		Builder(CensusLimits limits) { this.limits = limits; }
+		Capture captureOwned(List<DexReader> readers, List<InputOrigin> origins, List<Integer> byteCounts) {
+			if (readers.isEmpty() || readers.size() != origins.size() || readers.size() != byteCounts.size())
+				fail(Status.UNSUPPORTED_INPUT, "Owned readers, origins and byte counts must be nonempty and match");
+			if (readers.size() > limits.inputs()) limit("Configured input limit");
+			for (int i = 0; i < readers.size(); i++) {
+				checkInterrupted();
+				var origin = origins.get(i);
+				var reader = readers.get(i);
+				Path path = Path.of(origin.canonicalPath());
+				if (origin.position() != i || !path.isAbsolute() || !path.normalize().toString().equals(origin.canonicalPath())
+						|| !origin.canonicalPath().equals(reader.getInputFileName()))
+					fail(Status.INPUT_CHANGED, "Owned input origin/order/label mismatch");
+				int size = byteCounts.get(i);
+				if (size <= 0 || size != reader.getBuf().capacity()) fail(Status.FAILED, "Invalid owned input byte count");
+				if (size > limits.fileBytes()) limit("Input byte limit");
+				chargeBytes(size); text(origin.canonicalPath());
+				int count = reader.getHeader().getClassDefsSize();
+				if (count < 0) fail(Status.FAILED, "Invalid raw class definition count");
+				if ((long) classes + count > limits.classes()) limit("Raw class definition limit");
+				int before = classes;
+				reader.visitClasses(cls -> add(cls, origin));
+				if (classes - before != count) fail(Status.FAILED, "Incomplete owned reader traversal");
+				if (classes == before) fail(Status.UNSUPPORTED_INPUT, "Configured input supplies no understood declarations");
+			}
+			return new Capture(new InputCensus(origins, records), Map.of(), limits, Status.COMPLETE, null);
+		}
 		Capture capture(List<Path> configured) throws IOException {
 			if (configured.size() > limits.inputs()) limit("Configured input limit");
 			if (configured.isEmpty()) fail(Status.UNSUPPORTED_INPUT, "No configured inputs");

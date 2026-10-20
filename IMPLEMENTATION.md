@@ -319,9 +319,12 @@ real loading and structural limits precede graph passes, but inputless Jadx skip
 native declaration rename initialization. The follow-on
 [initialization and integration design](docs/phase-7-owned-input-initialization.md)
 adds passing test-only native replay comparisons and specifies accepted-baseline
-access and same-owned-data census integration. Production adoption requires review
-of the pin-specific private-method adapter and implementation of that internal
-integration gate; a public CFG endpoint remains deferred.
+access and same-owned-data census integration. After explicit human approval,
+the [internal integration gate](docs/phase-7-owned-input-integration.md) implements
+all three boundaries together, off public routes. Primary loading and temporary
+Java overrides remain unchanged. Next is a focused filesystem-containment review
+and executable race probes before any production graph exposure; a public CFG
+endpoint still needs its own OpenAPI-first slice.
 
 ## 9. Current regression matrix and future fixtures
 
