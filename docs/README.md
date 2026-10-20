@@ -99,6 +99,14 @@ reopened standalone bytes can differ under one revision. Public inventory/raw
 content remains blocked on accepted-artifact ownership and pre-parser admission,
 not just a bounded response body.
 
+The [memory-backed archive admission gate](phase-7-resource-admission.md) adds
+eight probes with post-acquisition encoded limits and STORE-only local copies.
+Actual missing-central-directory and local/central name/count counterexamples
+block adoption of the JDK stream as a complete inventory. No supported memory
+archive opener was found in the audited pinned Jadx ZIP/resource classes. A
+strict memory-backed validator design and the filesystem-acquisition decision
+need approval and executable proof before public resource work.
+
 The [outgoing loaded-DEX instruction-reference slice](phase-7-instruction-references.md)
 is implemented. The [per-method CFG feasibility gate](phase-7-cfg-feasibility.md)
 is complete locally: loaded-DEX flow facts are recoverable without Java passes,

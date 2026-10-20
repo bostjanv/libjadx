@@ -65,6 +65,14 @@ cached/reopened artifact freshness, and locale-dependent Unicode-name filtering
 artifact ownership and pre-parser aggregate admission remain unproved. No public
 resource support or fresh release/GUI qualification is claimed.
 
+The [memory-backed archive admission gate](phase-7-resource-admission.md) uses
+public JDK 21 streams and unchanged Jadx 1.5.6 for a test-only STORE experiment.
+Encoded-byte/hash admission precedes parsing of supplied private buffers, but
+missing central directories and local/central identity/count disagreements remain
+real counterexamples. Public adoption is BLOCKED pending explicit validator and
+filesystem-acquisition decisions and proof. No dependency, native persistence,
+capability, OpenAPI or qualification change is introduced.
+
 The [temporary-analysis baseline maintenance](temporary-analysis-baselines.md)
 adds admission-time conflict/security refusal before loading a non-primary mode.
 Pins, capability statuses and native persistence are unchanged. This is not
