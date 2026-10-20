@@ -57,6 +57,14 @@ No public resource operation/capability, persistence, pin or qualification chang
 Fixture regeneration alone uses documented local aapt2/API-35 compiler inputs;
 ordinary tests require no Android SDK or network.
 
+The follow-on [raw-resource identity/copy gate](phase-7-resource-identity.md)
+uses the same pins and default security, with no new dependencies. Eight probes
+retain duplicate-payload loss in the installed OpenJDK fallback reader, mixed
+cached/reopened artifact freshness, and locale-dependent Unicode-name filtering
+(POSIX/ASCII versus C.UTF-8 on Linux). Only detached copying is bounded; generic
+artifact ownership and pre-parser aggregate admission remain unproved. No public
+resource support or fresh release/GUI qualification is claimed.
+
 The [temporary-analysis baseline maintenance](temporary-analysis-baselines.md)
 adds admission-time conflict/security refusal before loading a non-primary mode.
 Pins, capability statuses and native persistence are unchanged. This is not

@@ -92,7 +92,12 @@ is complete locally with PARTIAL/DEGRADED internal results. Eight real-Jadx prob
 and an owned compiled fixture distinguish raw bytes, declared manifest facts,
 configuration-scoped values and typed references from Unicode corruption,
 manifest-helper omissions and error-text containers. No resource API/capability
-is added; bounded inventory/raw content is the recommended next contract slice.
+is added. The follow-on [raw-resource identity/copy gate](phase-7-resource-identity.md)
+adds eight probes and test-only detached bounded copies. Duplicate fallback reads
+lose occurrence payloads; filtered views are incomplete, and cached ZIP versus
+reopened standalone bytes can differ under one revision. Public inventory/raw
+content remains blocked on accepted-artifact ownership and pre-parser admission,
+not just a bounded response body.
 
 The [outgoing loaded-DEX instruction-reference slice](phase-7-instruction-references.md)
 is implemented. The [per-method CFG feasibility gate](phase-7-cfg-feasibility.md)
