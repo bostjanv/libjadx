@@ -146,14 +146,15 @@ these bounds. Cancellation stays cooperative. No worker or persistence layer,
 mapping ownership, cross-platform qualification or new hierarchy-edit authority
 is introduced.
 
-**Next work item:** focused pinned-JDK/filesystem containment review with
-deterministic ancestor-relocation and regular-to-special-file probes, before any
-public graph exposure. Preserve the failed fixtures and propose the smallest
-compatible acquisition adjustment if these races cannot be bounded under the
-current in-process design; do not quietly add persisted copies, workers or weaken
-allowed-root semantics. Only after that review/gate should a separately reviewed
-OpenAPI-first normalized CFG slice begin. Original/raw CFGs and exhaustive
-exception dispatch remain unproved.
+**Subsequent gate:** the
+[filesystem-containment review and probes](phase-7-owned-input-containment.md)
+now retain real ancestor-relocation reads outside the root and FIFO hangs in
+native file/directory opens. That gate's **BLOCKED/DEGRADED** outcome changes no
+acquisition policy or public contract. Next is an explicit input-namespace/threat-
+model design decision and its executable proof; do not quietly add persisted
+copies, workers or weaken allowed-root semantics. Only after resolving that
+boundary should a separately reviewed OpenAPI-first normalized CFG slice begin.
+Original/raw CFGs and exhaustive exception dispatch remain unproved.
 
 ## Executed validation and delivery
 

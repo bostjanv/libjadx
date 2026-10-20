@@ -67,6 +67,14 @@ captures accepted repository baselines and supplies the same private readers to
 census and temporary loading. It is not wired to HTTP or existing loading paths;
 filesystem-containment limits remain, with no public CFG or qualification upgrade.
 
+The [owned-input containment gate](phase-7-owned-input-containment.md) reproduces
+outside-root reads after ancestor relocation and blocking FIFO replacement at
+file/directory opens on Linux x86_64, Ubuntu OpenJDK 21.0.12.1 and tmpfs using the
+default secure-directory provider. Its **BLOCKED/DEGRADED** decision is not a
+production fix or cross-platform claim. A package-local observation seam and
+retained counterexamples leave acquisition policy, pins and public support
+unchanged. Input-namespace/threat-model review is required before graph exposure.
+
 ## Jadx pin
 
 | Component | Pin | Evidence |

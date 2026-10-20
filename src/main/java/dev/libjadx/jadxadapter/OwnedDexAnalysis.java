@@ -51,8 +51,8 @@ import jadx.plugins.input.dex.sections.DexCodeReader;
 /** Internal plain-DEX integration gate, not a public graph service or hostile-input sandbox.
  * Pinned to Jadx 1.5.6 / 28ff15e4ae69950aebea110a13e5ab895d234dfc.
  * Arrays/readers never escape; the census and engine consume the very same readers.
- * SecureDirectoryStream requires platform support; ancestor relocation and special-file
- * replacement races remain unproved. Structural admission is not a heap/time bound. */
+ * SecureDirectoryStream requires platform support; the containment gate retains outside-root
+ * ancestor-relocation reads and blocking special-file opens. Structural admission is not a heap/time bound. */
 public final class OwnedDexAnalysis implements AutoCloseable {
 	// The preceding real-Jadx feasibility gate's inclusive ceilings, including raw duplicates.
 	private enum Quota { INPUTS, FILE_BYTES, TOTAL_BYTES, CLASSES, FIELDS, METHODS, UNITS, RECORDS, TRIES, HANDLERS, CASES, TEXT }
@@ -76,6 +76,15 @@ public final class OwnedDexAnalysis implements AutoCloseable {
 	private OwnedDexAnalysis(AcceptedInputs accepted) { this.accepted = accepted; }
 
 	public static OwnedDexAnalysis acquire(AcceptedInputs accepted) throws IOException {
+		return acquire(accepted, (stage, path, count) -> { });
+	}
+
+	// Per-invocation timing seam for the containment gate; public acquisition uses a no-op.
+	enum AcquisitionStage { BEFORE_DIRECTORY, DIRECTORY_OPENED, BEFORE_ATTRIBUTES, BEFORE_FILE_OPEN, FILE_OPENED, READ }
+	@FunctionalInterface
+	interface AcquisitionProbe { void at(AcquisitionStage stage, Path path, long count) throws IOException; }
+
+	static OwnedDexAnalysis acquire(AcceptedInputs accepted, AcquisitionProbe probe) throws IOException {
 		var owned = new OwnedDexAnalysis(accepted);
 		try {
 			if (accepted.mappingsAttached()) throw new IllegalArgumentException("Owned DEX analysis does not support attached mappings");
@@ -93,7 +102,8 @@ public final class OwnedDexAnalysis implements AutoCloseable {
 				byte[] content;
 				try {
 					if (!path.toRealPath().equals(path)) throw new SecurityException("Input reference changed");
-					try (var channel = secureOpen(path)) {
+					try (var channel = secureOpen(path, probe)) {
+						probe.at(AcquisitionStage.FILE_OPENED, path, 0);
 						owned.check(Quota.FILE_BYTES, channel.size());
 						long count = 0;
 						var output = new ByteArrayOutputStream();
@@ -103,6 +113,7 @@ public final class OwnedDexAnalysis implements AutoCloseable {
 							interrupted();
 							owned.check(Quota.FILE_BYTES, count + read); owned.add(Quota.TOTAL_BYTES, read);
 							output.write(chunk.array(), 0, read); count += read; chunk.clear();
+							probe.at(AcquisitionStage.READ, path, count);
 						}
 						content = output.toByteArray();
 					}
@@ -187,19 +198,26 @@ public final class OwnedDexAnalysis implements AutoCloseable {
 		try { return new FileFingerprint(true, "sha256:" + HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(content))); }
 		catch (java.security.NoSuchAlgorithmException impossible) { throw new IllegalStateException(impossible); }
 	}
-	private static SeekableByteChannel secureOpen(Path path) throws IOException {
+	private static SeekableByteChannel secureOpen(Path path, AcquisitionProbe probe) throws IOException {
 		try (var stream = Files.newDirectoryStream(path.getRoot())) {
 			if (!(stream instanceof SecureDirectoryStream<Path> secured)) throw new SecurityException("SecureDirectoryStream unavailable");
-			return descend(secured, path, 0);
+			return descend(secured, path, 0, probe);
 		}
 	}
-	private static SeekableByteChannel descend(SecureDirectoryStream<Path> directory, Path path, int at) throws IOException {
+	private static SeekableByteChannel descend(SecureDirectoryStream<Path> directory, Path path, int at, AcquisitionProbe probe) throws IOException {
 		Path name = path.getName(at);
 		if (at < path.getNameCount() - 1) {
-			try (var child = directory.newDirectoryStream(name, LinkOption.NOFOLLOW_LINKS)) { return descend(child, path, at + 1); }
+			Path component = path.getRoot().resolve(path.subpath(0, at + 1));
+			probe.at(AcquisitionStage.BEFORE_DIRECTORY, component, 0);
+			try (var child = directory.newDirectoryStream(name, LinkOption.NOFOLLOW_LINKS)) {
+				probe.at(AcquisitionStage.DIRECTORY_OPENED, component, 0);
+				return descend(child, path, at + 1, probe);
+			}
 		}
+		probe.at(AcquisitionStage.BEFORE_ATTRIBUTES, path, 0);
 		if (!directory.getFileAttributeView(name, BasicFileAttributeView.class, LinkOption.NOFOLLOW_LINKS).readAttributes().isRegularFile())
 			throw new SecurityException("Regular input required");
+		probe.at(AcquisitionStage.BEFORE_FILE_OPEN, path, 0);
 		return directory.newByteChannel(name, Set.of(StandardOpenOption.READ, LinkOption.NOFOLLOW_LINKS));
 	}
 	private void check(Quota key, long count) {

@@ -117,8 +117,13 @@ proves a test-only pin-specific native replay candidate and specifies immutable
 accepted-baseline access and same-owned-data census integration. The approved
 [internal integration gate](phase-7-owned-input-integration.md) now implements
 these boundaries together, off public routes. Primary/path-based Java loading
-and public CFG support remain unchanged. Filesystem-containment review and race
-probes still precede a separately reviewed public graph contract.
+and public CFG support remain unchanged. The follow-on
+[owned-input filesystem-containment gate](phase-7-owned-input-containment.md)
+is complete locally with a **BLOCKED/DEGRADED** decision. Its 20 invocations retain
+outside-root ancestor-relocation reads and native FIFO-open hangs, with healthy,
+refusal and watchdog/cleanup controls. Exact-JDK source review corroborates the
+limits; passing counterexample tests are not a containment fix. An explicit
+input-namespace/threat-model decision and new proof precede a public graph contract.
 
 ## Historical milestone evidence
 

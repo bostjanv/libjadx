@@ -322,9 +322,14 @@ adds passing test-only native replay comparisons and specifies accepted-baseline
 access and same-owned-data census integration. After explicit human approval,
 the [internal integration gate](docs/phase-7-owned-input-integration.md) implements
 all three boundaries together, off public routes. Primary loading and temporary
-Java overrides remain unchanged. Next is a focused filesystem-containment review
-and executable race probes before any production graph exposure; a public CFG
-endpoint still needs its own OpenAPI-first slice.
+Java overrides remain unchanged. The follow-on
+[filesystem-containment gate](docs/phase-7-owned-input-containment.md) is complete
+locally with a **BLOCKED/DEGRADED** decision: real acquisition follows moved
+ancestors outside allowed roots, and FIFO replacement blocks native file and
+directory opens. No acquisition policy fix or public graph exposure is included.
+Next is an explicit input-namespace/threat-model design decision and executable
+proof, without silently weakening allowed-root semantics. A public CFG endpoint
+remains deferred and still needs its own OpenAPI-first slice.
 
 ## 9. Current regression matrix and future fixtures
 
