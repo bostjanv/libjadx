@@ -35,6 +35,19 @@ It is an opt-in outgoing-method view of loaded DEX readers, not an original-inpu
 offset/provenance guarantee. Pair-level references and native persistence remain
 unchanged; the recorded PR #24 qualification does not qualify this later source.
 
+The test-only [method Smali feasibility gate](phase-7-method-smali-feasibility.md)
+uses the existing runtime Baksmali 3.0.9 dependency without lock changes. Original
+method selection works, but shared switch payloads gain synthetic disassembly
+addresses. Private loaded-buffer access is probe-only; public METHOD Smali and
+offset guarantees remain unchanged. No GUI or release qualification is claimed.
+
+The test-only [external-classpath gate](phase-7-external-classpath-feasibility.md)
+uses pinned internal converted-class-set APIs and private installation bridges.
+External override metadata recovers without project classes, but ordinary library
+configuration, genuine provenance, closure/collision policy and immutable
+ownership remain unproved. No dependency, configuration, persistence or public
+capability changes; existing qualification is not renewed.
+
 The [CFG feasibility gate](phase-7-cfg-feasibility.md) adds only owned probes and
 documentation against the same pins. Loaded-DEX branch/switch/try metadata is
 distinct from Jadx's normalized/transformed block graphs; graph state unloads

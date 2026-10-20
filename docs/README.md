@@ -87,6 +87,20 @@ original offsets, independently verified CFGs, Smali/richer representations,
 advanced annotations, resources/external classpaths, portable native export,
 optional isolated workers and separately reviewed filesystem deletion.
 
+The test-only [method Smali feasibility gate](phase-7-method-smali-feasibility.md)
+proves original owner/name/full-descriptor selection, bodyless declarations and
+alias/unload stability. Shared switch payloads produce synthetic effective
+disassembly addresses, so upstream offset comments are not a universal original
+instruction map. Public METHOD Smali remains rejected; a reviewed loaded-buffer
+boundary and precision contract must precede production adoption.
+
+The independent [external-classpath feasibility gate](phase-7-external-classpath-feasibility.md)
+recovers inherited-method metadata from converted internal declarations while
+keeping dependencies outside project enumeration. Ordinary extra input JARs do
+not preserve that boundary. Private installation, artificial framework labels,
+closed-type conversion and non-durable preparation markers block public adoption;
+no external dependency-JAR setting or native persistence is introduced.
+
 The [Android resource-decoding feasibility gate](phase-7-resource-feasibility.md)
 is complete locally with PARTIAL/DEGRADED internal results. Eight real-Jadx probes
 and an owned compiled fixture distinguish raw bytes, declared manifest facts,
