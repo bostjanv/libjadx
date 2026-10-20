@@ -48,6 +48,15 @@ adds a bounded per-method reader operation and `analysis.loaded_dex_control_flow
 All pins and native persistence remain unchanged; PR #24 evidence is historical
 for this newer source, not renewed qualification.
 
+The [resource-decoding feasibility gate](phase-7-resource-feasibility.md) uses an
+owned aapt2-compiled APK resource fixture plus real DEX, with no new runtime or
+test dependency. Internal results are PARTIAL/DEGRADED: raw bytes, declared
+manifest facts and table variants are recoverable, but decoded supplementary
+Unicode is corrupted and manifest/failure helpers are not completeness APIs.
+No public resource operation/capability, persistence, pin or qualification changes.
+Fixture regeneration alone uses documented local aapt2/API-35 compiler inputs;
+ordinary tests require no Android SDK or network.
+
 The [temporary-analysis baseline maintenance](temporary-analysis-baselines.md)
 adds admission-time conflict/security refusal before loading a non-primary mode.
 Pins, capability statuses and native persistence are unchanged. This is not

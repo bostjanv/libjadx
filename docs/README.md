@@ -87,6 +87,13 @@ original offsets, independently verified CFGs, Smali/richer representations,
 advanced annotations, resources/external classpaths, portable native export,
 optional isolated workers and separately reviewed filesystem deletion.
 
+The [Android resource-decoding feasibility gate](phase-7-resource-feasibility.md)
+is complete locally with PARTIAL/DEGRADED internal results. Eight real-Jadx probes
+and an owned compiled fixture distinguish raw bytes, declared manifest facts,
+configuration-scoped values and typed references from Unicode corruption,
+manifest-helper omissions and error-text containers. No resource API/capability
+is added; bounded inventory/raw content is the recommended next contract slice.
+
 The [outgoing loaded-DEX instruction-reference slice](phase-7-instruction-references.md)
 is implemented. The [per-method CFG feasibility gate](phase-7-cfg-feasibility.md)
 is complete locally: loaded-DEX flow facts are recoverable without Java passes,

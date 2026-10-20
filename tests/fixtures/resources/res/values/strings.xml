@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Owned probe</string>
+    <string name="greeting">Hello Živa 🚀</string>
+    <string name="alias">@string/greeting</string>
+    <string name="chain">@string/alias</string>
+    <string name="framework">@android:string/ok</string>
+    <string name="missing">@0x7f0200ff</string>
+    <string-array name="choices">
+        <item>first</item>
+        <item>@string/greeting</item>
+    </string-array>
+</resources>
